@@ -1,0 +1,73 @@
+version: "3.8"
+
+services:
+  app:
+    image: ghcr.io/jvzanini/nexus-crm-krayin:latest
+    command: ["node", "server.js"]
+    environment:
+      - DATABASE_URL=postgresql://nexus:${DB_PASSWORD}@db:5432/nexus_crm_krayin
+      - REDIS_URL=redis://redis:6379
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=https://crm.nexusai360.com
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+    networks:
+      - rede_nexusAI
+      - internal
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.nexus-crm-krayin.rule=Host(`crm.nexusai360.com`)
+        - traefik.http.routers.nexus-crm-krayin.entrypoints=websecure
+        - traefik.http.routers.nexus-crm-krayin.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.nexus-crm-krayin.service=nexus-crm-krayin
+        - traefik.http.services.nexus-crm-krayin.loadbalancer.server.port=3000
+        - traefik.http.services.nexus-crm-krayin.loadbalancer.passHostHeader=true
+
+  worker:
+    image: ghcr.io/jvzanini/nexus-crm-krayin:latest
+    command: ["node", "worker/index.js"]
+    environment:
+      - DATABASE_URL=postgresql://nexus:${DB_PASSWORD}@db:5432/nexus_crm_krayin
+      - REDIS_URL=redis://redis:6379
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+    networks:
+      - internal
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=nexus
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=nexus_crm_krayin
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  rede_nexusAI:
+    external: true
+    name: rede_nexusAI
+  internal:
+    driver: overlay

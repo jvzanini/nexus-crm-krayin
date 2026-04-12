@@ -1,0 +1,352 @@
+// Nexus CRM — Prisma Schema
+// Gerado via Blueprint Nexus AI v2.0.0
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// ENUMS BASE
+// ============================================================
+
+enum PlatformRole {
+  super_admin
+  admin
+  manager
+  viewer
+}
+
+enum Theme {
+  dark
+  light
+  system
+}
+
+// ============================================================
+// ENUMS — MULTI-TENANT
+// ============================================================
+
+enum CompanyRole {
+  super_admin
+  company_admin
+  manager
+  viewer
+}
+
+// ============================================================
+// ENUMS — NOTIFICATIONS
+// ============================================================
+
+enum NotificationType {
+  error
+  warning
+  info
+}
+
+// ============================================================
+// ENUMS — AUDIT LOG
+// ============================================================
+
+enum ActorType {
+  user
+  system
+}
+
+// ============================================================
+// MODELO USER (core)
+// ============================================================
+
+model User {
+  id           String       @id @default(uuid()) @db.Uuid
+  name         String
+  email        String       @unique
+  password     String
+  platformRole PlatformRole @default(viewer) @map("platform_role")
+  isSuperAdmin Boolean      @default(false) @map("is_super_admin")
+  avatarUrl    String?      @map("avatar_url")
+  theme        Theme        @default(dark)
+  isActive     Boolean      @default(true) @map("is_active")
+  invitedById  String?      @map("invited_by") @db.Uuid
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  invitedBy           User?                   @relation("UserInvites", fields: [invitedById], references: [id])
+  invitees            User[]                  @relation("UserInvites")
+  memberships         UserCompanyMembership[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]              @relation("AuditActor")
+  passwordResetTokens PasswordResetToken[]
+  emailChangeTokens   EmailChangeToken[]
+  apiKeys             ApiKey[]
+
+  @@map("users")
+}
+
+// ============================================================
+// MODELO PASSWORD RESET TOKEN (core)
+// ============================================================
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  token     String    @unique
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token], name: "idx_reset_token")
+  @@index([userId, createdAt(sort: Desc)], name: "idx_reset_user")
+  @@map("password_reset_tokens")
+}
+
+// ============================================================
+// MODELO EMAIL CHANGE TOKEN (core)
+// ============================================================
+
+model EmailChangeToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  newEmail  String    @map("new_email")
+  token     String    @unique
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token], name: "idx_email_change_token")
+  @@index([userId, createdAt(sort: Desc)], name: "idx_email_change_user")
+  @@map("email_change_tokens")
+}
+
+// ============================================================
+// MÓDULO: MULTI-TENANT
+// ============================================================
+
+model Company {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String   @unique
+  logoUrl   String?  @map("logo_url")
+  features  Json     @default("{}") @db.JsonB
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  memberships   UserCompanyMembership[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+  apiKeys       ApiKey[]
+
+  @@map("companies")
+}
+
+model UserCompanyMembership {
+  id        String      @id @default(uuid()) @db.Uuid
+  userId    String      @map("user_id") @db.Uuid
+  companyId String      @map("company_id") @db.Uuid
+  role      CompanyRole
+  isActive  Boolean     @default(true) @map("is_active")
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, companyId])
+  @@map("user_company_memberships")
+}
+
+// ============================================================
+// MÓDULO: NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  id           String           @id @default(uuid()) @db.Uuid
+  userId       String?          @map("user_id") @db.Uuid
+  companyId    String?          @map("company_id") @db.Uuid
+  type         NotificationType
+  title        String
+  message      String
+  link         String
+  channelsSent Json             @map("channels_sent") @db.JsonB
+  isRead       Boolean          @default(false) @map("is_read")
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@index([userId, isRead, createdAt(sort: Desc)], name: "idx_notification_user_read")
+  @@map("notifications")
+}
+
+// ============================================================
+// MÓDULO: AUDIT LOG
+// ============================================================
+
+model AuditLog {
+  id           String    @id @default(uuid()) @db.Uuid
+  actorType    ActorType @map("actor_type")
+  actorId      String?   @map("actor_id") @db.Uuid
+  actorLabel   String    @map("actor_label")
+  companyId    String?   @map("company_id") @db.Uuid
+  action       String
+  resourceType String    @map("resource_type")
+  resourceId   String?   @map("resource_id") @db.Uuid
+  details      Json      @db.JsonB
+  before       Json?     @db.JsonB
+  after        Json?     @db.JsonB
+  ipAddress    String?   @map("ip_address")
+  userAgent    String?   @map("user_agent")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  actor   User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: Restrict)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@index([companyId, createdAt(sort: Desc)], name: "idx_audit_company")
+  @@map("audit_logs")
+}
+
+// ============================================================
+// MÓDULO: API KEYS
+// ============================================================
+
+model ApiKey {
+  id         String    @id @default(uuid()) @db.Uuid
+  companyId  String    @map("company_id") @db.Uuid
+  name       String
+  keyPrefix  String    @map("key_prefix")
+  keyHash    String    @unique @map("key_hash")
+  scopes     Json      @default("[]") @db.JsonB
+  allowedIps Json      @default("[]") @map("allowed_ips") @db.JsonB
+  rateLimit  Int?      @map("rate_limit")
+  expiresAt  DateTime? @map("expires_at")
+  lastUsedAt DateTime? @map("last_used_at")
+  createdBy  String    @map("created_by") @db.Uuid
+  isActive   Boolean   @default(true) @map("is_active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  creator User    @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@index([keyHash], name: "idx_api_key_hash")
+  @@index([companyId], name: "idx_api_key_company")
+  @@map("api_keys")
+}
+
+// ============================================================
+// SETTINGS (core — pattern)
+// ============================================================
+
+model GlobalSettings {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique
+  value     Json     @db.JsonB
+  updatedBy String   @map("updated_by") @db.Uuid
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("global_settings")
+}
+
+// ============================================================
+// OUTBOX (pattern)
+// ============================================================
+
+model OutboxEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  eventType   String    @map("event_type")
+  aggregateId String    @map("aggregate_id") @db.Uuid
+  payload     Json      @db.JsonB
+  processedAt DateTime? @map("processed_at")
+  error       String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([processedAt, createdAt(sort: Asc)], name: "idx_outbox_pending")
+  @@map("outbox_events")
+}
+
+// ============================================================
+// CRM DOMAIN — LEADS, CONTACTS, OPPORTUNITIES
+// ============================================================
+
+enum LeadStatus {
+  new
+  contacted
+  qualified
+  unqualified
+  converted
+}
+
+enum OpportunityStage {
+  prospecting
+  qualification
+  proposal
+  negotiation
+  closed_won
+  closed_lost
+}
+
+model Lead {
+  id          String     @id @default(uuid()) @db.Uuid
+  name        String
+  email       String?
+  phone       String?
+  company     String?
+  source      String?
+  status      LeadStatus @default(new)
+  notes       String?
+  assignedTo  String?    @map("assigned_to") @db.Uuid
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  @@index([status, createdAt(sort: Desc)], name: "idx_lead_status_created")
+  @@index([assignedTo], name: "idx_lead_assigned")
+  @@map("leads")
+}
+
+model Contact {
+  id           String   @id @default(uuid()) @db.Uuid
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  email        String?  @unique
+  phone        String?
+  organization String?
+  title        String?
+  notes        String?
+  avatarUrl    String?  @map("avatar_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  opportunities Opportunity[]
+
+  @@index([email], name: "idx_contact_email")
+  @@map("contacts")
+}
+
+model Opportunity {
+  id          String           @id @default(uuid()) @db.Uuid
+  title       String
+  contactId   String?          @map("contact_id") @db.Uuid
+  stage       OpportunityStage @default(prospecting)
+  value       Float?
+  currency    String           @default("BRL")
+  probability Int?             @default(0)
+  closeDate   DateTime?        @map("close_date")
+  notes       String?
+  assignedTo  String?          @map("assigned_to") @db.Uuid
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  contact Contact? @relation(fields: [contactId], references: [id], onDelete: Restrict)
+
+  @@index([stage, createdAt(sort: Desc)], name: "idx_opp_stage_created")
+  @@index([assignedTo], name: "idx_opp_assigned")
+  @@map("opportunities")
+}
