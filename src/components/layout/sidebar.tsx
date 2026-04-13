@@ -18,8 +18,7 @@ import { getNavItems } from "@/lib/constants/navigation";
 import { Button } from "@/components/ui/button";
 import { signOut } from "next-auth/react";
 import { useSearch } from "@/components/layout/search-context";
-import { PLATFORM_ROLE_LABELS, PLATFORM_ROLE_STYLES } from "@/lib/constants/roles";
-import { APP_CONFIG } from "@/lib/app.config";
+import Image from "next/image";
 
 interface SidebarProps {
   user: {
@@ -54,7 +53,6 @@ export function Sidebar({ user }: SidebarProps) {
 
   const ThemeIcon = THEME_ICONS[theme] ?? Moon;
   const allMenuItems = getNavItems(user.platformRole);
-  const roleStyle = PLATFORM_ROLE_STYLES[user.platformRole];
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -63,22 +61,12 @@ export function Sidebar({ user }: SidebarProps) {
 
   const sidebarContent = (
     <div className="flex h-full flex-col bg-background border-r border-border overflow-y-auto">
-      {/* Logo + badge de role */}
+      {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-purple-600 shadow-[0_0_12px_rgba(124,58,237,0.3)]">
-          <span className="text-white font-bold text-sm">
-            {APP_CONFIG.shortName}
-          </span>
-        </div>
+        <Image src="/logo.png" alt="Nexus AI" width={40} height={40} className="rounded-[22%] shadow-[0_0_12px_rgba(124,58,237,0.3)]" />
         <div>
-          <h1 className="text-base font-bold text-foreground tracking-tight">
-            {APP_CONFIG.name}
-          </h1>
-          <span
-            className={`text-[10px] px-1.5 py-0.5 rounded border ${roleStyle?.className ?? ""}`}
-          >
-            {roleStyle?.label ?? user.role}
-          </span>
+          <h1 className="text-base font-bold text-foreground tracking-tight">Nexus AI</h1>
+          <p className="text-[11px] text-muted-foreground leading-none">CRM</p>
         </div>
       </div>
 
@@ -157,7 +145,7 @@ export function Sidebar({ user }: SidebarProps) {
             <p className="text-sm font-medium text-foreground truncate group-hover:text-foreground transition-colors duration-200">
               {user.name}
             </p>
-            <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
+            <p className="text-[11px] text-muted-foreground truncate">{user.role}</p>
           </div>
         </Link>
 
