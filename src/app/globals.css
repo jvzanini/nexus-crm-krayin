@@ -56,7 +56,7 @@
   --card-foreground: #18181b;
   --popover: #ffffff;
   --popover-foreground: #18181b;
-  --primary: #7c3aed; /* ← COR PRIMÁRIA */
+  --primary: #6d28d9; /* ← COR PRIMÁRIA (violet-700 light) */
   --primary-foreground: #ffffff;
   --secondary: #f4f4f5;
   --secondary-foreground: #18181b;
@@ -67,7 +67,7 @@
   --destructive: #ef4444;
   --border: #e4e4e7;
   --input: #e4e4e7;
-  --ring: #7c3aed; /* ← MESMA COR do primary */
+  --ring: #6d28d9; /* ← MESMA COR do primary */
   --chart-1: #7c3aed; /* ← COR do gráfico principal */
   --chart-2: #8b5cf6;
   --chart-3: #22c55e;
@@ -76,12 +76,12 @@
   --radius: 0.75rem;
   --sidebar: #ffffff;
   --sidebar-foreground: #18181b;
-  --sidebar-primary: #7c3aed; /* ← MESMA COR do primary */
+  --sidebar-primary: #6d28d9; /* ← MESMA COR do primary */
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #f4f4f5;
   --sidebar-accent-foreground: #18181b;
   --sidebar-border: #e4e4e7;
-  --sidebar-ring: #7c3aed; /* ← MESMA COR do primary */
+  --sidebar-ring: #6d28d9; /* ← MESMA COR do primary */
 }
 
 /* ===== DARK MODE ===== */

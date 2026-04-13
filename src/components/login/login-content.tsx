@@ -42,9 +42,9 @@ export function LoginContent() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" as const }}
+      transition={{ duration: 0.5, ease: "easeOut" as const }}
       className="w-full"
     >
       {/* Logo com glow animado */}
@@ -52,15 +52,15 @@ export function LoginContent() {
         <motion.div
           animate={{
             boxShadow: [
-              "0 0 20px rgba(124,58,237,0.3)",
-              "0 0 40px rgba(124,58,237,0.5)",
-              "0 0 20px rgba(124,58,237,0.3)",
+              "0 0 30px rgba(124,58,237,0.12)",
+              "0 0 50px rgba(124,58,237,0.2)",
+              "0 0 30px rgba(124,58,237,0.12)",
             ],
           }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" as const }}
-          className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-purple-600"
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" as const }}
+          className="flex h-[88px] w-[88px] items-center justify-center rounded-[22%] bg-gradient-to-br from-violet-600 to-purple-600"
         >
-          <ShieldCheck className="h-7 w-7 text-white" />
+          <ShieldCheck className="h-10 w-10 text-white" />
         </motion.div>
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground">{APP_CONFIG.name}</h1>
@@ -77,7 +77,7 @@ export function LoginContent() {
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive"
+              className="rounded-xl border border-red-900/50 bg-red-950/30 p-3.5 text-sm text-red-400"
             >
               {error}
             </motion.div>

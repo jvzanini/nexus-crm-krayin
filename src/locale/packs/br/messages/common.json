@@ -1,0 +1,74 @@
+{
+  "save": "Salvar",
+  "cancel": "Cancelar",
+  "confirm": "Confirmar",
+  "delete": "Excluir",
+  "loading": "Carregando...",
+  "required": "Obrigatório",
+  "settings": {
+    "saved": "Configurações salvas",
+    "error": "Erro ao salvar",
+    "save": "Salvar",
+    "title_user": "Minhas preferências regionais",
+    "title_company": "Configurações regionais de {company}",
+    "title_platform": "Configurações regionais da plataforma",
+    "regional": {
+      "section_defaults": "Padrões",
+      "section_available_locales": "Idiomas disponíveis",
+      "available_locales_help": "Selecione quais idiomas seus usuários podem escolher. Não é possível desabilitar o idioma padrão nem remover um idioma em uso.",
+      "is_default": "padrão",
+      "locale_in_use": "Idioma {locale} está em uso por {users} usuário(s) e {companies} empresa(s). Migre-os antes de remover."
+    }
+  },
+  "regional": {
+    "locale_label": "Idioma",
+    "locale_help": "Idioma usado em toda a interface e formulários.",
+    "timezone_label": "Fuso horário",
+    "timezone_help": "Afeta a exibição de datas e horários.",
+    "timezone_placeholder": "Selecionar fuso...",
+    "timezone_search": "Buscar fuso...",
+    "currency_label": "Moeda",
+    "currency_help": "Moeda padrão para novos documentos (cotações, produtos).",
+    "default_locale_label": "Idioma padrão da plataforma",
+    "default_locale_help": "Usado quando nenhuma outra preferência for detectada.",
+    "default_timezone_label": "Fuso horário padrão",
+    "default_timezone_help": "Herdado por novas empresas.",
+    "default_currency_label": "Moeda padrão",
+    "default_currency_help": "Herdada por novas empresas.",
+    "other_option": "Outro…",
+    "no_results": "Nenhum resultado",
+    "confirm_keyword": "CONFIRMAR",
+    "confirm_company_locale_title": "Trocar idioma da empresa de {from} para {to}?",
+    "confirm_company_locale_description": "Esta alteração afeta a interface e os formulários de todos os usuários desta empresa. Os dados já cadastrados permanecem inalterados.",
+    "will_change_header": "O que vai mudar",
+    "will_change": {
+      "tax_id_labels": "Formulários passarão a usar o formato de documento do novo país",
+      "phone_mask": "Máscaras de telefone seguirão o padrão do novo país",
+      "date_format": "Datas serão exibidas no formato do novo país",
+      "address_fields": "Campos de endereço se ajustarão ao novo país (ex: bairro aparece só em pt-BR)",
+      "ui_language": "Textos da interface mudarão para o novo idioma"
+    },
+    "wont_change_header": "O que NÃO vai mudar",
+    "wont_change": {
+      "existing_phones": "Telefones já cadastrados continuam válidos (armazenamento E.164)",
+      "existing_tax_ids": "Documentos (CPF, CNPJ, SSN, EIN) já cadastrados permanecem",
+      "existing_currencies": "Moedas de cotações/produtos não são convertidas",
+      "stored_dates": "Datas armazenadas não são re-convertidas"
+    },
+    "confirm_type_label": "Digite {keyword} para prosseguir",
+    "confirm_company_locale_button": "Confirmar troca"
+  },
+  "locale": {
+    "changed": "Idioma alterado",
+    "change_error": "Erro ao trocar idioma",
+    "switcher_label": "Selecionar idioma"
+  },
+  "taxId": {
+    "personal": {
+      "cpf": "CPF"
+    },
+    "business": {
+      "cnpj": "CNPJ"
+    }
+  }
+}

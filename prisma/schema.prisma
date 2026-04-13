@@ -70,19 +70,22 @@ model User {
   isSuperAdmin Boolean      @default(false) @map("is_super_admin")
   avatarUrl    String?      @map("avatar_url")
   theme        Theme        @default(dark)
+  locale       String?      @db.VarChar(5)
+  timezone     String?      @db.VarChar(50)
   isActive     Boolean      @default(true) @map("is_active")
   invitedById  String?      @map("invited_by") @db.Uuid
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")
 
-  invitedBy           User?                   @relation("UserInvites", fields: [invitedById], references: [id])
-  invitees            User[]                  @relation("UserInvites")
-  memberships         UserCompanyMembership[]
-  notifications       Notification[]
-  auditLogs           AuditLog[]              @relation("AuditActor")
-  passwordResetTokens PasswordResetToken[]
-  emailChangeTokens   EmailChangeToken[]
-  apiKeys             ApiKey[]
+  invitedBy            User?                   @relation("UserInvites", fields: [invitedById], references: [id])
+  invitees             User[]                  @relation("UserInvites")
+  memberships          UserCompanyMembership[]
+  notifications        Notification[]
+  auditLogs            AuditLog[]              @relation("AuditActor")
+  passwordResetTokens  PasswordResetToken[]
+  emailChangeTokens    EmailChangeToken[]
+  apiKeys              ApiKey[]
+  localeChangesApplied Company[]               @relation("CompanyLocaleChangedBy")
 
   @@map("users")
 }
@@ -131,19 +134,25 @@ model EmailChangeToken {
 // ============================================================
 
 model Company {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  slug      String   @unique
-  logoUrl   String?  @map("logo_url")
-  features  Json     @default("{}") @db.JsonB
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id              String    @id @default(uuid()) @db.Uuid
+  name            String
+  slug            String    @unique
+  logoUrl         String?   @map("logo_url")
+  features        Json      @default("{}") @db.JsonB
+  locale          String    @default("pt-BR") @db.VarChar(5)
+  defaultTimezone String    @default("America/Sao_Paulo") @map("default_timezone") @db.VarChar(50)
+  baseCurrency    String    @default("BRL") @map("base_currency") @db.VarChar(3)
+  localeChangedAt DateTime? @map("locale_changed_at")
+  localeChangedBy String?   @map("locale_changed_by") @db.Uuid
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  memberships   UserCompanyMembership[]
-  notifications Notification[]
-  auditLogs     AuditLog[]
-  apiKeys       ApiKey[]
+  localeChangedByUser User?                   @relation("CompanyLocaleChangedBy", fields: [localeChangedBy], references: [id])
+  memberships         UserCompanyMembership[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+  apiKeys             ApiKey[]
 
   @@map("companies")
 }
@@ -270,6 +279,31 @@ model OutboxEvent {
 
   @@index([processedAt, createdAt(sort: Asc)], name: "idx_outbox_pending")
   @@map("outbox_events")
+}
+
+// ============================================================
+// MÓDULO: REGIONALIZATION — ADDRESS
+// ============================================================
+
+model Address {
+  id              String   @id @default(uuid()) @db.Uuid
+  addressableType String   @map("addressable_type") @db.VarChar(50)
+  addressableId   String   @map("addressable_id") @db.Uuid
+  label           String?  @db.VarChar(50)
+  line1           String
+  line2           String?
+  neighborhood    String?
+  city            String
+  state           String   @db.VarChar(50)
+  postalCode      String   @map("postal_code") @db.VarChar(20)
+  countryCode     String   @default("BR") @map("country_code") @db.Char(2)
+  isPrimary       Boolean  @default(false) @map("is_primary")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([addressableType, addressableId], name: "idx_address_polymorphic")
+  @@index([postalCode], name: "idx_address_postal_code")
+  @@map("addresses")
 }
 
 // ============================================================

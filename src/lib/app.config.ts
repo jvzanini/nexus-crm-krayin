@@ -1,12 +1,12 @@
 // App Config — Identidade centralizada do Nexus CRM
-// Gerado via Blueprint Nexus AI v2.0.0 em 2026-04-11
+// Gerado via Nexus Blueprint v2.0.0 em 2026-04-11
 
 export const APP_CONFIG = {
   // === Identidade ===
   name: "Nexus CRM",
   shortName: "CRM",
   description: "Gestão de leads, contatos, oportunidades e pipeline de vendas com automação",
-  domain: "crm.nexusai360.com",
+  domain: "crm2.nexusai360.com",
 
   // === Visual ===
   logo: "/logo.png",

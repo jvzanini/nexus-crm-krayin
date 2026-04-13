@@ -31,7 +31,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       // Se tem novo login, pegar dados do user
       if (user) {
-        token.id = user.id;
+        token.id = user.id!;
         token.isSuperAdmin = (user as any).isSuperAdmin;
         token.platformRole = (user as any).platformRole;
         token.avatarUrl = (user as any).avatarUrl;

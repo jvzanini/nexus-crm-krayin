@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth-helpers";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function getSetting(key: string) {
   const setting = await prisma.globalSettings.findUnique({ where: { key } });

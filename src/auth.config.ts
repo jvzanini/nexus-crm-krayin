@@ -32,11 +32,13 @@ export const authConfig = {
     },
     jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
+        token.id = user.id!;
         token.isSuperAdmin = (user as any).isSuperAdmin;
         token.platformRole = (user as any).platformRole;
         token.avatarUrl = (user as any).avatarUrl;
         token.theme = (user as any).theme;
+        token.locale = (user as any).locale;
+        token.timezone = (user as any).timezone;
       }
       return token;
     },
@@ -47,6 +49,8 @@ export const authConfig = {
         (session.user as any).platformRole = token.platformRole;
         (session.user as any).avatarUrl = token.avatarUrl;
         (session.user as any).theme = token.theme;
+        (session.user as any).locale = token.locale;
+        (session.user as any).timezone = token.timezone;
       }
       return session;
     },

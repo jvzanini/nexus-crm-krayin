@@ -1,0 +1,8 @@
+{
+  "line1_br": "Logradouro",
+  "line2_br": "Complemento",
+  "neighborhood": "Bairro",
+  "city": "Cidade",
+  "state_br": "UF",
+  "postalCode_br": "CEP"
+}

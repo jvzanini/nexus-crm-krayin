@@ -1,0 +1,74 @@
+{
+  "save": "Save",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "delete": "Delete",
+  "loading": "Loading...",
+  "required": "Required",
+  "settings": {
+    "saved": "Settings saved",
+    "error": "Error saving settings",
+    "save": "Save",
+    "title_user": "My regional preferences",
+    "title_company": "{company} regional settings",
+    "title_platform": "Platform regional settings",
+    "regional": {
+      "section_defaults": "Defaults",
+      "section_available_locales": "Available languages",
+      "available_locales_help": "Select which languages your users can choose. You cannot disable the default language or remove a language in use.",
+      "is_default": "default",
+      "locale_in_use": "Language {locale} is in use by {users} user(s) and {companies} company(ies). Migrate them before removing."
+    }
+  },
+  "regional": {
+    "locale_label": "Language",
+    "locale_help": "Language used throughout the interface and forms.",
+    "timezone_label": "Timezone",
+    "timezone_help": "Affects date and time display.",
+    "timezone_placeholder": "Select timezone...",
+    "timezone_search": "Search timezone...",
+    "currency_label": "Currency",
+    "currency_help": "Default currency for new documents (quotes, products).",
+    "default_locale_label": "Platform default language",
+    "default_locale_help": "Used when no other preference is detected.",
+    "default_timezone_label": "Default timezone",
+    "default_timezone_help": "Inherited by new companies.",
+    "default_currency_label": "Default currency",
+    "default_currency_help": "Inherited by new companies.",
+    "other_option": "Other…",
+    "no_results": "No results",
+    "confirm_keyword": "CONFIRM",
+    "confirm_company_locale_title": "Change company language from {from} to {to}?",
+    "confirm_company_locale_description": "This change affects the interface and forms for all users in this company. Existing data will remain unchanged.",
+    "will_change_header": "What will change",
+    "will_change": {
+      "tax_id_labels": "Forms will use the new country's document format",
+      "phone_mask": "Phone masks will follow the new country's standard",
+      "date_format": "Dates will be displayed in the new country's format",
+      "address_fields": "Address fields will adjust to the new country (e.g., neighborhood only appears in pt-BR)",
+      "ui_language": "Interface text will switch to the new language"
+    },
+    "wont_change_header": "What will NOT change",
+    "wont_change": {
+      "existing_phones": "Existing phone numbers remain valid (E.164 storage)",
+      "existing_tax_ids": "Existing documents (CPF, CNPJ, SSN, EIN) remain unchanged",
+      "existing_currencies": "Quote/product currencies are not converted",
+      "stored_dates": "Stored dates are not re-converted"
+    },
+    "confirm_type_label": "Type {keyword} to proceed",
+    "confirm_company_locale_button": "Confirm change"
+  },
+  "locale": {
+    "changed": "Language changed",
+    "change_error": "Error changing language",
+    "switcher_label": "Select language"
+  },
+  "taxId": {
+    "personal": {
+      "ssn": "SSN"
+    },
+    "business": {
+      "ein": "EIN"
+    }
+  }
+}

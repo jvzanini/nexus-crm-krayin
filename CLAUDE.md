@@ -3,15 +3,15 @@
 ## Projeto
 Gestão de leads, contatos, oportunidades e pipeline de vendas com automação
 
-**URL Produção:** https://crm.nexusai360.com
+**URL Produção:** https://crm2.nexusai360.com
 **Repositório:** https://github.com/jvzanini/nexus-crm-krayin
-**Blueprint:** github.com/jvzanini/nexus-ai-blueprint (v2.0.0)
+**Blueprint:** github.com/jvzanini/nexus-blueprint (v2.0.0)
 **Tipo:** Interno Nexus AI
 **Criado em:** 2026-04-11
 
 ## Metodologia
-Este projeto segue a metodologia do Blueprint Nexus AI:
-1. **Criação** — `/nexus-ai-blueprint:criar` (concluída)
+Este projeto segue a metodologia do Nexus Blueprint:
+1. **Criação** — `/nexus-blueprint:criar` (concluída)
 2. **Planejamento** — `superpowers:brainstorming` → `writing-plans`
 3. **Construção** — `superpowers:executing-plans` com commits frequentes
 4. **Absorção** — ao concluir, funcionalidades reutilizáveis voltam pro blueprint
@@ -43,7 +43,7 @@ Sempre responder em português brasileiro.
 - Fonte principal: Inter (via `next/font/google`) — NÃO Geist Sans
 
 ## Identidade Visual
-- **Cor primária:** #7c3aed
+- **Cor primária:** #6d28d9 (light) / #7c3aed (dark)
 - **Logo:** `public/logo.png`
 - **Temas:** Dark (padrão), Light, Sistema
 - **CSS variables:** Todas as cores via CSS custom properties em globals.css
@@ -67,7 +67,7 @@ Sempre responder em português brasileiro.
 - **search** — Busca global unificada com Ctrl+K, multi-índice e tenant scoping
 
 ## Para adicionar módulos
-Invocar `/nexus-ai-blueprint:listar` para ver módulos disponíveis.
+Invocar `/nexus-blueprint:listar` para ver módulos disponíveis.
 Ler o doc do módulo no blueprint e seguir a seção "Integração".
 
 ## Regras

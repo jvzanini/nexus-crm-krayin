@@ -1,0 +1,10 @@
+{
+  "required": "Campo obrigatório",
+  "taxId": {
+    "personal": { "invalid": "CPF inválido" },
+    "business": { "invalid": "CNPJ inválido" }
+  },
+  "postalCode": { "invalid": "CEP inválido" },
+  "phone": { "invalid": "Telefone inválido" },
+  "address": { "neighborhood_required": "Bairro é obrigatório" }
+}
