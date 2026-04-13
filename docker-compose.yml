@@ -21,6 +21,7 @@ services:
         - traefik.enable=true
         - traefik.http.routers.nexus-crm2.rule=Host(`crm2.nexusai360.com`)
         - traefik.http.routers.nexus-crm2.entrypoints=websecure
+        - traefik.http.routers.nexus-crm2.tls.certresolver=letsencryptresolver
         - traefik.http.services.nexus-crm2.loadbalancer.server.port=3000
 
   worker:
