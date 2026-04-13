@@ -128,6 +128,33 @@ export async function verifyEmailChange(token: string): Promise<ActionResult> {
   return { success: true };
 }
 
+export async function getProfile(): Promise<ActionResult<{
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+  createdAt: string;
+}>> {
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return { success: false, error: "Não autenticado" };
+
+  const user = await prisma.user.findUnique({
+    where: { id: currentUser.id },
+    select: { name: true, email: true, avatarUrl: true, createdAt: true },
+  });
+
+  if (!user) return { success: false, error: "Usuário não encontrado" };
+
+  return {
+    success: true,
+    data: {
+      name: user.name,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+      createdAt: user.createdAt.toISOString(),
+    },
+  };
+}
+
 export async function updateTheme(theme: "dark" | "light" | "system"): Promise<ActionResult> {
   const currentUser = await getCurrentUser();
   if (!currentUser) return { success: false, error: "Não autenticado" };

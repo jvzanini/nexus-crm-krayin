@@ -119,3 +119,16 @@ export async function removeMember(companyId: string, userId: string) {
 
   return { success: true };
 }
+
+export async function deleteCompany(id: string): Promise<{ success: boolean; error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { success: false, error: "Não autorizado" };
+  if (!["super_admin", "admin"].includes(user.platformRole)) {
+    return { success: false, error: "Permissão insuficiente" };
+  }
+
+  await prisma.userCompanyMembership.deleteMany({ where: { companyId: id } });
+  await prisma.company.delete({ where: { id } });
+
+  return { success: true };
+}
