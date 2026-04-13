@@ -45,7 +45,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
       invertTrend: false,
     },
     {
-      label: "Taxa de Conversao",
+      label: "Taxa de Conversão",
       value: stats.conversionRate !== null
         ? `${stats.conversionRate.toFixed(1)}%`
         : "\u2014",

@@ -69,7 +69,7 @@ export function RecentActivity({ items, currentPage, totalPages, onPageChange }:
               {items.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    Nenhuma atividade no periodo
+                    Nenhuma atividade no período
                   </TableCell>
                 </TableRow>
               )}
@@ -119,7 +119,7 @@ export function RecentActivity({ items, currentPage, totalPages, onPageChange }:
               Anterior
             </Button>
             <span className="text-xs text-muted-foreground">
-              Pagina {currentPage} de {totalPages}
+              Página {currentPage} de {totalPages}
             </span>
             <Button
               variant="outline"
@@ -128,7 +128,7 @@ export function RecentActivity({ items, currentPage, totalPages, onPageChange }:
               disabled={currentPage >= totalPages}
               className="gap-1 border-border text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer transition-all duration-200"
             >
-              Proxima
+              Próxima
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

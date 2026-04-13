@@ -68,7 +68,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
 
   // Polling
   useEffect(() => {
-    fetchData(isInitialLoad);
+    fetchData(!data);
 
     timerRef.current = setInterval(() => {
       fetchData(false);
@@ -77,7 +77,8 @@ export function DashboardContent({ userName }: DashboardContentProps) {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [fetchData, isInitialLoad]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchData]);
 
   function handleRefresh() {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -145,7 +146,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
       <motion.div variants={itemVariants} className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">
-            Ola, {userName}
+            Olá, {userName}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">{today}</p>
         </div>
