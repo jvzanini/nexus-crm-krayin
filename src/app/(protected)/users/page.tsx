@@ -10,5 +10,10 @@ export default async function UsersPage() {
     redirect("/dashboard");
   }
 
-  return <UsersContent currentUser={user} />;
+  return (
+    <UsersContent
+      isSuperAdmin={user.isSuperAdmin}
+      currentUserId={user.id}
+    />
+  );
 }
