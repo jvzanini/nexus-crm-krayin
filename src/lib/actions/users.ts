@@ -13,6 +13,27 @@ type ActionResult<T = unknown> = {
   error?: string;
 };
 
+export interface UserItem {
+  id: string;
+  name: string;
+  email: string;
+  platformRole: string;
+  highestRole: string;
+  isActive: boolean;
+  companiesCount: number;
+  createdAt: Date;
+  canEdit: boolean;
+  canDelete: boolean;
+  avatarUrl: string | null;
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  super_admin: "Super Admin",
+  admin: "Admin",
+  manager: "Gerente",
+  viewer: "Visualizador",
+};
+
 const createUserSchema = z.object({
   name: z.string().min(2).max(100),
   email: z.string().email(),
@@ -28,7 +49,7 @@ const updateUserSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-export async function getUsers(): Promise<ActionResult> {
+export async function getUsers(): Promise<ActionResult<UserItem[]>> {
   const currentUser = await getCurrentUser();
   if (!currentUser) return { success: false, error: "Não autenticado" };
 
@@ -58,11 +79,36 @@ export async function getUsers(): Promise<ActionResult> {
       isActive: true,
       avatarUrl: true,
       createdAt: true,
+      _count: { select: { memberships: true } },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  return { success: true, data: users };
+  const data: UserItem[] = users.map((u) => {
+    const targetLevel = PLATFORM_ROLE_HIERARCHY[u.platformRole] ?? 0;
+    const isTargetSuperAdmin = u.platformRole === "super_admin";
+
+    return {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      platformRole: u.platformRole,
+      highestRole: ROLE_LABELS[u.platformRole] ?? "Usuário",
+      isActive: u.isActive,
+      companiesCount: u._count.memberships,
+      createdAt: u.createdAt,
+      avatarUrl: u.avatarUrl,
+      canEdit:
+        u.id !== currentUser.id &&
+        (currentUser.isSuperAdmin || (!isTargetSuperAdmin && targetLevel < myLevel)),
+      canDelete:
+        u.id !== currentUser.id &&
+        !isTargetSuperAdmin &&
+        (currentUser.isSuperAdmin || targetLevel < myLevel),
+    };
+  });
+
+  return { success: true, data };
 }
 
 export async function createUser(
