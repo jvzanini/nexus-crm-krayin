@@ -23,8 +23,10 @@ export function DashboardFilters({
   onRefresh,
 }: DashboardFiltersProps) {
   return (
-    <div className="flex flex-wrap items-center gap-2.5">
-      {/* Filtro de periodo */}
+    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+      <h1 className="text-2xl font-bold text-foreground tracking-tight">Dashboard</h1>
+      <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto sm:ml-auto">
+      {/* Filtro de período */}
       <div className="flex rounded-xl border border-border overflow-hidden bg-card/80">
         {periods.map((p) => (
           <button
@@ -51,6 +53,7 @@ export function DashboardFilters({
       >
         <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
       </Button>
+      </div>
     </div>
   );
 }

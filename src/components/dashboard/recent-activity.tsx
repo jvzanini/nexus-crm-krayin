@@ -105,7 +105,7 @@ export function RecentActivity({ items, currentPage, totalPages, onPageChange }:
           </Table>
         </div>
 
-        {/* Paginacao */}
+        {/* Paginação */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-border">
             <Button

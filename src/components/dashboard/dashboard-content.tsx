@@ -129,7 +129,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
           Sem dados para exibir
         </h3>
         <p className="text-sm text-muted-foreground max-w-md">
-          Nenhum dado encontrado para o periodo selecionado.
+          Nenhum dado encontrado para o período selecionado.
         </p>
       </div>
     );

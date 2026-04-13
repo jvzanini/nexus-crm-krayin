@@ -77,36 +77,40 @@ export async function GET(req: NextRequest) {
   ]);
 
   return NextResponse.json({
-    results: {
-      users: users.map((u) => ({
-        id: u.id,
-        label: u.name,
-        sublabel: u.email,
-        href: `/users`,
-      })),
-      companies: companies.map((c) => ({
-        id: c.id,
-        label: c.name,
-        href: `/companies/${c.id}`,
-      })),
-      leads: leads.map((l) => ({
-        id: l.id,
-        label: l.name,
-        sublabel: l.email ?? undefined,
-        href: `/leads/${l.id}`,
-      })),
-      contacts: contacts.map((c) => ({
-        id: c.id,
-        label: `${c.firstName} ${c.lastName}`,
-        sublabel: c.email ?? undefined,
-        href: `/contacts/${c.id}`,
-      })),
-      opportunities: opportunities.map((o) => ({
-        id: o.id,
-        label: o.title,
-        sublabel: o.stage,
-        href: `/opportunities/${o.id}`,
-      })),
-    },
+    users: users.map((u) => ({
+      id: u.id,
+      title: u.name,
+      subtitle: u.email,
+      href: `/users`,
+      type: "user",
+    })),
+    companies: companies.map((c) => ({
+      id: c.id,
+      title: c.name,
+      subtitle: c.name,
+      href: `/companies`,
+      type: "company",
+    })),
+    leads: leads.map((l) => ({
+      id: l.id,
+      title: l.name,
+      subtitle: l.email ?? l.status,
+      href: `/leads`,
+      type: "lead",
+    })),
+    contacts: contacts.map((c) => ({
+      id: c.id,
+      title: `${c.firstName} ${c.lastName}`,
+      subtitle: c.email ?? "",
+      href: `/contacts`,
+      type: "contact",
+    })),
+    opportunities: opportunities.map((o) => ({
+      id: o.id,
+      title: o.title,
+      subtitle: o.stage,
+      href: `/opportunities`,
+      type: "opportunity",
+    })),
   });
 }
