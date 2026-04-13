@@ -154,15 +154,3 @@ export async function getProfile(): Promise<ActionResult<{
     },
   };
 }
-
-export async function updateTheme(theme: "dark" | "light" | "system"): Promise<ActionResult> {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) return { success: false, error: "Não autenticado" };
-
-  await prisma.user.update({
-    where: { id: currentUser.id },
-    data: { theme: theme as any },
-  });
-
-  return { success: true };
-}

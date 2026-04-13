@@ -21,7 +21,6 @@ import {
 
 interface DashboardContentProps {
   userName: string;
-  isSuperAdmin?: boolean;
 }
 
 const containerVariants = {

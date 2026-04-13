@@ -8,7 +8,6 @@ export default async function DashboardPage() {
 
   const fullName = session.user.name || session.user.email || "Usuário";
   const userName = fullName.split(" ")[0];
-  const isSuperAdmin = (session.user as any)?.isSuperAdmin ?? false;
 
-  return <DashboardContent userName={userName} isSuperAdmin={isSuperAdmin} />;
+  return <DashboardContent userName={userName} />;
 }
