@@ -14,7 +14,7 @@ services:
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
     networks:
-      - traefik-public
+      - rede_nexusAI
       - internal
     deploy:
       labels:
@@ -58,7 +58,8 @@ volumes:
   redis_data:
 
 networks:
-  traefik-public:
+  rede_nexusAI:
     external: true
+    name: rede_nexusAI
   internal:
     driver: overlay
