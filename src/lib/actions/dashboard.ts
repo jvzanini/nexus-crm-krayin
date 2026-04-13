@@ -2,49 +2,267 @@
 
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { subDays, startOfDay, format } from "date-fns";
 
-export async function getDashboardMetrics() {
+// --- Types ---
+
+export interface DashboardStats {
+  totalLeads: number;
+  totalContacts: number;
+  openOpportunities: number;
+  conversionRate: number | null;
+  comparison: {
+    totalLeads: number | null;
+    totalContacts: number | null;
+    openOpportunities: number | null;
+    conversionRate: number | null;
+  };
+}
+
+export interface ChartDataPoint {
+  label: string;
+  leads: number;
+  opportunities: number;
+}
+
+export interface RecentActivityItem {
+  id: string;
+  type: "lead" | "contact" | "opportunity";
+  action: string;
+  entityName: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface DashboardData {
+  stats: DashboardStats;
+  chart: ChartDataPoint[];
+  recentActivity: {
+    items: RecentActivityItem[];
+    currentPage: number;
+    totalPages: number;
+  };
+}
+
+// --- Helpers ---
+
+const PAGE_SIZE = 10;
+
+function getPeriodRange(period: string): { start: Date; end: Date } {
+  const now = new Date();
+  const end = now;
+  let start: Date;
+
+  switch (period) {
+    case "7d":
+      start = subDays(startOfDay(now), 7);
+      break;
+    case "30d":
+      start = subDays(startOfDay(now), 30);
+      break;
+    default: // "today"
+      start = startOfDay(now);
+      break;
+  }
+
+  return { start, end };
+}
+
+function getComparisonRange(period: string): { start: Date; end: Date } {
+  const { start, end } = getPeriodRange(period);
+  const durationMs = end.getTime() - start.getTime();
+  return {
+    start: new Date(start.getTime() - durationMs),
+    end: start,
+  };
+}
+
+function percentDelta(current: number, previous: number): number | null {
+  if (previous === 0) return current > 0 ? 100 : null;
+  return ((current - previous) / previous) * 100;
+}
+
+// --- Main ---
+
+export async function getDashboardData(
+  period = "today",
+  page = 1
+): Promise<{ success: boolean; data?: DashboardData; error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autorizado" };
 
+  const { start, end } = getPeriodRange(period);
+  const comp = getComparisonRange(period);
+
+  // Current period counts
   const [
     totalLeads,
-    newLeadsThisMonth,
     totalContacts,
-    totalOpportunities,
-    wonOpportunities,
-    totalUsers,
-    recentLeads,
+    openOpportunities,
+    totalOppsCurrent,
+    wonOppsCurrent,
   ] = await Promise.all([
-    prisma.lead.count(),
-    prisma.lead.count({
+    prisma.lead.count({ where: { createdAt: { gte: start, lte: end } } }),
+    prisma.contact.count({ where: { createdAt: { gte: start, lte: end } } }),
+    prisma.opportunity.count({
       where: {
-        createdAt: { gte: new Date(new Date().setDate(1)) },
+        createdAt: { gte: start, lte: end },
+        stage: { notIn: ["closed_won", "closed_lost"] },
       },
     }),
-    prisma.contact.count(),
-    prisma.opportunity.count(),
-    prisma.opportunity.count({ where: { stage: "closed_won" } }),
-    prisma.user.count({ where: { isActive: true } }),
-    prisma.lead.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      select: { id: true, name: true, email: true, status: true, createdAt: true },
+    prisma.opportunity.count({ where: { createdAt: { gte: start, lte: end } } }),
+    prisma.opportunity.count({
+      where: { createdAt: { gte: start, lte: end }, stage: "closed_won" },
     }),
   ]);
 
+  // Comparison period counts
+  const [
+    prevLeads,
+    prevContacts,
+    prevOpenOpps,
+    prevTotalOpps,
+    prevWonOpps,
+  ] = await Promise.all([
+    prisma.lead.count({ where: { createdAt: { gte: comp.start, lt: comp.end } } }),
+    prisma.contact.count({ where: { createdAt: { gte: comp.start, lt: comp.end } } }),
+    prisma.opportunity.count({
+      where: {
+        createdAt: { gte: comp.start, lt: comp.end },
+        stage: { notIn: ["closed_won", "closed_lost"] },
+      },
+    }),
+    prisma.opportunity.count({ where: { createdAt: { gte: comp.start, lt: comp.end } } }),
+    prisma.opportunity.count({
+      where: { createdAt: { gte: comp.start, lt: comp.end }, stage: "closed_won" },
+    }),
+  ]);
+
+  const conversionRate =
+    totalOppsCurrent > 0 ? (wonOppsCurrent / totalOppsCurrent) * 100 : null;
+  const prevConversionRate =
+    prevTotalOpps > 0 ? (prevWonOpps / prevTotalOpps) * 100 : null;
+
+  const stats: DashboardStats = {
+    totalLeads,
+    totalContacts,
+    openOpportunities,
+    conversionRate,
+    comparison: {
+      totalLeads: percentDelta(totalLeads, prevLeads),
+      totalContacts: percentDelta(totalContacts, prevContacts),
+      openOpportunities: percentDelta(openOpportunities, prevOpenOpps),
+      conversionRate:
+        conversionRate !== null && prevConversionRate !== null
+          ? conversionRate - prevConversionRate
+          : null,
+    },
+  };
+
+  // --- Chart: aggregate by day ---
+  const dayCount = period === "today" ? 1 : period === "7d" ? 7 : 30;
+  const chartDays: Date[] = [];
+  for (let i = dayCount - 1; i >= 0; i--) {
+    chartDays.push(startOfDay(subDays(new Date(), i)));
+  }
+
+  // Batch: get all leads and opportunities in range, group in JS
+  const [leadsInRange, oppsInRange] = await Promise.all([
+    prisma.lead.findMany({
+      where: { createdAt: { gte: start, lte: end } },
+      select: { createdAt: true },
+    }),
+    prisma.opportunity.findMany({
+      where: { createdAt: { gte: start, lte: end } },
+      select: { createdAt: true },
+    }),
+  ]);
+
+  const leadsByDay = new Map<string, number>();
+  const oppsByDay = new Map<string, number>();
+
+  for (const l of leadsInRange) {
+    const key = format(l.createdAt, "yyyy-MM-dd");
+    leadsByDay.set(key, (leadsByDay.get(key) ?? 0) + 1);
+  }
+  for (const o of oppsInRange) {
+    const key = format(o.createdAt, "yyyy-MM-dd");
+    oppsByDay.set(key, (oppsByDay.get(key) ?? 0) + 1);
+  }
+
+  const chart: ChartDataPoint[] = chartDays.map((d) => {
+    const key = format(d, "yyyy-MM-dd");
+    return {
+      label: format(d, "dd/MM"),
+      leads: leadsByDay.get(key) ?? 0,
+      opportunities: oppsByDay.get(key) ?? 0,
+    };
+  });
+
+  // --- Recent activity (merge + paginate) ---
+  const [recentLeads, recentContacts, recentOpps] = await Promise.all([
+    prisma.lead.findMany({
+      where: { createdAt: { gte: start, lte: end } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, status: true, createdAt: true },
+    }),
+    prisma.contact.findMany({
+      where: { createdAt: { gte: start, lte: end } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, firstName: true, lastName: true, createdAt: true },
+    }),
+    prisma.opportunity.findMany({
+      where: { createdAt: { gte: start, lte: end } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, title: true, stage: true, createdAt: true },
+    }),
+  ]);
+
+  const allActivity: RecentActivityItem[] = [
+    ...recentLeads.map((l) => ({
+      id: l.id,
+      type: "lead" as const,
+      action: "Lead criado",
+      entityName: l.name,
+      status: l.status,
+      createdAt: l.createdAt.toISOString(),
+    })),
+    ...recentContacts.map((c) => ({
+      id: c.id,
+      type: "contact" as const,
+      action: "Contato criado",
+      entityName: `${c.firstName} ${c.lastName}`,
+      status: "ativo",
+      createdAt: c.createdAt.toISOString(),
+    })),
+    ...recentOpps.map((o) => ({
+      id: o.id,
+      type: "opportunity" as const,
+      action: "Oportunidade criada",
+      entityName: o.title,
+      status: o.stage,
+      createdAt: o.createdAt.toISOString(),
+    })),
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const totalActivityCount = allActivity.length;
+  const totalPages = Math.max(1, Math.ceil(totalActivityCount / PAGE_SIZE));
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const paginatedItems = allActivity.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE
+  );
+
   return {
     success: true,
-    metrics: {
-      totalLeads,
-      newLeadsThisMonth,
-      totalContacts,
-      totalOpportunities,
-      wonOpportunities,
-      totalUsers,
-      conversionRate:
-        totalLeads > 0 ? Math.round((wonOpportunities / totalLeads) * 100) : 0,
+    data: {
+      stats,
+      chart,
+      recentActivity: {
+        items: paginatedItems,
+        currentPage: safePage,
+        totalPages,
+      },
     },
-    recentLeads,
   };
 }
