@@ -9,6 +9,37 @@ Reescrever todas as telas do CRM para seguir **1:1** o padrão visual do Roteado
 
 ---
 
+## 0. Pré-requisitos — Server Actions e Assets faltantes
+
+### Logo
+- **`public/logo.png` NÃO EXISTE** — a pasta public está vazia
+- Copiar `logo-nexus-ai.png` do Roteador e renomear, ou usar o logo gradient atual como fallback temporário
+
+### Server Actions CRUD (NÃO EXISTEM — precisam ser criadas)
+Nenhuma das actions CRUD para as entidades CRM existe:
+- `src/lib/actions/leads.ts` — criar: `getLeads()`, `createLead()`, `updateLead()`, `deleteLead()`
+- `src/lib/actions/contacts.ts` — criar: `getContacts()`, `createContact()`, `updateContact()`, `deleteContact()`
+- `src/lib/actions/opportunities.ts` — criar: `getOpportunities()`, `createOpportunity()`, `updateOpportunity()`, `deleteOpportunity()`
+- `src/lib/actions/company.ts` — **falta `deleteCompany()`** (já tem get/create/update)
+
+### Profile Actions — Assinaturas divergem do Roteador
+- `updateProfile({ name })` — aceita objeto, NÃO aceita avatarUrl. Existe `updateAvatar(avatarUrl)` separado
+- `requestEmailChange(newEmail)` — 1 param (sem senha de confirmação). Roteador usa `(newEmail, password)`
+- `changePassword({ currentPassword, newPassword, confirmPassword })` — aceita objeto. Roteador usa `(currentPassword, newPassword)`
+- **`getProfile()` NÃO EXISTE** — page atual usa `useSession()` direto
+- **Decisão:** Adaptar o profile-content.tsx para usar as assinaturas existentes (chamar `updateProfile({ name })` + `updateAvatar(avatarUrl)` separados), em vez de reescrever as actions
+
+### Settings Actions
+- Tem `getAllSettings()` e `setSetting(key, value)` — NÃO tem `updateSettings()`
+- Usar `setSetting()` para cada campo individualmente
+
+### Users Actions
+- `UserItem` type NÃO é exportado — `getUsers()` retorna `ActionResult` genérico
+- Falta `highestRole` field — Roteador usa, CRM não tem
+- Precisa adicionar tipo exportado e campos faltantes
+
+---
+
 ## 1. Dashboard
 
 **Arquivo:** `src/components/dashboard/dashboard-content.tsx`
@@ -19,26 +50,27 @@ Reescrever todas as telas do CRM para seguir **1:1** o padrão visual do Roteado
 - Sem `NotificationBell` no canto superior direito
 - Sem filtros de período (Hoje / 7 dias / 30 dias)
 - Sem tabela de atividades recentes
-- Sem top errors/alertas equivalente
 - Sem polling/realtime
 - Sem skeleton loading no primeiro carregamento
 
 ### Correções (copiar do Roteador)
 - Remover emoji 👋 — greeting fica "Olá, {firstName}" sem emoji
 - Adicionar `NotificationBell` ao lado do greeting (flex justify-between)
-- Criar `DashboardFilters` com seletor de período (Hoje/7d/30d) + botão refresh
+- Criar `DashboardFilters` com seletor de período (Hoje/7d/30d) + botão refresh (sem company selector — CRM não tem multi-tenant no dashboard)
 - Criar `StatsCards` com dados reais via server action `getDashboardData()`
-  - 4 cards: Leads Novos, Contatos, Oportunidades Abertas, Taxa de Conversão
-  - Cada card com ícone em colored box (sem emoji), valor, delta percentual
-- Criar `CrmChart` com Recharts (leads/oportunidades ao longo do tempo)
+  - 4 cards: Leads, Contatos, Oportunidades Abertas, Taxa de Conversão
+  - Cada card com ícone em colored box (sem emoji), valor, delta percentual comparativo
+- Criar chart com Recharts (leads/oportunidades ao longo do tempo)
+  - **Performance:** usar query agregada por data com groupBy em vez de N+1 queries em loop
 - Criar `RecentActivity` (tabela paginada com últimas ações: lead criado, contato adicionado, oportunidade movida)
-- Implementar polling 60s + realtime SSE (copiar padrão do Roteador)
+  - Paginação total deve contar as 3 entidades (lead+contact+opportunity), não só leads
+- Implementar polling 60s (copiar padrão do Roteador)
 - Skeleton loading no primeiro carregamento (copiar exato)
 - Container/item variants com stagger animation (copiar exato)
-- Data formatada em PT-BR sem capitalize (copiar lógica manual de weekday/month)
+- Data formatada em PT-BR (copiar lógica manual de weekday/month do Roteador)
 
 ### Server Action necessária
-- `getDashboardData(period, page)` retornando: stats, chart data, recent activity paginada
+- Reescrever `getDashboardData(period, page)` retornando: stats com comparison, chart data agregada, recent activity paginada
 
 ---
 
@@ -52,9 +84,10 @@ Reescrever todas as telas do CRM para seguir **1:1** o padrão visual do Roteado
 - Mostra email no user info bottom (Roteador mostra role label)
 
 ### Correções
-- Logo: usar `<Image src="/logo.png">` com shadow roxo (copiar exato do Roteador)
-- Subtítulo: "Nexus CRM" em vez de badge de role
-- User info bottom: mostrar `user.role` (label do nível) em vez de email
+- Logo: usar `<Image src="/logo.png">` com shadow roxo (copiar exato do Roteador) — **ATENÇÃO:** `public/logo.png` não existe ainda, precisa ser criado/copiado primeiro
+- Subtítulo: "CRM" como `<p>` em vez de badge de role
+- User info bottom: mostrar `user.role` (label do nível) em vez de `user.email`
+- Remover variável `roleStyle` e import `PLATFORM_ROLE_STYLES` (ficam sem uso após remover badge do logo)
 - Manter toda a estrutura restante (busca ⌘K, nav items, tema, logout) — já está correto
 
 ---
@@ -71,9 +104,14 @@ Reescrever todas as telas do CRM para seguir **1:1** o padrão visual do Roteado
 - `page.tsx`: server component que checa auth e passa props
 - `_components/profile-content.tsx`: client component com 4 cards:
   1. **Informações Pessoais** — avatar upload (drag-drop, resize 128x128 WebP), nome, "Membro desde", save
-  2. **E-mail** — email atual (disabled), novo email, senha atual para confirmação, botão + estado de sucesso com checkmark
-  3. **Alterar Senha** — senha atual, nova senha, confirmar nova, eye/eyeOff toggle, validação min 6 chars
-  4. **Aparência** — 3 botões tema (Escuro/Moon, Claro/Sun, Sistema/Monitor) com violet highlight
+  2. **E-mail** — email atual (disabled), novo email, ~~senha atual para confirmação~~ **SEM confirmação de senha** (CRM `requestEmailChange` aceita só `newEmail`), botão + estado de sucesso com checkmark
+  3. **Alterar Senha** — senha atual, nova senha, confirmar nova, eye/eyeOff toggle, validação min **8** chars (CRM usa min 8, não 6)
+  4. **Aparência** — 3 botões tema (Escuro/Moon, Claro/Sun, Sistema/Monitor) com violet highlight + description text
+- **Adaptar chamadas às actions existentes do CRM:**
+  - `updateProfile({ name })` + `updateAvatar(avatarUrl)` separados (não fundir em 1 call)
+  - `changePassword({ currentPassword, newPassword, confirmPassword })` (passar objeto)
+  - `requestEmailChange(newEmail)` (1 param, sem senha)
+  - **Criar `getProfile()` action** — query user com name, email, avatarUrl, createdAt
 - Copiar animações containerVariants/itemVariants exatas
 - Copiar FieldLabel component
 - Copiar skeleton loader (4 cards placeholder)
@@ -88,14 +126,24 @@ Reescrever todas as telas do CRM para seguir **1:1** o padrão visual do Roteado
 - 199 linhas, já funcional com CRUD
 - Verificar se tem todas as features do Roteador
 
-### Correções necessárias (alinhar com Roteador)
-- Verificar coluna "Empresas" (contagem de memberships)
-- Verificar coluna "Criado em" com date-fns format PT-BR
-- Verificar BadgeSelect inline para role (CustomSelect com ícones + descrições)
-- Verificar Switch de status inline
-- Verificar ícone de lixeira + confirmação AlertDialog
-- Verificar PasswordInput com toggle de visibilidade no create/edit dialog
-- Verificar permissões (super_admin não pode ser excluído, current user não edita próprio role)
+### Divergências identificadas (CRM vs Roteador)
+O CRM tem 199 linhas, Roteador tem 932 linhas — **gap massivo**. Falta:
+- **BadgeSelect component inline** (o CRM usa CustomSelect, Roteador tem BadgeSelect customizado com dropdown fixed position)
+- **Create/Edit dialogs completos** (Dialog + formulário com PasswordInput)
+- **Delete AlertDialog** com AlertTriangle + confirmação
+- **TableSkeleton** loading state
+- **Empty state** com ícone
+- **`UserItem` type exportado** — CRM usa `any[]`, precisa tipar
+- **`highestRole` field** — Roteador usa para badge display, CRM não tem
+- **Coluna "Empresas"** com `companiesCount`
+- **Coluna "Criado em"** com date-fns PT-BR
+- **Permissões `canEdit`/`canDelete`** calculadas no backend
+- **motion.tr com row stagger** por item
+
+### Solução
+Reescrever inteiramente copiando do Roteador, adaptando:
+- descriptions do role para domínio CRM ("Gerencia rotas e webhooks" → "Gerencia leads e contatos")
+- Server actions já existem: `getUsers`, `createUser`, `updateUser`, `deleteUser`, `toggleUserRole`
 
 ---
 
@@ -112,7 +160,9 @@ Reescrever todas as telas do CRM para seguir **1:1** o padrão visual do Roteado
   - Edit dialog: mesmos campos
   - Delete dialog com confirmação
   - Status badge (ativo/inativo)
-- Server action `getCompanies()` já deve existir em `company.ts`
+- Server actions existentes: `getCompanies()`, `createCompany({ name, logoUrl })`, `updateCompany(id, { name, logoUrl, isActive })`
+- **FALTA `deleteCompany()`** — precisa criar
+- **`createCompany` aceita `{ name, logoUrl }`, NÃO `{ name, document, description }`** — adaptar formulário ao que a action suporta, ou estender a action
 - Copiar padrão visual exato das tabelas do Roteador (motion, badges, etc.)
 
 ---
@@ -129,7 +179,7 @@ Reescrever todas as telas do CRM para seguir **1:1** o padrão visual do Roteado
 - Seção 2 — **Notificações**: Platform toggle, Email toggle, threshold de alerta
 - Seção 3 — **Sistema**: Modo manutenção (switch), retenção de dados (dias)
 - Copiar exatamente o padrão visual do Roteador: FieldLabel, FieldHint, grid layout, CustomSelect para dropdowns, save por seção
-- Garantir que saves usam server action real `updateSettings()`
+- Saves usam `setSetting(key, value)` existente (não existe `updateSettings()` — é key-value individual)
 
 ---
 
@@ -208,12 +258,13 @@ Reescrever todas as telas do CRM para seguir **1:1** o padrão visual do Roteado
 
 ## Ordem de implementação sugerida
 
-1. Sidebar (fix logo + user info) — rápido, impacto global
-2. Dashboard (rewrite completo) — página principal
-3. Perfil (refactor server/client + 4 cards)
-4. Empresas (criar do zero)
-5. Leads (converter para tabela + CRUD)
-6. Contatos (converter para tabela + CRUD)
-7. Oportunidades (converter para tabela + CRUD)
-8. Usuários (verificar e alinhar)
-9. Configurações (adaptar domínio)
+1. **Pré-requisitos** — criar logo, server actions CRUD (leads/contacts/opportunities), deleteCompany, getProfile, exportar UserItem type
+2. Sidebar (fix logo + user info) — rápido, impacto global
+3. Dashboard (rewrite completo) — página principal
+4. Perfil (refactor server/client + 4 cards)
+5. Usuários (rewrite completo — gap de 199→932 linhas)
+6. Empresas (criar do zero)
+7. Leads (converter para tabela + CRUD)
+8. Contatos (converter para tabela + CRUD)
+9. Oportunidades (converter para tabela + CRUD)
+10. Configurações (funcionalizar com setSetting)
