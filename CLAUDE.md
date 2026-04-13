@@ -77,18 +77,46 @@ Ler o doc do módulo no blueprint e seguir a seção "Integração".
 
 ## Estrutura de Actions
 Todas as Server Actions ficam em `src/lib/actions/`:
-- `users.ts` — CRUD usuários + memberships com controle hierárquico de acesso
-- `profile.ts` — perfil do usuário (avatar, nome, email com verificação, senha, tema)
+- `users.ts` — CRUD usuários + memberships com controle hierárquico de acesso (exporta `UserItem` com highestRole/canEdit/canDelete/companiesCount)
+- `profile.ts` — perfil do usuário (getProfile, updateProfile, updateAvatar, changePassword, requestEmailChange, updateTheme)
 - `password-reset.ts` — solicitar e redefinir senha (token + email Resend)
-- `company.ts` — CRUD de empresas (multi-tenant)
+- `company.ts` — CRUD de empresas (getCompanies, createCompany, updateCompany, deleteCompany, addMember, removeMember)
+- `leads.ts` — CRUD de leads (getLeads, createLead, updateLead, deleteLead)
+- `contacts.ts` — CRUD de contatos (getContacts, createContact, updateContact, deleteContact)
+- `opportunities.ts` — CRUD de oportunidades (getOpportunities, createOpportunity, updateOpportunity, deleteOpportunity)
 - `notifications.ts` — feed de notificações (getNotifications, markAsRead, markAllAsRead)
-- `settings.ts` — CRUD de configurações globais (admin-only)
+- `settings.ts` — configurações globais (getAllSettings, setSetting) — key-value individual
 - `api-keys.ts` — gerenciamento de chaves de API
 - `search.ts` — busca global unificada
-- `dashboard.ts` — métricas e dados do dashboard CRM (leads, contatos, oportunidades)
+- `dashboard.ts` — métricas com filtro por período, comparison, chart agregado, atividades recentes paginadas
 
 ## Domínio CRM
 - **Lead** — Potencial cliente (status: new, contacted, qualified, unqualified, converted)
 - **Contact** — Contato já qualificado com histórico de interações
 - **Opportunity** — Oportunidade de negócio vinculada a contato (stages do pipeline)
 - **Pipeline** — Visualização kanban de oportunidades por stage
+
+## Status das Telas (atualizado 2026-04-13)
+- **Sidebar** — ✅ Logo imagem + subtítulo CRM + role no user info
+- **Dashboard** — ✅ Dados reais, NotificationBell, filtros período, stats cards, gráfico, atividades recentes
+- **Perfil** — ✅ Server/client separados, 4 cards (avatar, email, senha, aparência)
+- **Usuários** — ✅ Rewrite completo com BadgeSelect inline, CRUD dialogs, permissões
+- **Empresas** — ✅ CRUD funcional com tabela, create/edit/delete
+- **Leads** — ✅ Tabela CRUD com filtros de status
+- **Contatos** — ✅ Tabela CRUD
+- **Oportunidades** — ✅ Tabela CRUD com valor R$ e stage badges
+- **Configurações** — ✅ Saves funcionais com getAllSettings/setSetting
+
+## Documentação
+- **Spec correção visual:** `docs/superpowers/specs/2026-04-13-correcao-visual-crm-design.md`
+- **Plano correção visual:** `docs/superpowers/plans/2026-04-13-correcao-visual-crm.md`
+
+## Padrão Visual (referência canônica)
+Todas as telas devem seguir 1:1 o padrão do Roteador Webhook (`/Users/joaovitorzanini/Developer/Claude Code/Roteador Webhook Meta/`).
+- Ícones: Lucide React, NUNCA emoji
+- Cards: `border-border bg-card/50 rounded-xl`
+- Botões primários: `bg-violet-600 hover:bg-violet-700`
+- Animações: containerVariants/itemVariants stagger 0.08
+- Tabelas: shadcn Table com hover states, motion.tr row stagger
+- Dialogs: Dialog para create/edit, AlertDialog para delete
+- Inputs: `bg-muted/50 border-border text-foreground`
