@@ -653,6 +653,45 @@ export async function downloadFile(
 // ---------------------------------------------------------------------------
 // Helpers privados
 // ---------------------------------------------------------------------------
+// Listar usuários atribuíveis (para select nos forms de activities)
+// ---------------------------------------------------------------------------
+
+export interface AssignableUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
+/**
+ * Retorna lista mínima de usuários do tenant para uso nos selects do form de activity.
+ * Diferente de getUsers (restrito a admin), aqui qualquer usuário com activities:create pode usar.
+ */
+export async function getAssignableUsers(): Promise<ActionResult<AssignableUser[]>> {
+  try {
+    const user = await requirePermission("activities:view");
+    const companyId = await resolveActiveCompanyId(user.id);
+    if (!companyId) return { success: false, error: "Nenhuma empresa ativa encontrada" };
+
+    const memberships = await prisma.userCompanyMembership.findMany({
+      where: { companyId, isActive: true },
+      select: {
+        user: { select: { id: true, name: true, email: true } },
+      },
+    });
+
+    const users = memberships.map((m) => ({
+      id: m.user.id,
+      name: m.user.name,
+      email: m.user.email,
+    }));
+
+    return { success: true, data: users };
+  } catch (err) {
+    return handleError(err, "Erro ao listar usuários");
+  }
+}
+
+// ---------------------------------------------------------------------------
 
 async function validateSubjectInTenant(
   subjectType: string,
