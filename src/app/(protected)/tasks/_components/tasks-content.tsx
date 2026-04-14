@@ -26,6 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   PageHeader,
+  EmptyState,
 } from "@nexusai360/design-system";
 import {
   CheckSquare,
@@ -586,10 +587,23 @@ export function TasksContent({
             <TableSkeleton />
           </div>
         ) : tasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <CheckSquare className="h-12 w-12 mb-3 text-muted-foreground/60" />
-            <p className="text-sm">Sem tarefas registradas ainda</p>
-          </div>
+          <EmptyState.Root>
+            <EmptyState.Icon icon={CheckSquare} color="emerald" />
+            <EmptyState.Title>Nenhuma tarefa pendente</EmptyState.Title>
+            <EmptyState.Description>
+              Crie tarefas para não esquecer seus follow-ups.
+            </EmptyState.Description>
+            {canCreate && (
+              <EmptyState.Action>
+                <Button
+                  onClick={openCreate}
+                  className="bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
+                >
+                  Nova tarefa
+                </Button>
+              </EmptyState.Action>
+            )}
+          </EmptyState.Root>
         ) : (
           <Table>
             <TableHeader>
