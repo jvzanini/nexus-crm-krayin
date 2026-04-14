@@ -8,6 +8,7 @@ import { recordConsent, maskIp } from "@/lib/consent";
 import { z } from "zod";
 import { dispatch } from "@/lib/automation/dispatcher";
 import { logger } from "@/lib/logger";
+import { requireActiveCompanyId } from "@/lib/tenant-scope";
 
 export interface ContactItem {
   id: string;
@@ -57,15 +58,6 @@ const updateContactSchema = z.object({
   consent: consentSchema.optional(),
 });
 
-async function resolveActiveCompanyId(userId: string): Promise<string | null> {
-  const membership = await prisma.userCompanyMembership.findFirst({
-    where: { userId, isActive: true },
-    select: { companyId: true },
-    orderBy: { createdAt: "asc" },
-  });
-  return membership?.companyId ?? null;
-}
-
 async function resolveRequestContext() {
   const h = await headers();
   const xff = h.get("x-forwarded-for") ?? "";
@@ -79,7 +71,15 @@ export async function getContacts(): Promise<ActionResult<ContactItem[]>> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autenticado" };
 
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
+
   const contacts = await prisma.contact.findMany({
+    where: { companyId },
     orderBy: { createdAt: "desc" },
   });
 
@@ -99,6 +99,13 @@ export async function createContact(data: {
 }): Promise<ActionResult<{ id: string }>> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autenticado" };
+
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
 
   const parsed = createContactSchema.safeParse({
     fields: {
@@ -123,6 +130,7 @@ export async function createContact(data: {
     const now = new Date();
     const created = await tx.contact.create({
       data: {
+        companyId,
         firstName: parsed.data.fields.firstName,
         lastName: parsed.data.fields.lastName,
         email: parsed.data.fields.email ?? null,
@@ -153,23 +161,20 @@ export async function createContact(data: {
 
   revalidatePath("/contacts");
 
-  const companyId = await resolveActiveCompanyId(user.id);
-  if (companyId) {
-    await dispatch("contact_created", {
-      companyId,
-      payload: {
-        id: contact.id,
-        firstName: contact.firstName,
-        lastName: contact.lastName,
-        email: contact.email,
-        phone: contact.phone,
-        organization: contact.organization,
-        title: contact.title,
-      },
-    }).catch((err) =>
-      logger.warn({ err, contactId: contact.id }, "automation.dispatch.contact_created.failed")
-    );
-  }
+  await dispatch("contact_created", {
+    companyId,
+    payload: {
+      id: contact.id,
+      firstName: contact.firstName,
+      lastName: contact.lastName,
+      email: contact.email,
+      phone: contact.phone,
+      organization: contact.organization,
+      title: contact.title,
+    },
+  }).catch((err) =>
+    logger.warn({ err, contactId: contact.id }, "automation.dispatch.contact_created.failed")
+  );
 
   return { success: true, data: { id: contact.id } };
 }
@@ -191,6 +196,13 @@ export async function updateContact(
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autenticado" };
 
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
+
   const parsed = updateContactSchema.safeParse({
     fields: {
       firstName: data.firstName,
@@ -210,7 +222,7 @@ export async function updateContact(
 
   const { ipMask, ua } = await resolveRequestContext();
 
-  await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const patch: Record<string, unknown> = {};
     const f = parsed.data.fields;
     if (f.firstName !== undefined) patch.firstName = f.firstName;
@@ -222,9 +234,16 @@ export async function updateContact(
     if (f.notes !== undefined) patch.notes = f.notes ?? null;
     if (f.avatarUrl !== undefined) patch.avatarUrl = f.avatarUrl ?? null;
 
+    let count = 0;
     if (Object.keys(patch).length > 0) {
-      await tx.contact.update({ where: { id }, data: patch });
+      const r = await tx.contact.updateMany({ where: { id, companyId }, data: patch });
+      count = r.count;
+    } else {
+      const exists = await tx.contact.findFirst({ where: { id, companyId }, select: { id: true } });
+      count = exists ? 1 : 0;
     }
+
+    if (count === 0) return 0;
 
     if (parsed.data.consent) {
       await recordConsent(tx, {
@@ -237,7 +256,12 @@ export async function updateContact(
         grantedBy: user.id,
       });
     }
+    return count;
   });
+
+  if (result === 0) {
+    return { success: false, error: "Contato não encontrado" };
+  }
 
   revalidatePath("/contacts");
   return { success: true };
@@ -247,7 +271,17 @@ export async function deleteContact(id: string): Promise<ActionResult> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autenticado" };
 
-  await prisma.contact.delete({ where: { id } });
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
+
+  const r = await prisma.contact.deleteMany({ where: { id, companyId } });
+  if (r.count === 0) {
+    return { success: false, error: "Contato não encontrado" };
+  }
 
   revalidatePath("/contacts");
   return { success: true };

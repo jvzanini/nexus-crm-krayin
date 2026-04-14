@@ -26,9 +26,9 @@ export default async function OpportunityActivitiesPage({ params }: PageProps) {
 
   if (!membership) redirect("/dashboard");
 
-  // Opportunity não tem companyId no schema. Tenant scope em Server Actions.
+  // Frente 17: Opportunity tem companyId. Filter direto por tenant.
   const opportunity = await prisma.opportunity.findFirst({
-    where: { id },
+    where: { id, companyId: membership.companyId },
     select: { id: true, title: true },
   });
 

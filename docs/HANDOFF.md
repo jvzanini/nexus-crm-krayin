@@ -2,16 +2,34 @@
 
 > **Novo terminal / nova sessão:** este é o ponto de entrada único. Leia do início ao fim e você saberá o estado atual, como prosseguir, e quais decisões já foram tomadas. Só depois veja `CLAUDE.md` (regras) e `memory/MEMORY.md` (índice de memories).
 
-**Atualizado:** 2026-04-14 (pós-restauração de produção).
+**Atualizado:** 2026-04-14 **fim da sessão tarde** (múltiplas sessões paralelas).
 **Branch principal:** `main`.
+**Branch ativa no momento da troca:** `feat/tenant-scoping-crud` (com spec+plan da Frente 17 uncommitted — ver §10).
 **URL de produção:** https://crm2.nexusai360.com
 **Repositório:** https://github.com/jvzanini/nexus-crm-krayin
+
+---
+
+## 0. TL;DR — onde paramos (ler PRIMEIRO)
+
+**Produção:** `/api/health` 200 ✅ • `/login` **500** ❌ (regressão provável das Frentes 14b/15b). **OBRIGATÓRIO LEI #1 antes de qualquer commit de fix** (ver `CLAUDE.md` §1 — logs container via Portainer).
+
+**Estado do trabalho em andamento:**
+
+1. **Fase 12.2 E2E (meu, sessão principal)** — scaffold completo, 12 commits na main (plan + infra Playwright + 3 roles + cross-tenant smoke + CI workflow). **Tag `phase-12-2-deployed` ainda não aplicada** porque CI E2E falha por dual React em `next dev` (regressão de vendor packages). Ver §8.
+
+2. **Frente 17 Tenant Scoping** (sessão paralela) — spec + plan escritos em `docs/superpowers/{specs,plans}/2026-04-14-tenant-scoping-crud-domains.md` **ainda uncommitted na branch `feat/tenant-scoping-crud`**. Aborda vuln cross-tenant pré-existente (Lead/Contact/Opportunity sem companyId). 7 tasks (T1..T7). Ver §10.
+
+3. **Frentes 8/9/11/14b/15b** (sessão paralela) — vendor packages `@nexusai360/core`, `multi-tenant`, `api-keys`, `settings-ui`, `profile-ui` já adotados em main. Porém introduziram dual React em dev → bloqueia 12.2 E2E e possivelmente login 500.
+
+**Primeira ação ao retomar:** escolher entre Opção A/B/C em §10.3.
 
 ---
 
 ## 1. Estado atual (2026-04-14 fim da sessão)
 
 ✅ **Produção no ar.** `/login` 200 • `/api/health` 200 • `/api/ready` 200.
+**(Nota pós-fim: login passou a retornar 500 — ver §0 TL;DR.)**
 
 ### 1.1. Tags de release aplicadas
 
@@ -324,3 +342,44 @@ Validar cada PR isoladamente (build + login funcional + testes) antes de merge.
 ## 9. Contato
 
 Este handoff foi gerado pelo Claude Opus 4.6 (1M context) em sessão autônoma. Decisões arquiteturais estão nos specs v3. Aprendizados operacionais (debug, LEI #1) estão em `CLAUDE.md` + memory.
+
+---
+
+## 10. Frente 17 — Tenant Scoping (descoberta + retomada)
+
+### 10.1. Contexto
+
+Durante Fase 12.2 foi identificada vuln pré-existente: `Lead`, `Contact`, `Opportunity` não têm coluna `companyId` no schema e server actions (`getLeads`, `updateContact`, `deleteOpportunity`, etc.) **não filtram por tenant**. Qualquer usuário autenticado pode ler/editar/apagar linhas de qualquer company. Isso é um vazamento cross-tenant em produção.
+
+### 10.2. Spec + plan já escritos (uncommitted)
+
+Branch: **`feat/tenant-scoping-crud`**. Arquivos uncommitted:
+
+- `docs/superpowers/specs/2026-04-14-tenant-scoping-crud-domains.md` (v3, 95 linhas)
+- `docs/superpowers/plans/2026-04-14-tenant-scoping-crud-domains.md` (T1..T7)
+
+Escopo:
+
+1. **T1 Migration + helper** — adicionar `companyId` a Lead/Contact/Opportunity com FK + index + backfill (primeiro company herda linhas legacy). Criar `src/lib/tenant-scope.ts` com `requireActiveCompanyId()`.
+2. **T2-T4** — refactor de `leads.ts`, `contacts.ts`, `opportunities.ts` + testes unit Prisma mock.
+3. **T5** — refactor de ~12 callsites auxiliares (search, activities, dashboard, marketing-*, worker marketing-send, automation actions).
+4. **T6** — ajustar seeds.
+5. **T7** — CI local + PR + squash merge.
+
+### 10.3. Retomada — opções priorizadas
+
+| Opção | Quando escolher | Ação |
+|---|---|---|
+| **A — Fix prod 500 primeiro** | Se login/app em prod afeta clientes (hoje está 500) | LEI #1 → logs container → identificar regressão de Frentes 14b/15b → fix mínimo |
+| **B — Frente 17 tenant scoping** | Se prod OK, queremos avançar e resolver vuln | `git checkout feat/tenant-scoping-crud`, commit spec+plan, executar T1..T7 via `superpowers:subagent-driven-development` |
+| **C — Destravar 12.2 E2E CI** | Se Frente 17 desbloquear ou prod estiver fine | Investigar dual React em `next dev` (alias turbopack não prevendo regressão com vendor packages) |
+
+**Recomendação:** **A → B → C** (corrigir prod crítico → lançar tenant scoping → validar E2E no fim).
+
+### 10.4. Como retomar (roteiro autônomo)
+
+1. **Ler memory** `session_state_2026_04_14_late.md` para mapa rápido.
+2. **Checar prod:** `curl -s https://crm2.nexusai360.com/api/health && curl -s -o /dev/null -w "%{http_code}" https://crm2.nexusai360.com/login`.
+3. **Se login 500:** seguir **LEI #1** (`CLAUDE.md` §1) — logs container ANTES de qualquer commit.
+4. **Quando prod estável:** `git checkout feat/tenant-scoping-crud`, commit do spec+plan, executar plan via superpowers (skills obrigatórias per CLAUDE.md).
+5. **Final:** PR merge → main → tentar validar 12.2 E2E CI novamente (agora com companyId isolando tenants, cross-tenant spec real passa) → tag `phase-12-2-deployed`.

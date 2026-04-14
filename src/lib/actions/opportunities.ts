@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { requireActiveCompanyId } from "@/lib/tenant-scope";
 
 export interface OpportunityItem {
   id: string;
@@ -33,7 +34,15 @@ export async function getOpportunities(): Promise<ActionResult<OpportunityItem[]
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autenticado" };
 
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
+
   const opportunities = await prisma.opportunity.findMany({
+    where: { companyId },
     orderBy: { createdAt: "desc" },
     include: {
       contact: {
@@ -59,8 +68,27 @@ export async function createOpportunity(data: {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autenticado" };
 
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
+
+  // Se contactId for passado, valida que pertence ao mesmo tenant (evita FK cross-tenant).
+  if (data.contactId) {
+    const contact = await prisma.contact.findFirst({
+      where: { id: data.contactId, companyId },
+      select: { id: true },
+    });
+    if (!contact) {
+      return { success: false, error: "Contato não encontrado" };
+    }
+  }
+
   const opportunity = await prisma.opportunity.create({
     data: {
+      companyId,
       title: data.title,
       contactId: data.contactId ?? null,
       stage: (data.stage as any) ?? "prospecting",
@@ -94,6 +122,13 @@ export async function updateOpportunity(
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autenticado" };
 
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
+
   const updateData: Record<string, unknown> = {};
   if (data.title !== undefined) updateData.title = data.title;
   if (data.contactId !== undefined) updateData.contactId = data.contactId;
@@ -101,14 +136,28 @@ export async function updateOpportunity(
   if (data.value !== undefined) updateData.value = data.value;
   if (data.currency !== undefined) updateData.currency = data.currency;
   if (data.probability !== undefined) updateData.probability = data.probability;
-  if (data.closeDate !== undefined) updateData.closeDate = data.closeDate ? new Date(data.closeDate) : null;
+  if (data.closeDate !== undefined)
+    updateData.closeDate = data.closeDate ? new Date(data.closeDate) : null;
   if (data.notes !== undefined) updateData.notes = data.notes;
   if (data.assignedTo !== undefined) updateData.assignedTo = data.assignedTo;
 
-  await prisma.opportunity.update({
-    where: { id },
+  if (data.contactId) {
+    const contact = await prisma.contact.findFirst({
+      where: { id: data.contactId, companyId },
+      select: { id: true },
+    });
+    if (!contact) {
+      return { success: false, error: "Contato não encontrado" };
+    }
+  }
+
+  const r = await prisma.opportunity.updateMany({
+    where: { id, companyId },
     data: updateData,
   });
+  if (r.count === 0) {
+    return { success: false, error: "Oportunidade não encontrada" };
+  }
 
   revalidatePath("/opportunities");
   return { success: true };
@@ -118,7 +167,17 @@ export async function deleteOpportunity(id: string): Promise<ActionResult> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autenticado" };
 
-  await prisma.opportunity.delete({ where: { id } });
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
+
+  const r = await prisma.opportunity.deleteMany({ where: { id, companyId } });
+  if (r.count === 0) {
+    return { success: false, error: "Oportunidade não encontrada" };
+  }
 
   revalidatePath("/opportunities");
   return { success: true };

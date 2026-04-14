@@ -76,7 +76,7 @@ describe("updateFieldExecutor", () => {
     expect(result.ok).toBe(true);
     expect(result.output).toMatchObject({ updated: 1, id: "entity-1", field: "status" });
     expect(mockUpdateMany).toHaveBeenCalledWith({
-      where: { id: "entity-1" },
+      where: { id: "entity-1", companyId: "company-1" },
       data: { status: "qualified" },
     });
   });
@@ -91,7 +91,7 @@ describe("updateFieldExecutor", () => {
 
     expect(result.ok).toBe(true);
     expect(mockUpdateMany).toHaveBeenCalledWith({
-      where: { id: "entity-1" },
+      where: { id: "entity-1", companyId: "company-1" },
       data: { stage: "proposal" },
     });
   });
@@ -106,7 +106,7 @@ describe("updateFieldExecutor", () => {
 
     expect(result.ok).toBe(true);
     expect(mockUpdateMany).toHaveBeenCalledWith({
-      where: { id: "entity-1" },
+      where: { id: "entity-1", companyId: "company-1" },
       data: { notes: "updated note" },
     });
   });
@@ -144,7 +144,7 @@ describe("updateFieldExecutor", () => {
 
     expect(result.ok).toBe(true);
     expect(mockUpdateMany).toHaveBeenCalledWith({
-      where: { id: "nested-id" },
+      where: { id: "nested-id", companyId: "company-1" },
       data: { status: "contacted" },
     });
   });
@@ -292,7 +292,7 @@ describe("assignUserExecutor", () => {
     expect(result.ok).toBe(true);
     expect(result.output).toMatchObject({ updated: 1 });
     expect(mockUpdateMany).toHaveBeenCalledWith({
-      where: { id: "entity-1" },
+      where: { id: "entity-1", companyId: "company-1" },
       data: { assignedTo: "user-99" },
     });
   });
@@ -307,7 +307,7 @@ describe("assignUserExecutor", () => {
 
     expect(result.ok).toBe(true);
     expect(mockUpdateMany).toHaveBeenCalledWith({
-      where: { id: "entity-1" },
+      where: { id: "entity-1", companyId: "company-1" },
       data: { assignedTo: "user-42" },
     });
   });

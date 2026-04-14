@@ -165,7 +165,9 @@ export async function previewSegmentAction(input: unknown): Promise<
   }>
 > {
   try {
-    await requirePermission("marketing:view");
+    const user = await requirePermission("marketing:view");
+    const companyId = await resolveActiveCompanyId(user.id);
+    if (!companyId) return { success: false, error: "Empresa ativa não encontrada" };
 
     const parsed = previewSegmentSchema.safeParse(input);
     if (!parsed.success) {
@@ -174,7 +176,7 @@ export async function previewSegmentAction(input: unknown): Promise<
 
     const where = buildWhereFromFilters(parsed.data.filters);
     const finalWhere = {
-      AND: [...where.AND, { consentMarketing: true }],
+      AND: [...where.AND, { consentMarketing: true }, { companyId }],
     };
 
     const [count, sample] = await Promise.all([

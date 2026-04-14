@@ -217,7 +217,7 @@ export async function activateCampaignAction(
     const segmentFilters = campaign.segment.filters as unknown as SegmentFilter[];
     const filterWhere = buildWhereFromFilters(segmentFilters);
     const contactWhere = {
-      AND: [...filterWhere.AND, { consentMarketing: true }],
+      AND: [...filterWhere.AND, { consentMarketing: true }, { companyId }],
     };
 
     const contacts = await prisma.contact.findMany({

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { SEARCH_CONFIG } from "@/lib/constants/search";
+import { requireActiveCompanyId } from "@/lib/tenant-scope";
 
 function normalize(str: string) {
   return str
@@ -21,6 +22,18 @@ export async function search(query: string) {
 
   const normalized = normalize(q);
   const limit = SEARCH_CONFIG.maxResults;
+
+  // Tenant scope: leads/contacts/opps filtrados por companyId (exceção super_admin).
+  // users/companies permanecem globais (super_admin aggregate OK).
+  let tenantFilter: { companyId: string } | Record<string, never> = {};
+  if (!user.isSuperAdmin) {
+    try {
+      const companyId = await requireActiveCompanyId();
+      tenantFilter = { companyId };
+    } catch {
+      tenantFilter = { companyId: "__no_access__" }; // força resultado vazio
+    }
+  }
 
   const [users, companies, leads, contacts, opportunities] = await Promise.all([
     prisma.user.findMany({
@@ -41,6 +54,7 @@ export async function search(query: string) {
     }),
     prisma.lead.findMany({
       where: {
+        ...tenantFilter,
         OR: [
           { name: { contains: normalized, mode: "insensitive" } },
           { email: { contains: normalized, mode: "insensitive" } },
@@ -51,6 +65,7 @@ export async function search(query: string) {
     }),
     prisma.contact.findMany({
       where: {
+        ...tenantFilter,
         OR: [
           { firstName: { contains: normalized, mode: "insensitive" } },
           { lastName: { contains: normalized, mode: "insensitive" } },
@@ -61,7 +76,10 @@ export async function search(query: string) {
       take: limit,
     }),
     prisma.opportunity.findMany({
-      where: { title: { contains: normalized, mode: "insensitive" } },
+      where: {
+        ...tenantFilter,
+        title: { contains: normalized, mode: "insensitive" },
+      },
       select: { id: true, title: true, stage: true },
       take: limit,
     }),

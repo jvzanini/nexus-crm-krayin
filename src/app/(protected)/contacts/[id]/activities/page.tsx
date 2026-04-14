@@ -26,9 +26,9 @@ export default async function ContactActivitiesPage({ params }: PageProps) {
 
   if (!membership) redirect("/dashboard");
 
-  // Contact não tem companyId no schema. Também não tem `name` — tem firstName + lastName.
+  // Frente 17: Contact tem companyId. Filter direto por tenant.
   const contact = await prisma.contact.findFirst({
-    where: { id },
+    where: { id, companyId: membership.companyId },
     select: { id: true, firstName: true, lastName: true },
   });
 
