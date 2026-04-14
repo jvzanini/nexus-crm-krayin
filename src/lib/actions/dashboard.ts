@@ -35,6 +35,27 @@ export interface RecentActivityItem {
   createdAt: string;
 }
 
+export interface FunnelStep {
+  stage: "leads" | "contacts" | "opportunities" | "won";
+  label: string;
+  count: number;
+}
+
+export interface PipelineStageValue {
+  stage: string; // OpportunityStage
+  count: number;
+  valueCents: number;
+}
+
+export interface TopOpportunity {
+  id: string;
+  title: string;
+  value: number | null;
+  probability: number | null;
+  stage: string;
+  contactName: string | null;
+}
+
 export interface DashboardData {
   stats: DashboardStats;
   chart: ChartDataPoint[];
@@ -43,6 +64,9 @@ export interface DashboardData {
     currentPage: number;
     totalPages: number;
   };
+  funnel: FunnelStep[];
+  pipelineByStage: PipelineStageValue[];
+  topOpportunities: TopOpportunity[];
 }
 
 // --- Helpers ---
@@ -263,6 +287,57 @@ export async function getDashboardData(
     safePage * PAGE_SIZE
   );
 
+  // --- Funnel (4 etapas) ---
+  const [leadsCount, contactsCount, oppsCount, wonCount] = await Promise.all([
+    prisma.lead.count({ where: { companyId } }),
+    prisma.contact.count({ where: { companyId } }),
+    prisma.opportunity.count({ where: { companyId } }),
+    prisma.opportunity.count({ where: { companyId, stage: "closed_won" } }),
+  ]);
+
+  const funnel: FunnelStep[] = [
+    { stage: "leads", label: "Leads", count: leadsCount },
+    { stage: "contacts", label: "Contatos", count: contactsCount },
+    { stage: "opportunities", label: "Oportunidades", count: oppsCount },
+    { stage: "won", label: "Ganhos", count: wonCount },
+  ];
+
+  // --- Pipeline by stage ---
+  const pipelineRaw = await prisma.opportunity.groupBy({
+    by: ["stage"],
+    where: { companyId },
+    _count: { _all: true },
+    _sum: { value: true },
+  });
+
+  const pipelineByStage: PipelineStageValue[] = pipelineRaw.map((p) => ({
+    stage: p.stage,
+    count: p._count._all,
+    valueCents: p._sum.value ? Number(p._sum.value) * 100 : 0,
+  }));
+
+  // --- Top 5 opportunities (exclui closed_won/closed_lost) ---
+  const topOppsRaw = await prisma.opportunity.findMany({
+    where: {
+      companyId,
+      stage: { notIn: ["closed_won", "closed_lost"] },
+    },
+    orderBy: { value: "desc" },
+    take: 5,
+    include: { contact: { select: { firstName: true, lastName: true } } },
+  });
+
+  const topOpportunities: TopOpportunity[] = topOppsRaw.map((o) => ({
+    id: o.id,
+    title: o.title,
+    value: o.value ? Number(o.value) : null,
+    probability: o.probability,
+    stage: o.stage,
+    contactName: o.contact
+      ? `${o.contact.firstName ?? ""} ${o.contact.lastName ?? ""}`.trim() || null
+      : null,
+  }));
+
   return {
     success: true,
     data: {
@@ -273,6 +348,9 @@ export async function getDashboardData(
         currentPage: safePage,
         totalPages,
       },
+      funnel,
+      pipelineByStage,
+      topOpportunities,
     },
   };
 }
