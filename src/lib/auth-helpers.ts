@@ -1,4 +1,4 @@
-import bcrypt from "bcryptjs";
+import { validatePassword } from "@nexusai360/core";
 import { prisma } from "@/lib/prisma";
 import { checkLoginRateLimit, clearLoginRateLimit } from "@/lib/rate-limit";
 
@@ -47,7 +47,7 @@ export async function authorizeCredentials(
   if (!user) return null;
 
   // Verificar senha
-  const validPassword = await bcrypt.compare(password, user.password);
+  const validPassword = await validatePassword(password, user.password);
   if (!validPassword) return null;
 
   // Verificar usuário ativo
