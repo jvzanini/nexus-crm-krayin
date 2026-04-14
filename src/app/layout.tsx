@@ -31,9 +31,27 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const resolvedTheme = await getResolvedThemeFromCookie();
-  const locale = await getLocale();
-  const messages = await getMessages();
+  // Debug temporário: se algo throw, expor erro cru em vez de 500 opaco.
+  let resolvedTheme: Awaited<ReturnType<typeof getResolvedThemeFromCookie>>;
+  let locale: string;
+  let messages: Awaited<ReturnType<typeof getMessages>>;
+  try {
+    resolvedTheme = await getResolvedThemeFromCookie();
+    locale = await getLocale();
+    messages = await getMessages();
+  } catch (err) {
+    const e = err as Error;
+    return (
+      <html lang="pt-BR">
+        <body style={{ background: "#0a0a0a", color: "#fff", fontFamily: "monospace", padding: "16px" }}>
+          <h1 style={{ color: "#ff6b6b" }}>ROOT LAYOUT ERROR</h1>
+          <pre style={{ whiteSpace: "pre-wrap", fontSize: "13px" }}>
+            {`${e.name}: ${e.message}\n\n${e.stack ?? "(no stack)"}`}
+          </pre>
+        </body>
+      </html>
+    );
+  }
 
   return (
     <html

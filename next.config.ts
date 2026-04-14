@@ -17,9 +17,6 @@ const nextConfig: NextConfig = {
     "@nexusai360/design-system",
     "@nexusai360/users-ui",
     "@nexusai360/companies-ui",
-    "@opentelemetry/sdk-node",
-    "@opentelemetry/instrumentation-http",
-    "@opentelemetry/instrumentation-pg",
   ],
 };
 
