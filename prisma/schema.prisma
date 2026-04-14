@@ -663,3 +663,68 @@ model EmailMessage {
   @@index([companyId, subjectType, subjectId, sentAt(sort: Desc)], name: "idx_message_subject")
   @@map("email_messages")
 }
+
+// ============================================================
+// FASE 8 — AUTOMATION WORKFLOWS
+// ============================================================
+
+enum WorkflowTrigger {
+  lead_created
+  contact_created
+  activity_completed
+}
+
+enum WorkflowStatus {
+  draft
+  active
+  paused
+}
+
+enum ExecutionStatus {
+  pending
+  running
+  completed
+  failed
+  aborted_chain_depth
+  aborted_quota
+}
+
+model Workflow {
+  id          String          @id @default(uuid()) @db.Uuid
+  companyId   String          @map("company_id") @db.Uuid
+  name        String
+  description String?
+  trigger     WorkflowTrigger
+  conditions  Json
+  actions     Json
+  status      WorkflowStatus  @default(draft)
+  version     Int             @default(1)
+  lastEditBy  String?         @map("last_edit_by") @db.Uuid
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  executions WorkflowExecution[]
+
+  @@index([companyId, status, trigger], name: "idx_workflow_dispatch")
+  @@map("workflows")
+}
+
+model WorkflowExecution {
+  id           String          @id @default(uuid()) @db.Uuid
+  workflowId   String          @map("workflow_id") @db.Uuid
+  companyId    String          @map("company_id") @db.Uuid
+  eventId      String          @map("event_id")
+  chainDepth   Int             @default(0) @map("chain_depth")
+  status       ExecutionStatus @default(pending)
+  input        Json
+  output       Json?
+  errorMessage String?         @map("error_message")
+  startedAt    DateTime?       @map("started_at")
+  finishedAt   DateTime?       @map("finished_at")
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowId, eventId], name: "uq_execution_workflow_event")
+  @@index([companyId, status, startedAt(sort: Desc)], name: "idx_execution_recent")
+  @@map("workflow_executions")
+}
