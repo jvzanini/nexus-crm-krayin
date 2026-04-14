@@ -3,6 +3,7 @@
 import { FlatCompat } from "@eslint/eslintrc";
 import noDirectConsentWrite from "./eslint-rules/no-direct-consent-write.js";
 import noConsoleInSrc from "./eslint-rules/no-console-in-src.js";
+import noAdHocRoleCheck from "./eslint-rules/no-ad-hoc-role-check.js";
 
 const compat = new FlatCompat({ baseDirectory: import.meta.dirname });
 
@@ -14,6 +15,7 @@ export default [
         rules: {
           "no-direct-consent-write": noDirectConsentWrite,
           "no-console-in-src": noConsoleInSrc,
+          "no-ad-hoc-role-check": noAdHocRoleCheck,
         },
       },
     },
@@ -21,6 +23,8 @@ export default [
       "nexus-crm/no-direct-consent-write": "error",
       // warn-first em Fase 1c.0; migrar para "error" após grep de console.* = 0
       "nexus-crm/no-console-in-src": "warn",
+      // warn em 1c.3; escalar para error em Fase 12 quando actions migradas
+      "nexus-crm/no-ad-hoc-role-check": "warn",
     },
   },
   {
