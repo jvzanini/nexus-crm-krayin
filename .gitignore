@@ -37,3 +37,6 @@ npm-debug.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Playwright E2E auth storage
+tests/e2e/.auth/*.json
