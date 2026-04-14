@@ -1,6 +1,5 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
-import { withSentryConfig } from "@sentry/nextjs";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n.ts");
 
@@ -20,14 +19,8 @@ const nextConfig: NextConfig = {
   ],
 };
 
-// Sentry wrapper é seguro com DSN ausente (SDK roda no-op).
-const sentryOptions = {
-  silent: true,
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  widenClientFileUpload: false,
-  disableLogger: true,
-  automaticVercelMonitors: false,
-};
-
-export default withSentryConfig(withNextIntl(nextConfig), sentryOptions);
+// Sentry wrapper desativado temporariamente — suspeito de causar HTTP 500 em SSR
+// sem SENTRY_DSN configurado. Re-ativar em Fase 12 quando DSN for provisionado
+// com teste end-to-end. Atual: Sentry config carrega condicionalmente via
+// instrumentation.ts já guardado por Boolean(dsn).
+export default withNextIntl(nextConfig);

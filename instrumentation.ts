@@ -8,12 +8,20 @@
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
-    await import("./sentry.server.config");
+    // Sentry só carrega quando DSN presente (evita side-effects em SSR sem config).
+    if (process.env.SENTRY_DSN) {
+      await import("./sentry.server.config");
+    }
 
-    // Configura singleton de rate-limit do @nexusai360/core
-    const { configureRateLimit } = await import("@nexusai360/core");
-    const { redis } = await import("@/lib/redis");
-    configureRateLimit(redis);
+    // Rate-limit singleton: best-effort — se @nexusai360/core ou redis falharem,
+    // logger warn e continua (login funciona sem rate-limit customizado).
+    try {
+      const { configureRateLimit } = await import("@nexusai360/core");
+      const { redis } = await import("@/lib/redis");
+      configureRateLimit(redis);
+    } catch (err) {
+      console.warn("[instrumentation] configureRateLimit falhou:", err);
+    }
 
     if (process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
       const { NodeSDK } = await import("@opentelemetry/sdk-node");
@@ -50,6 +58,8 @@ export async function register() {
   }
 
   if (process.env.NEXT_RUNTIME === "edge") {
-    await import("./sentry.edge.config");
+    if (process.env.SENTRY_DSN) {
+      await import("./sentry.edge.config");
+    }
   }
 }
