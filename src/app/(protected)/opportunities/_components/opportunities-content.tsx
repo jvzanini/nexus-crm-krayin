@@ -12,6 +12,7 @@ import {
 } from "@nexusai360/design-system";
 import { Button } from "@nexusai360/design-system";
 import { Input } from "@nexusai360/design-system";
+import { PageHeader } from "@nexusai360/design-system";
 import {
   Dialog,
   DialogContent,
@@ -259,30 +260,29 @@ export function OpportunitiesContent() {
       className="space-y-6"
     >
       {/* Header */}
-      <motion.div
-        variants={itemVariants}
-        className="flex items-center justify-between"
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600/10 border border-violet-500/20">
-            <TrendingUp className="h-5 w-5 text-violet-400" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Oportunidades</h1>
-            <p className="text-sm text-muted-foreground">
-              {loading
-                ? "Carregando..."
-                : `${opportunities.length} oportunidade${opportunities.length !== 1 ? "s" : ""} cadastrada${opportunities.length !== 1 ? "s" : ""}`}
-            </p>
-          </div>
-        </div>
-        <Button
-          onClick={openCreate}
-          className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
-        >
-          <Plus className="h-4 w-4" />
-          Nova Oportunidade
-        </Button>
+      <motion.div variants={itemVariants}>
+        <PageHeader.Root>
+          <PageHeader.Row>
+            <PageHeader.Icon icon={TrendingUp} color="amber" />
+            <PageHeader.Heading>
+              <PageHeader.Title>Oportunidades</PageHeader.Title>
+              <PageHeader.Description>
+                {loading
+                  ? "Carregando..."
+                  : `${opportunities.length} oportunidade${opportunities.length !== 1 ? "s" : ""} cadastrada${opportunities.length !== 1 ? "s" : ""}`}
+              </PageHeader.Description>
+            </PageHeader.Heading>
+          </PageHeader.Row>
+          <PageHeader.Actions>
+            <Button
+              onClick={openCreate}
+              className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
+            >
+              <Plus className="h-4 w-4" />
+              Nova Oportunidade
+            </Button>
+          </PageHeader.Actions>
+        </PageHeader.Root>
       </motion.div>
 
       {/* Stage Filters */}
