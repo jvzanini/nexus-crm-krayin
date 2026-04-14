@@ -1,42 +1,44 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+import type { PlatformRole } from "@nexusai360/types";
+import type {
+  ActionResult,
+  SetSettingInput,
+} from "@nexusai360/settings-ui/server-helpers";
+import {
+  setSettingSchema,
+  canEditSettings,
+} from "@nexusai360/settings-ui/server-helpers";
 import { getCurrentUser } from "@/lib/auth";
+import { settingsAdapter } from "@/lib/adapters/settings";
+import { logger } from "@/lib/logger";
 
-export async function getSetting(key: string) {
-  const setting = await prisma.globalSettings.findUnique({ where: { key } });
-  return setting?.value ?? null;
-}
-
-export async function setSetting(key: string, value: unknown) {
-  const user = await getCurrentUser();
-  if (!user) return { success: false, error: "Não autorizado" };
-  if (!["super_admin", "admin"].includes(user.platformRole)) {
-    return { success: false, error: "Permissão insuficiente" };
+export async function saveSettingAction(
+  input: SetSettingInput,
+): Promise<ActionResult> {
+  try {
+    const parsed = setSettingSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message ?? "invalid_input",
+      };
+    }
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: "unauthenticated" };
+    if (!canEditSettings(user.platformRole as PlatformRole)) {
+      return { success: false, error: "forbidden" };
+    }
+    await settingsAdapter.setSetting(
+      parsed.data.key,
+      parsed.data.value,
+      user.id,
+    );
+    revalidatePath("/settings");
+    return { success: true };
+  } catch (err) {
+    logger.error({ err }, "settings.save.failed");
+    return { success: false, error: "internal_error" };
   }
-
-  await prisma.globalSettings.upsert({
-    where: { key },
-    update: { value: value as any, updatedBy: user.id },
-    create: { key, value: value as any, updatedBy: user.id },
-  });
-
-  return { success: true };
-}
-
-export async function getAllSettings() {
-  const user = await getCurrentUser();
-  if (!user) return { success: false, error: "Não autorizado" };
-  if (!["super_admin", "admin"].includes(user.platformRole)) {
-    return { success: false, error: "Permissão insuficiente" };
-  }
-
-  const settings = await prisma.globalSettings.findMany({
-    orderBy: { key: "asc" },
-  });
-
-  return {
-    success: true,
-    settings: Object.fromEntries(settings.map((s) => [s.key, s.value])),
-  };
 }
