@@ -25,6 +25,16 @@ export async function register() {
       console.warn("[instrumentation] configureCompanies falhou:", err);
     }
 
+    // Audit-log persist: registra callback Prisma no @nexusai360/audit-log
+    // para que logAudit(entry) persista via prisma.auditLog.create.
+    try {
+      const { configureAudit } = await import("@nexusai360/audit-log");
+      const { auditPersist } = await import("@/lib/audit-log/persist");
+      configureAudit(auditPersist);
+    } catch (err) {
+      console.warn("[instrumentation] configureAudit falhou:", err);
+    }
+
     if (process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
       const { NodeSDK } = await import("@opentelemetry/sdk-node");
       const { OTLPTraceExporter } = await import(

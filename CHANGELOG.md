@@ -1,5 +1,25 @@
 # Changelog
 
+## [2026-04-14] Frente 10 — adoção de @nexusai360/audit-log
+
+### Adicionado
+- Dependência `@nexusai360/audit-log@0.2.3` via vendor tarball (6 → 7 tarballs vendored).
+- `src/lib/audit-log/persist.ts` — callback Prisma com normalização `actorId || null`.
+- `instrumentation.ts` registra `configureAudit(auditPersist)` no boot Node.
+
+### Substituído
+- `src/lib/audit-log.ts` — wrapper async preserva API; internamente chama `logAudit` (sync) do pacote.
+
+### Compatibilidade
+- 4 callers (`app/api/v1/subjects/*`, `lib/actions/locale.ts`) não tocados — `await auditLog(input)` continua compilando (no-op instantâneo).
+- Erros de persist não propagam mais para o caller — vão para `logger.error("audit-log.create.failed")`.
+
+### Sem mudança
+- Schema Prisma `AuditLog`, queries de leads/contacts/opportunities, NextAuth.
+
+### Notas
+- Pacote `@nexusai360/audit-log` bumped 0.2.2 → 0.2.3 para corrigir `exports` do package.json apontar para os artefatos reais gerados pelo tsup (`dist/index.js` ESM + `dist/index.cjs` CJS, em vez do inexistente `dist/index.mjs`).
+
 ## [2026-04-14] Frente 9 — adoção de @nexusai360/multi-tenant
 
 ### Adicionado

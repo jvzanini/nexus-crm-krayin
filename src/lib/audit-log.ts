@@ -1,9 +1,8 @@
-// Audit Log — fire-and-forget helper
-import { prisma } from "@/lib/prisma";
+// Audit Log — wrapper async sobre @nexusai360/audit-log
+import { logAudit, type AuditEntry } from "@nexusai360/audit-log";
 import { ActorType } from "@/generated/prisma/client";
-import { logger } from "@/lib/logger";
 
-interface AuditInput {
+export interface AuditInput {
   actorType: ActorType;
   actorId?: string;
   actorLabel: string;
@@ -19,27 +18,27 @@ interface AuditInput {
 }
 
 /**
- * Registra uma ação no audit log. Fire-and-forget — não lança exceção.
+ * Wrapper async para retrocompat com callers existentes.
+ * Internamente delega ao logAudit (sync, fire-and-forget) do
+ * `@nexusai360/audit-log`. Callers continuam podendo `await` (no-op instantâneo).
+ *
+ * Importante: erros do persist NÃO propagam mais para o caller —
+ * vão para o logger configurado em `lib/audit-log/persist.ts`.
  */
 export async function auditLog(input: AuditInput): Promise<void> {
-  try {
-    await prisma.auditLog.create({
-      data: {
-        actorType: input.actorType,
-        actorId: input.actorId ?? null,
-        actorLabel: input.actorLabel,
-        companyId: input.companyId ?? null,
-        action: input.action,
-        resourceType: input.resourceType,
-        resourceId: input.resourceId ?? null,
-        details: (input.details ?? {}) as any,
-        before: (input.before ?? null) as any,
-        after: (input.after ?? null) as any,
-        ipAddress: input.ipAddress ?? null,
-        userAgent: input.userAgent ?? null,
-      },
-    });
-  } catch (err) {
-    logger.error({ err, action: input.action, resourceType: input.resourceType }, "audit-log.create.failed");
-  }
+  const entry: AuditEntry = {
+    actorType: input.actorType,
+    actorId: input.actorId ?? "",
+    actorLabel: input.actorLabel,
+    companyId: input.companyId,
+    action: input.action,
+    resourceType: input.resourceType,
+    resourceId: input.resourceId,
+    details: input.details,
+    before: input.before,
+    after: input.after,
+    ipAddress: input.ipAddress,
+    userAgent: input.userAgent,
+  };
+  logAudit(entry);
 }
