@@ -7,14 +7,15 @@ import { logger } from "@/lib/logger";
 import { dispatch } from "@/lib/automation/dispatcher";
 import { getFileDriver, enforceMime, enforceSize } from "@/lib/files";
 import { scheduleReminder, cancelReminder } from "@/lib/worker/queues/activity-reminders";
-import { ActivityType, ActivityStatus, ActivitySubjectType } from "@/generated/prisma/enums";
+import type { ActivityType, ActivityStatus, ActivitySubjectType } from "@/generated/prisma/enums";
 import { randomUUID } from "crypto";
-import { _schemas, createActivitySchema as _createSchema, updateActivitySchema as _updateSchema } from "./activities-schemas";
+import { createActivitySchema as _createSchema, updateActivitySchema as _updateSchema } from "./activities-schemas";
 
-// ---------------------------------------------------------------------------
-// Re-exports de enums (conveniente para consumidores)
-// ---------------------------------------------------------------------------
-export { ActivityType, ActivityStatus, ActivitySubjectType };
+// NOTA (Fase 6 fix build produção): "use server" aceita apenas exports de funções
+// async. Enums/schemas foram removidos dos re-exports runtime — consumidores
+// importam enums de `@/generated/prisma/enums` e schemas de `./activities-schemas`.
+// Re-export só de tipos (erased em runtime):
+export type { ActivityType, ActivityStatus, ActivitySubjectType };
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -134,10 +135,9 @@ function serializeActivity(a: {
 }
 
 // ---------------------------------------------------------------------------
-// Schemas de validação (importados de activities-schemas — re-exportados)
+// Schemas de validação — importe diretamente de `./activities-schemas`.
+// (Re-export removido: "use server" só permite exports de funções async.)
 // ---------------------------------------------------------------------------
-
-export { _schemas, createActivitySchema, updateActivitySchema } from "./activities-schemas";
 
 // ---------------------------------------------------------------------------
 // Include padrão para queries

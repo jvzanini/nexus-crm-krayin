@@ -1,21 +1,5 @@
-import { describe, it, expect, vi, beforeAll } from "vitest";
-
-// Mocka dependências server-only antes de importar o módulo
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/prisma", () => ({ prisma: {} }));
-vi.mock("@/lib/rbac", () => ({
-  requirePermission: vi.fn(),
-  PermissionDeniedError: class PermissionDeniedError extends Error {},
-}));
-vi.mock("@/lib/email/tokens", () => ({ encryptMailboxTokens: vi.fn() }));
-vi.mock("@/lib/logger", () => ({ logger: { error: vi.fn() } }));
-
-let connectImapSmtpSchema: (typeof import("./mailboxes"))["connectImapSmtpSchema"];
-
-beforeAll(async () => {
-  const mod = await import("./mailboxes");
-  connectImapSmtpSchema = mod.connectImapSmtpSchema;
-});
+import { describe, it, expect } from "vitest";
+import { connectImapSmtpSchema } from "./mailboxes-schemas";
 
 describe("connectImapSmtpSchema — validação Zod", () => {
   const validInput = {
