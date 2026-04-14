@@ -1,0 +1,68 @@
+{
+  "list": {
+    "title": "Caixas de e-mail",
+    "subtitle.count": "{count, plural, =0 {Nenhuma caixa conectada} one {# caixa conectada} other {# caixas conectadas}}",
+    "empty": "Nenhuma caixa conectada ainda",
+    "connected": "Caixas conectadas",
+    "loading": "Carregando...",
+    "status": {
+      "active": "Ativa",
+      "inactive": "Inativa",
+      "primary": "Primária"
+    },
+    "columns": {
+      "provider": "Provedor",
+      "emailAddress": "E-mail",
+      "status": "Status",
+      "actions": "Ações"
+    }
+  },
+  "action": {
+    "connect": "Conectar caixa",
+    "connectGmail": "Google (Gmail)",
+    "connectOutlook": "Microsoft (Outlook)",
+    "connectImap": "IMAP / SMTP custom",
+    "setPrimary": "Tornar primária",
+    "disconnect": "Desconectar",
+    "cancel": "Cancelar",
+    "confirmDisconnect": "Desconectar caixa \"{email}\"? Tokens serão apagados permanentemente.",
+    "confirmDisconnectTitle": "Desconectar caixa?",
+    "confirmDisconnectDescription": "A caixa será desconectada e os tokens de acesso removidos. Esta ação não pode ser desfeita."
+  },
+  "toast": {
+    "loadError": "Erro ao carregar caixas de e-mail",
+    "setPrimarySuccess": "Caixa definida como primária",
+    "setPrimaryError": "Erro ao definir caixa primária",
+    "disconnectSuccess": "Caixa desconectada",
+    "disconnectError": "Erro ao desconectar caixa",
+    "imapSuccess": "Caixa IMAP/SMTP conectada com sucesso",
+    "imapError": "Erro ao conectar caixa IMAP/SMTP"
+  },
+  "tooltip": {
+    "gmailNotConfigured": "Defina GOOGLE_OAUTH_CLIENT_ID no ambiente para habilitar",
+    "outlookNotConfigured": "Defina MS_OAUTH_CLIENT_ID no ambiente para habilitar"
+  },
+  "imap": {
+    "dialog.title": "Conectar via IMAP / SMTP",
+    "dialog.description": "Use quando não for possível OAuth. As credenciais são encriptadas antes de persistir.",
+    "section.identity": "Identidade",
+    "section.imap": "IMAP (receber)",
+    "section.smtp": "SMTP (enviar)",
+    "section.auth": "Autenticação",
+    "field.emailAddress": "E-mail",
+    "field.displayName": "Nome de exibição",
+    "field.imapHost": "Servidor IMAP",
+    "field.imapPort": "Porta IMAP",
+    "field.smtpHost": "Servidor SMTP",
+    "field.smtpPort": "Porta SMTP",
+    "field.authUsername": "Usuário",
+    "field.authPassword": "Senha",
+    "placeholder.emailAddress": "você@exemplo.com",
+    "placeholder.displayName": "Opcional",
+    "placeholder.imapHost": "imap.exemplo.com",
+    "placeholder.smtpHost": "smtp.exemplo.com",
+    "placeholder.authUsername": "usuário ou e-mail",
+    "submit": "Conectar",
+    "cancel": "Cancelar"
+  }
+}

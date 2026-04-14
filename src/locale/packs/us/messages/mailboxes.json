@@ -1,0 +1,68 @@
+{
+  "list": {
+    "title": "Mailboxes",
+    "subtitle.count": "{count, plural, =0 {No mailboxes connected} one {# mailbox connected} other {# mailboxes connected}}",
+    "empty": "No mailbox connected yet",
+    "connected": "Connected mailboxes",
+    "loading": "Loading...",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "primary": "Primary"
+    },
+    "columns": {
+      "provider": "Provider",
+      "emailAddress": "Email",
+      "status": "Status",
+      "actions": "Actions"
+    }
+  },
+  "action": {
+    "connect": "Connect mailbox",
+    "connectGmail": "Google (Gmail)",
+    "connectOutlook": "Microsoft (Outlook)",
+    "connectImap": "IMAP / SMTP custom",
+    "setPrimary": "Make primary",
+    "disconnect": "Disconnect",
+    "cancel": "Cancel",
+    "confirmDisconnect": "Disconnect mailbox \"{email}\"? Tokens will be permanently deleted.",
+    "confirmDisconnectTitle": "Disconnect mailbox?",
+    "confirmDisconnectDescription": "The mailbox will be disconnected and access tokens removed. This action cannot be undone."
+  },
+  "toast": {
+    "loadError": "Error loading mailboxes",
+    "setPrimarySuccess": "Mailbox set as primary",
+    "setPrimaryError": "Error setting primary mailbox",
+    "disconnectSuccess": "Mailbox disconnected",
+    "disconnectError": "Error disconnecting mailbox",
+    "imapSuccess": "IMAP/SMTP mailbox connected successfully",
+    "imapError": "Error connecting IMAP/SMTP mailbox"
+  },
+  "tooltip": {
+    "gmailNotConfigured": "Set GOOGLE_OAUTH_CLIENT_ID in env to enable",
+    "outlookNotConfigured": "Set MS_OAUTH_CLIENT_ID in env to enable"
+  },
+  "imap": {
+    "dialog.title": "Connect via IMAP / SMTP",
+    "dialog.description": "Use when OAuth is not available. Credentials are encrypted before persisting.",
+    "section.identity": "Identity",
+    "section.imap": "IMAP (receive)",
+    "section.smtp": "SMTP (send)",
+    "section.auth": "Authentication",
+    "field.emailAddress": "Email",
+    "field.displayName": "Display name",
+    "field.imapHost": "IMAP server",
+    "field.imapPort": "IMAP port",
+    "field.smtpHost": "SMTP server",
+    "field.smtpPort": "SMTP port",
+    "field.authUsername": "Username",
+    "field.authPassword": "Password",
+    "placeholder.emailAddress": "you@example.com",
+    "placeholder.displayName": "Optional",
+    "placeholder.imapHost": "imap.example.com",
+    "placeholder.smtpHost": "smtp.example.com",
+    "placeholder.authUsername": "username or email",
+    "submit": "Connect",
+    "cancel": "Cancel"
+  }
+}

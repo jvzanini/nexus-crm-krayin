@@ -36,6 +36,7 @@ import {
   TooltipTrigger,
 } from "@nexusai360/design-system";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import {
   listMailboxes,
   setPrimaryMailbox,
@@ -44,7 +45,6 @@ import {
 } from "@/lib/actions/mailboxes";
 import { ImapFormDialog } from "./imap-form-dialog";
 
-// TODO 7b-T6: extract to i18n pack mailboxes
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
@@ -62,7 +62,6 @@ interface Props {
 }
 
 function providerLabel(provider: string): string {
-  // TODO 7b-T6: extract to i18n pack mailboxes
   switch (provider) {
     case "gmail":
       return "Gmail";
@@ -96,6 +95,7 @@ export function MailboxesContent({
   googleConfigured,
   outlookConfigured,
 }: Props) {
+  const t = useTranslations("mailboxes");
   const [mailboxes, setMailboxes] = useState<MailboxItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [acting, startActing] = useTransition();
@@ -109,7 +109,7 @@ export function MailboxesContent({
     if (res.success && res.data) {
       setMailboxes(res.data);
     } else {
-      toast.error(res.error ?? "Erro ao carregar caixas de e-mail"); // TODO 7b-T6: extract to i18n pack mailboxes
+      toast.error(res.error ?? t("toast.loadError"));
     }
     setLoading(false);
   }
@@ -122,10 +122,10 @@ export function MailboxesContent({
     startActing(async () => {
       const res = await setPrimaryMailbox(id);
       if (res.success) {
-        toast.success("Caixa definida como primária"); // TODO 7b-T6: extract to i18n pack mailboxes
+        toast.success(t("toast.setPrimarySuccess"));
         await load();
       } else {
-        toast.error(res.error ?? "Erro ao definir caixa primária"); // TODO 7b-T6: extract to i18n pack mailboxes
+        toast.error(res.error ?? t("toast.setPrimaryError"));
       }
     });
   }
@@ -134,11 +134,11 @@ export function MailboxesContent({
     startActing(async () => {
       const res = await disconnectMailbox(id);
       if (res.success) {
-        toast.success("Caixa desconectada"); // TODO 7b-T6: extract to i18n pack mailboxes
+        toast.success(t("toast.disconnectSuccess"));
         setDisconnectTarget(null);
         await load();
       } else {
-        toast.error(res.error ?? "Erro ao desconectar caixa"); // TODO 7b-T6: extract to i18n pack mailboxes
+        toast.error(res.error ?? t("toast.disconnectError"));
       }
     });
   }
@@ -153,11 +153,11 @@ export function MailboxesContent({
               <Mail className="h-5 w-5 text-violet-400" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">Caixas de E-mail</h1>{/* TODO 7b-T6 */}
+              <h1 className="text-xl font-bold text-foreground">{t("list.title")}</h1>
               <p className="text-sm text-muted-foreground">
                 {loading
-                  ? "Carregando..." // TODO 7b-T6
-                  : `${mailboxes.length} caixa${mailboxes.length !== 1 ? "s" : ""} conectada${mailboxes.length !== 1 ? "s" : ""}`} {/* TODO 7b-T6 */}
+                  ? t("list.loading")
+                  : t("list.subtitle.count", { count: mailboxes.length })}
               </p>
             </div>
           </div>
@@ -167,7 +167,7 @@ export function MailboxesContent({
               <DropdownMenuTrigger render={
                 <Button className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200">
                   <Plus className="h-4 w-4" />
-                  Conectar caixa {/* TODO 7b-T6 */}
+                  {t("action.connect")}
                 </Button>
               } />
               <DropdownMenuContent align="end" className="w-48">
@@ -176,7 +176,7 @@ export function MailboxesContent({
                   <DropdownMenuItem render={
                     <a href="/api/oauth/gmail/authorize" className="flex items-center gap-2 w-full">
                       <Mail className="h-4 w-4 text-red-400" />
-                      Gmail
+                      {t("action.connectGmail")}
                     </a>
                   } />
                 ) : (
@@ -184,10 +184,10 @@ export function MailboxesContent({
                     <TooltipTrigger render={
                       <DropdownMenuItem disabled className="flex items-center gap-2 cursor-not-allowed opacity-50">
                         <Mail className="h-4 w-4 text-red-400" />
-                        Gmail
+                        {t("action.connectGmail")}
                       </DropdownMenuItem>
                     } />
-                    <TooltipContent>Configure GOOGLE_OAUTH_CLIENT_ID</TooltipContent>{/* TODO 7b-T6 */}
+                    <TooltipContent>{t("tooltip.gmailNotConfigured")}</TooltipContent>
                   </TooltipRoot>
                 )}
 
@@ -196,7 +196,7 @@ export function MailboxesContent({
                   <DropdownMenuItem render={
                     <a href="/api/oauth/outlook/authorize" className="flex items-center gap-2 w-full">
                       <Mail className="h-4 w-4 text-blue-400" />
-                      Outlook
+                      {t("action.connectOutlook")}
                     </a>
                   } />
                 ) : (
@@ -204,10 +204,10 @@ export function MailboxesContent({
                     <TooltipTrigger render={
                       <DropdownMenuItem disabled className="flex items-center gap-2 cursor-not-allowed opacity-50">
                         <Mail className="h-4 w-4 text-blue-400" />
-                        Outlook
+                        {t("action.connectOutlook")}
                       </DropdownMenuItem>
                     } />
-                    <TooltipContent>Configure MS_OAUTH_CLIENT_ID</TooltipContent>{/* TODO 7b-T6 */}
+                    <TooltipContent>{t("tooltip.outlookNotConfigured")}</TooltipContent>
                   </TooltipRoot>
                 )}
 
@@ -217,7 +217,7 @@ export function MailboxesContent({
                   className="flex items-center gap-2 cursor-pointer"
                 >
                   <AtSign className="h-4 w-4 text-muted-foreground" />
-                  IMAP/SMTP
+                  {t("action.connectImap")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenuRoot>
@@ -228,7 +228,7 @@ export function MailboxesContent({
         <motion.div variants={itemVariants}>
           <Card className="border-border bg-card/50 rounded-xl overflow-hidden">
             <CardHeader>
-              <CardTitle className="text-base">Caixas conectadas</CardTitle>{/* TODO 7b-T6 */}
+              <CardTitle className="text-base">{t("list.connected")}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {loading ? (
@@ -240,18 +240,18 @@ export function MailboxesContent({
               ) : mailboxes.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                   <Mail className="h-12 w-12 mb-3 text-muted-foreground/60" />
-                  <p className="text-sm">Nenhuma caixa conectada ainda.</p>{/* TODO 7b-T6 */}
+                  <p className="text-sm">{t("list.empty")}</p>
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border hover:bg-transparent">
-                      <TableHead className="text-muted-foreground">Provedor</TableHead>{/* TODO 7b-T6 */}
-                      <TableHead className="text-muted-foreground">E-mail</TableHead>
-                      <TableHead className="text-muted-foreground text-center">Primária</TableHead>{/* TODO 7b-T6 */}
-                      <TableHead className="text-muted-foreground text-center">Status</TableHead>{/* TODO 7b-T6 */}
+                      <TableHead className="text-muted-foreground">{t("list.columns.provider")}</TableHead>
+                      <TableHead className="text-muted-foreground">{t("list.columns.emailAddress")}</TableHead>
+                      <TableHead className="text-muted-foreground text-center">{t("list.status.primary")}</TableHead>
+                      <TableHead className="text-muted-foreground text-center">{t("list.columns.status")}</TableHead>
                       {canManage && (
-                        <TableHead className="text-muted-foreground text-right">Ações</TableHead>
+                        <TableHead className="text-muted-foreground text-right">{t("list.columns.actions")}</TableHead>
                       )}
                     </TableRow>
                   </TableHeader>
@@ -286,11 +286,11 @@ export function MailboxesContent({
                         <TableCell className="text-center">
                           {mb.isActive ? (
                             <Badge variant="default" className="text-xs bg-green-600/15 text-green-400 border-green-600/20">
-                              Ativa {/* TODO 7b-T6 */}
+                              {t("list.status.active")}
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="text-xs text-muted-foreground">
-                              Inativa {/* TODO 7b-T6 */}
+                              {t("list.status.inactive")}
                             </Badge>
                           )}
                         </TableCell>
@@ -306,7 +306,7 @@ export function MailboxesContent({
                                   className="gap-1.5 text-xs h-7 px-2 cursor-pointer hover:bg-violet-600/10 hover:text-violet-400"
                                 >
                                   <Star className="h-3 w-3" />
-                                  Tornar primária {/* TODO 7b-T6 */}
+                                  {t("action.setPrimary")}
                                 </Button>
                               )}
                               <Button
@@ -317,7 +317,7 @@ export function MailboxesContent({
                                 className="gap-1.5 text-xs h-7 px-2 cursor-pointer hover:bg-destructive/10 hover:text-destructive"
                               >
                                 <Trash2 className="h-3 w-3" />
-                                Desconectar {/* TODO 7b-T6 */}
+                                {t("action.disconnect")}
                               </Button>
                             </div>
                           </TableCell>
@@ -345,19 +345,19 @@ export function MailboxesContent({
         <AlertDialog open={!!disconnectTarget} onOpenChange={(v) => !v && setDisconnectTarget(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Desconectar caixa?</AlertDialogTitle>{/* TODO 7b-T6 */}
+              <AlertDialogTitle>{t("action.confirmDisconnectTitle")}</AlertDialogTitle>
               <AlertDialogDescription>
-                A caixa <strong>{disconnectTarget?.emailAddress}</strong> será desconectada e os tokens de acesso removidos. Esta ação não pode ser desfeita.{/* TODO 7b-T6 */}
+                {t("action.confirmDisconnectDescription")}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>{/* TODO 7b-T6 */}
+              <AlertDialogCancel>{t("action.cancel")}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => disconnectTarget && handleDisconnect(disconnectTarget.id)}
                 disabled={acting}
                 className="bg-destructive hover:bg-destructive/90 text-white"
               >
-                {acting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Desconectar"}{/* TODO 7b-T6 */}
+                {acting ? <Loader2 className="h-4 w-4 animate-spin" /> : t("action.disconnect")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

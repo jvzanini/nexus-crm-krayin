@@ -14,9 +14,8 @@ import {
   Label,
 } from "@nexusai360/design-system";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { connectImapSmtpAction } from "@/lib/actions/mailboxes";
-
-// TODO 7b-T6: extract to i18n pack mailboxes
 
 interface Props {
   open: boolean;
@@ -25,6 +24,7 @@ interface Props {
 }
 
 export function ImapFormDialog({ open, onOpenChange, onSuccess }: Props) {
+  const t = useTranslations("mailboxes");
   const [saving, startSaving] = useTransition();
 
   const [emailAddress, setEmailAddress] = useState("");
@@ -61,11 +61,11 @@ export function ImapFormDialog({ open, onOpenChange, onSuccess }: Props) {
       });
 
       if (res.success) {
-        toast.success("Caixa IMAP/SMTP conectada com sucesso"); // TODO 7b-T6
+        toast.success(t("toast.imapSuccess"));
         resetForm();
         onSuccess();
       } else {
-        toast.error(res.error ?? "Erro ao conectar caixa IMAP/SMTP"); // TODO 7b-T6
+        toast.error(res.error ?? t("toast.imapError"));
       }
     });
   }
@@ -74,9 +74,9 @@ export function ImapFormDialog({ open, onOpenChange, onSuccess }: Props) {
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) resetForm(); }}>
       <DialogContent className="sm:max-w-lg overflow-visible">
         <DialogHeader>
-          <DialogTitle>Conectar caixa IMAP/SMTP</DialogTitle>{/* TODO 7b-T6 */}
+          <DialogTitle>{t("imap.dialog.title")}</DialogTitle>
           <DialogDescription>
-            Configure as credenciais do servidor IMAP e SMTP para enviar e receber e-mails.{/* TODO 7b-T6 */}
+            {t("imap.dialog.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -85,24 +85,24 @@ export function ImapFormDialog({ open, onOpenChange, onSuccess }: Props) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-sm font-medium text-foreground/80 mb-1.5 block">
-                E-mail *
+                {t("imap.field.emailAddress")} *
               </Label>
               <Input
                 type="email"
                 value={emailAddress}
                 onChange={(e) => setEmailAddress(e.target.value)}
-                placeholder="você@exemplo.com" // TODO 7b-T6
+                placeholder={t("imap.placeholder.emailAddress")}
                 className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <div>
               <Label className="text-sm font-medium text-foreground/80 mb-1.5 block">
-                Nome de exibição
+                {t("imap.field.displayName")}
               </Label>
               <Input
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Opcional" // TODO 7b-T6
+                placeholder={t("imap.placeholder.displayName")}
                 className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
@@ -111,23 +111,23 @@ export function ImapFormDialog({ open, onOpenChange, onSuccess }: Props) {
           {/* IMAP */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Servidor IMAP
+              {t("imap.section.imap")}
             </p>
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2">
                 <Label className="text-sm font-medium text-foreground/80 mb-1.5 block">
-                  Host *
+                  {t("imap.field.imapHost")} *
                 </Label>
                 <Input
                   value={imapHost}
                   onChange={(e) => setImapHost(e.target.value)}
-                  placeholder="imap.exemplo.com" // TODO 7b-T6
+                  placeholder={t("imap.placeholder.imapHost")}
                   className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
                 />
               </div>
               <div>
                 <Label className="text-sm font-medium text-foreground/80 mb-1.5 block">
-                  Porta *
+                  {t("imap.field.imapPort")} *
                 </Label>
                 <Input
                   type="number"
@@ -144,23 +144,23 @@ export function ImapFormDialog({ open, onOpenChange, onSuccess }: Props) {
           {/* SMTP */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Servidor SMTP
+              {t("imap.section.smtp")}
             </p>
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2">
                 <Label className="text-sm font-medium text-foreground/80 mb-1.5 block">
-                  Host *
+                  {t("imap.field.smtpHost")} *
                 </Label>
                 <Input
                   value={smtpHost}
                   onChange={(e) => setSmtpHost(e.target.value)}
-                  placeholder="smtp.exemplo.com" // TODO 7b-T6
+                  placeholder={t("imap.placeholder.smtpHost")}
                   className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
                 />
               </div>
               <div>
                 <Label className="text-sm font-medium text-foreground/80 mb-1.5 block">
-                  Porta *
+                  {t("imap.field.smtpPort")} *
                 </Label>
                 <Input
                   type="number"
@@ -177,23 +177,23 @@ export function ImapFormDialog({ open, onOpenChange, onSuccess }: Props) {
           {/* Credenciais */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Autenticação
+              {t("imap.section.auth")}
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-sm font-medium text-foreground/80 mb-1.5 block">
-                  Usuário *
+                  {t("imap.field.authUsername")} *
                 </Label>
                 <Input
                   value={authUsername}
                   onChange={(e) => setAuthUsername(e.target.value)}
-                  placeholder="usuário ou e-mail" // TODO 7b-T6
+                  placeholder={t("imap.placeholder.authUsername")}
                   className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
                 />
               </div>
               <div>
                 <Label className="text-sm font-medium text-foreground/80 mb-1.5 block">
-                  Senha *
+                  {t("imap.field.authPassword")} *
                 </Label>
                 <Input
                   type="password"
@@ -214,7 +214,7 @@ export function ImapFormDialog({ open, onOpenChange, onSuccess }: Props) {
             disabled={saving}
             className="cursor-pointer"
           >
-            Cancelar {/* TODO 7b-T6 */}
+            {t("imap.cancel")}
           </Button>
           <Button
             onClick={handleSubmit}
@@ -222,7 +222,7 @@ export function ImapFormDialog({ open, onOpenChange, onSuccess }: Props) {
             className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Conectar {/* TODO 7b-T6 */}
+            {t("imap.submit")}
           </Button>
         </DialogFooter>
       </DialogContent>
