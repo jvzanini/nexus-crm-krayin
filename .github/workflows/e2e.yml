@@ -68,7 +68,10 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright (webServer compila via next dev)
+      - name: Next build (E2E usa next start em CI, não dev)
+        run: npm run build
+
+      - name: Run Playwright (webServer via next start)
         run: npx playwright test --reporter=list
 
       - name: Upload report on failure

@@ -47,7 +47,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev",
+    // CI usa next start (build pré-feito no workflow) — ~instant per-route.
+    // Local usa next dev para HMR durante desenvolvimento.
+    command: process.env.CI ? "npm run start" : "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
