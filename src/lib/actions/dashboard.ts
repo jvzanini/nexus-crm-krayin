@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { requireActiveCompanyId } from "@/lib/tenant-scope";
 import { subDays, startOfDay, format } from "date-fns";
 
 // --- Types ---
@@ -91,6 +92,13 @@ export async function getDashboardData(
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autorizado" };
 
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
+
   const { start, end } = getPeriodRange(period);
   const comp = getComparisonRange(period);
 
@@ -102,17 +110,18 @@ export async function getDashboardData(
     totalOppsCurrent,
     wonOppsCurrent,
   ] = await Promise.all([
-    prisma.lead.count({ where: { createdAt: { gte: start, lte: end } } }),
-    prisma.contact.count({ where: { createdAt: { gte: start, lte: end } } }),
+    prisma.lead.count({ where: { companyId, createdAt: { gte: start, lte: end } } }),
+    prisma.contact.count({ where: { companyId, createdAt: { gte: start, lte: end } } }),
     prisma.opportunity.count({
       where: {
+        companyId,
         createdAt: { gte: start, lte: end },
         stage: { notIn: ["closed_won", "closed_lost"] },
       },
     }),
-    prisma.opportunity.count({ where: { createdAt: { gte: start, lte: end } } }),
+    prisma.opportunity.count({ where: { companyId, createdAt: { gte: start, lte: end } } }),
     prisma.opportunity.count({
-      where: { createdAt: { gte: start, lte: end }, stage: "closed_won" },
+      where: { companyId, createdAt: { gte: start, lte: end }, stage: "closed_won" },
     }),
   ]);
 
@@ -124,17 +133,18 @@ export async function getDashboardData(
     prevTotalOpps,
     prevWonOpps,
   ] = await Promise.all([
-    prisma.lead.count({ where: { createdAt: { gte: comp.start, lt: comp.end } } }),
-    prisma.contact.count({ where: { createdAt: { gte: comp.start, lt: comp.end } } }),
+    prisma.lead.count({ where: { companyId, createdAt: { gte: comp.start, lt: comp.end } } }),
+    prisma.contact.count({ where: { companyId, createdAt: { gte: comp.start, lt: comp.end } } }),
     prisma.opportunity.count({
       where: {
+        companyId,
         createdAt: { gte: comp.start, lt: comp.end },
         stage: { notIn: ["closed_won", "closed_lost"] },
       },
     }),
-    prisma.opportunity.count({ where: { createdAt: { gte: comp.start, lt: comp.end } } }),
+    prisma.opportunity.count({ where: { companyId, createdAt: { gte: comp.start, lt: comp.end } } }),
     prisma.opportunity.count({
-      where: { createdAt: { gte: comp.start, lt: comp.end }, stage: "closed_won" },
+      where: { companyId, createdAt: { gte: comp.start, lt: comp.end }, stage: "closed_won" },
     }),
   ]);
 
@@ -169,11 +179,11 @@ export async function getDashboardData(
   // Batch: get all leads and opportunities in range, group in JS
   const [leadsInRange, oppsInRange] = await Promise.all([
     prisma.lead.findMany({
-      where: { createdAt: { gte: start, lte: end } },
+      where: { companyId, createdAt: { gte: start, lte: end } },
       select: { createdAt: true },
     }),
     prisma.opportunity.findMany({
-      where: { createdAt: { gte: start, lte: end } },
+      where: { companyId, createdAt: { gte: start, lte: end } },
       select: { createdAt: true },
     }),
   ]);
@@ -202,17 +212,17 @@ export async function getDashboardData(
   // --- Recent activity (merge + paginate) ---
   const [recentLeads, recentContacts, recentOpps] = await Promise.all([
     prisma.lead.findMany({
-      where: { createdAt: { gte: start, lte: end } },
+      where: { companyId, createdAt: { gte: start, lte: end } },
       orderBy: { createdAt: "desc" },
       select: { id: true, name: true, status: true, createdAt: true },
     }),
     prisma.contact.findMany({
-      where: { createdAt: { gte: start, lte: end } },
+      where: { companyId, createdAt: { gte: start, lte: end } },
       orderBy: { createdAt: "desc" },
       select: { id: true, firstName: true, lastName: true, createdAt: true },
     }),
     prisma.opportunity.findMany({
-      where: { createdAt: { gte: start, lte: end } },
+      where: { companyId, createdAt: { gte: start, lte: end } },
       orderBy: { createdAt: "desc" },
       select: { id: true, title: true, stage: true, createdAt: true },
     }),

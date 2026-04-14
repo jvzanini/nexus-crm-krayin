@@ -68,7 +68,9 @@ export function startMarketingSendWorker(): Worker {
         return;
       }
 
-      const contact = await prisma.contact.findUnique({ where: { id: recipient.contactId } });
+      const contact = await prisma.contact.findFirst({
+        where: { id: recipient.contactId, companyId: recipient.campaign.companyId },
+      });
       if (!contact || !contact.email) {
         await prisma.campaignRecipient.update({
           where: { id: recipientId },

@@ -1,7 +1,4 @@
-// TODO(fase-multi-tenant-strict): Lead/Contact/Opportunity ainda não têm companyId
-// diretamente no DB; tenant scope é reforçado em Server Actions (via session). Automation
-// executor roda no worker sem session — atualmente confia que eventos foram disparados
-// com companyId correto (invariante do dispatcher).
+// Frente 17: Lead/Contact/Opportunity têm companyId. Filter aplicado aqui via ctx.companyId.
 
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
@@ -28,12 +25,13 @@ export const updateFieldExecutor: ActionExecutor<UpdateFieldParams> = async (par
 
   try {
     let result: { count: number } | null = null;
+    const where = { id, companyId: ctx.companyId };
     if (params.entityType === "lead") {
-      result = await prisma.lead.updateMany({ where: { id }, data });
+      result = await prisma.lead.updateMany({ where, data });
     } else if (params.entityType === "contact") {
-      result = await prisma.contact.updateMany({ where: { id }, data });
+      result = await prisma.contact.updateMany({ where, data });
     } else {
-      result = await prisma.opportunity.updateMany({ where: { id }, data });
+      result = await prisma.opportunity.updateMany({ where, data });
     }
     if (!result || result.count === 0) {
       return { ok: false, output: { error: "Entity não encontrada ou sem permissão" } };

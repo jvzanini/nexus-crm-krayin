@@ -1,4 +1,4 @@
-// TODO(fase-multi-tenant-strict): ver nota em update-field.ts sobre tenant scope.
+// Frente 17: tenant scope aplicado via ctx.companyId.
 // Contact não possui campo assignedTo no schema atual — assign-user retorna skipped para esse tipo.
 
 import { prisma } from "@/lib/prisma";
@@ -36,10 +36,11 @@ export const assignUserExecutor: ActionExecutor<AssignUserParams> = async (param
   let result: { count: number } | null = null;
 
   try {
+    const where = { id, companyId: ctx.companyId };
     if (params.entityType === "lead") {
-      result = await prisma.lead.updateMany({ where: { id }, data });
+      result = await prisma.lead.updateMany({ where, data });
     } else {
-      result = await prisma.opportunity.updateMany({ where: { id }, data });
+      result = await prisma.opportunity.updateMany({ where, data });
     }
 
     if (!result || result.count === 0) {

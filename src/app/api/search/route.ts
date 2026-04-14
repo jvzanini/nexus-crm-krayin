@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { SEARCH_CONFIG } from "@/lib/constants/search";
+import { requireActiveCompanyId } from "@/lib/tenant-scope";
 
 function normalize(str: string) {
   return str
@@ -27,6 +28,18 @@ export async function GET(req: NextRequest) {
   const normalized = normalize(q);
   const limit = SEARCH_CONFIG.maxResults;
 
+  // Tenant scope em leads/contacts/opps (super_admin exceção).
+  const isSuperAdmin = (session.user as { isSuperAdmin?: boolean }).isSuperAdmin === true;
+  let tenantFilter: { companyId: string } | Record<string, never> = {};
+  if (!isSuperAdmin) {
+    try {
+      const companyId = await requireActiveCompanyId();
+      tenantFilter = { companyId };
+    } catch {
+      tenantFilter = { companyId: "__no_access__" };
+    }
+  }
+
   const [users, companies, leads, contacts, opportunities] = await Promise.all([
     prisma.user.findMany({
       where: {
@@ -48,6 +61,7 @@ export async function GET(req: NextRequest) {
     }),
     prisma.lead.findMany({
       where: {
+        ...tenantFilter,
         OR: [
           { name: { contains: normalized, mode: "insensitive" } },
           { email: { contains: normalized, mode: "insensitive" } },
@@ -58,6 +72,7 @@ export async function GET(req: NextRequest) {
     }),
     prisma.contact.findMany({
       where: {
+        ...tenantFilter,
         OR: [
           { firstName: { contains: normalized, mode: "insensitive" } },
           { lastName: { contains: normalized, mode: "insensitive" } },
@@ -69,6 +84,7 @@ export async function GET(req: NextRequest) {
     }),
     prisma.opportunity.findMany({
       where: {
+        ...tenantFilter,
         title: { contains: normalized, mode: "insensitive" },
       },
       select: { id: true, title: true, stage: true },
