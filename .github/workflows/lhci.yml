@@ -1,0 +1,58 @@
+name: Lighthouse CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  lighthouse:
+    name: Lighthouse Budgets
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build app
+        run: npm run build
+        env:
+          # Variáveis mínimas necessárias para o build
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'ci-placeholder-secret-32-chars-xx' }}
+          NEXTAUTH_URL: http://localhost:3000
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://ci:ci@localhost:5432/ci' }}
+
+      - name: Start app in background
+        run: npm run start &
+        env:
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'ci-placeholder-secret-32-chars-xx' }}
+          NEXTAUTH_URL: http://localhost:3000
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://ci:ci@localhost:5432/ci' }}
+          PORT: 3000
+
+      - name: Wait for app to be ready
+        run: npx wait-on http://localhost:3000/api/health --timeout 60000
+
+      # TODO Fase 12.2: as rotas /dashboard e /leads requerem auth state (Playwright).
+      # Quando implementado, adicionar em .lighthouserc.json:
+      #   "http://localhost:3000/dashboard",
+      #   "http://localhost:3000/leads"
+      # e configurar storageState com sessão autenticada antes de rodar o LHCI.
+      - name: Run Lighthouse CI
+        run: npx @lhci/cli@0.15 autorun
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          retention-days: 30
