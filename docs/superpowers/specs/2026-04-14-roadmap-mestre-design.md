@@ -258,3 +258,9 @@ Preenchida durante cada fase. Status: `parity` | `partial` | `dropped` | `pendin
 | Automation | Dispatcher + BullMQ queue + worker | 8 | parity | emissores em createLead/createContact/completeActivity |
 | Automation | Anti-storm guards | 8 | parity | chainDepth<10 + daily quota (Redis INCR) + circuit breaker fail>50% em 1h |
 | Automation | UI /automation/workflows (list + editor) | 8 | parity | block builder declarativo conditions/actions + i18n br/us |
+| Marketing | Segment + Campaign + CampaignRecipient schema | 9 | parity | enums CampaignStatus/RecipientStatus; índices queue + recipient_status |
+| Marketing | Segment evaluator (6 campos allowlist) | 9 | parity | buildWhereFromFilters puro; custom attrs em 9.2 pós-Fase 5 |
+| Marketing | RBAC marketing:view/manage/send | 9 | parity | admin all; manager view+send; seller/viewer view |
+| Marketing | Unsubscribe HMAC endpoint /api/unsubscribe/[token] | 9 | parity | HMAC SHA-256 stateless TTL 90d; grava consent_logs source=campaign_unsubscribe |
+| Marketing | Queue marketing-send + worker | 9 | partial | queue isolada de email transacional; send via stub aguardando Fase 7c |
+| Marketing | UI /marketing/{segments,campaigns} | 9 | parity | list + editor + preview (segments); list + editor + detail + stats (campaigns) |
