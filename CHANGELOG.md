@@ -1,5 +1,23 @@
 # Changelog
 
+## [2026-04-14] Frente 11 — adoção de @nexusai360/api-keys
+
+### Adicionado
+- Dependência `@nexusai360/api-keys@0.2.1` via vendor tarball (7 → 8 tarballs vendored).
+
+### Substituído
+- `src/lib/api-keys.ts` — wrapper de ~20 linhas delega `generateApiKey`/`verifyApiKey` ao pacote.
+
+### Bug fix de segurança
+- `verifyApiKey` agora usa `timingSafeCompareHex` (constant-time). A implementação anterior usava `===`, vulnerável a timing attacks.
+
+### Mudança visível
+- Novas API keys têm formato `nxk_<32 chars nanoid>` em vez de `nxk_<64 hex>`. `keyPrefix` continua com 12 chars. **Hashes antigos no DB continuam validando** (sha256 idêntico).
+
+### Sem mudança
+- Caller `src/lib/actions/api-keys.ts` (shape `{rawKey, keyPrefix, keyHash}` preservada).
+- Schema Prisma, NextAuth, queries.
+
 ## [2026-04-14] Frente 10 — adoção de @nexusai360/audit-log
 
 ### Adicionado
