@@ -8,7 +8,10 @@
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
-    await import("./sentry.server.config");
+    // Sentry só carrega quando DSN presente (evita side-effects em SSR sem config).
+    if (process.env.SENTRY_DSN) {
+      await import("./sentry.server.config");
+    }
 
     if (process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
       const { NodeSDK } = await import("@opentelemetry/sdk-node");
@@ -45,6 +48,8 @@ export async function register() {
   }
 
   if (process.env.NEXT_RUNTIME === "edge") {
-    await import("./sentry.edge.config");
+    if (process.env.SENTRY_DSN) {
+      await import("./sentry.edge.config");
+    }
   }
 }
