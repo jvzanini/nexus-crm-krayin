@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
 } from "@nexusai360/design-system";
 import { PageHeader } from "@nexusai360/design-system";
+import { EmptyState } from "@nexusai360/design-system";
 import {
   Workflow,
   Plus,
@@ -244,19 +245,23 @@ export function WorkflowsListContent({ canManage }: WorkflowsListContentProps) {
             <TableSkeleton />
           </div>
         ) : workflows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <Workflow className="h-12 w-12 mb-3 text-muted-foreground/60" />
-            <p className="text-sm">Nenhum workflow cadastrado ainda</p>
+          <EmptyState.Root>
+            <EmptyState.Icon icon={Workflow} color="purple" />
+            <EmptyState.Title>Nenhuma automação criada</EmptyState.Title>
+            <EmptyState.Description>
+              Automatize tarefas repetitivas criando workflows.
+            </EmptyState.Description>
             {canManage && (
-              <button
-                type="button"
-                onClick={() => router.push("/automation/workflows/new")}
-                className="mt-3 text-xs text-violet-400 hover:text-violet-300 cursor-pointer transition-colors"
-              >
-                Criar primeiro workflow
-              </button>
+              <EmptyState.Action>
+                <Button
+                  onClick={() => router.push("/automation/workflows/new")}
+                  className="bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
+                >
+                  Novo workflow
+                </Button>
+              </EmptyState.Action>
             )}
-          </div>
+          </EmptyState.Root>
         ) : (
           <Table>
             <TableHeader>
