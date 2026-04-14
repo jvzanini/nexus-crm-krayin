@@ -1,118 +1,124 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { validatePassword, hashPassword } from "@nexusai360/core";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
+import {
+  updateProfileSchema,
+  changePasswordSchema,
+  requestEmailChangeSchema,
+  type ActionResult,
+} from "@nexusai360/profile-ui/server-helpers";
+import { hashPassword } from "@nexusai360/core";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { profileAdapter } from "@/lib/adapters/profile";
 import { sendEmailVerificationEmail } from "@/lib/email";
-import { z } from "zod";
+import { logger } from "@/lib/logger";
 
-type ActionResult<T = unknown> = {
-  success: boolean;
-  data?: T;
-  error?: string;
-};
-
-export async function updateProfile(input: {
-  name: string;
-}): Promise<ActionResult> {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) return { success: false, error: "Não autenticado" };
-
-  if (!input.name || input.name.trim().length < 2) {
-    return { success: false, error: "Nome deve ter ao menos 2 caracteres" };
+export async function updateProfileAction(input: unknown): Promise<ActionResult> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: "unauthenticated" };
+    const parsed = updateProfileSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message ?? "invalid_input",
+      };
+    }
+    await profileAdapter.updateProfile(user.id, parsed.data);
+    revalidatePath("/profile");
+    return { success: true };
+  } catch (err) {
+    logger.error({ err }, "profile.update.failed");
+    return { success: false, error: "internal_error" };
   }
-
-  await prisma.user.update({
-    where: { id: currentUser.id },
-    data: { name: input.name.trim() },
-  });
-
-  revalidatePath("/profile");
-  return { success: true };
 }
 
-export async function updateAvatar(avatarUrl: string): Promise<ActionResult> {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) return { success: false, error: "Não autenticado" };
-
-  await prisma.user.update({
-    where: { id: currentUser.id },
-    data: { avatarUrl },
-  });
-
-  revalidatePath("/profile");
-  return { success: true };
+export async function updateAvatarAction(avatarUrl: string): Promise<ActionResult> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: "unauthenticated" };
+    if (typeof avatarUrl !== "string" || !avatarUrl) {
+      return { success: false, error: "invalid_input" };
+    }
+    await profileAdapter.updateAvatar(user.id, avatarUrl);
+    revalidatePath("/profile");
+    return { success: true };
+  } catch (err) {
+    logger.error({ err }, "profile.avatar.failed");
+    return { success: false, error: "internal_error" };
+  }
 }
 
-export async function changePassword(input: {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-}): Promise<ActionResult> {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) return { success: false, error: "Não autenticado" };
-
-  if (input.newPassword !== input.confirmPassword) {
-    return { success: false, error: "As senhas não coincidem" };
+export async function changePasswordAction(input: unknown): Promise<ActionResult> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: "unauthenticated" };
+    const parsed = changePasswordSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message ?? "invalid_input",
+      };
+    }
+    const ok = await profileAdapter.verifyCurrentPassword(
+      user.id,
+      parsed.data.currentPassword,
+    );
+    if (!ok) return { success: false, error: "Senha atual incorreta" };
+    const hashed = await hashPassword(parsed.data.newPassword);
+    await profileAdapter.updatePassword(user.id, hashed);
+    return { success: true };
+  } catch (err) {
+    logger.error({ err }, "profile.password.failed");
+    return { success: false, error: "internal_error" };
   }
-
-  if (input.newPassword.length < 8) {
-    return { success: false, error: "A nova senha deve ter ao menos 8 caracteres" };
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: currentUser.id },
-    select: { password: true },
-  });
-  if (!user) return { success: false, error: "Usuário não encontrado" };
-
-  const valid = await validatePassword(input.currentPassword, user.password);
-  if (!valid) return { success: false, error: "Senha atual incorreta" };
-
-  const hashed = await hashPassword(input.newPassword);
-  await prisma.user.update({
-    where: { id: currentUser.id },
-    data: { password: hashed },
-  });
-
-  return { success: true };
 }
 
-export async function requestEmailChange(newEmail: string): Promise<ActionResult> {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) return { success: false, error: "Não autenticado" };
-
-  const existing = await prisma.user.findUnique({ where: { email: newEmail } });
-  if (existing) return { success: false, error: "E-mail já cadastrado" };
-
-  const token = crypto.randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
-
-  await prisma.emailChangeToken.create({
-    data: {
-      userId: currentUser.id,
-      newEmail,
+export async function requestEmailChangeAction(
+  newEmail: string,
+): Promise<ActionResult> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: "unauthenticated" };
+    const parsed = requestEmailChangeSchema.safeParse({ newEmail });
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message ?? "invalid_input",
+      };
+    }
+    const existing = await profileAdapter.findUserByEmail(parsed.data.newEmail);
+    if (existing) return { success: false, error: "E-mail já cadastrado" };
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    await profileAdapter.createEmailChangeToken({
+      userId: user.id,
+      newEmail: parsed.data.newEmail,
       token,
       expiresAt,
-    },
-  });
-
-  const verifyUrl = `${process.env.NEXTAUTH_URL}/verify-email?token=${token}`;
-  await sendEmailVerificationEmail(newEmail, verifyUrl);
-
-  return { success: true };
+    });
+    const verifyUrl = `${process.env.NEXTAUTH_URL}/verify-email?token=${token}`;
+    await sendEmailVerificationEmail(parsed.data.newEmail, verifyUrl);
+    return { success: true };
+  } catch (err) {
+    logger.error({ err }, "profile.email.request.failed");
+    return { success: false, error: "internal_error" };
+  }
 }
 
-export async function verifyEmailChange(token: string): Promise<ActionResult> {
+// Mantido intacto — usado pela rota /verify-email
+export async function verifyEmailChange(
+  token: string,
+): Promise<{ success: boolean; error?: string }> {
   const tokenRecord = await prisma.emailChangeToken.findUnique({
     where: { token },
   });
-
   if (!tokenRecord) return { success: false, error: "Token inválido" };
   if (tokenRecord.usedAt) return { success: false, error: "Token já utilizado" };
-  if (tokenRecord.expiresAt < new Date()) return { success: false, error: "Token expirado" };
+  if (tokenRecord.expiresAt < new Date())
+    return { success: false, error: "Token expirado" };
 
   await prisma.$transaction([
     prisma.user.update({
@@ -126,31 +132,4 @@ export async function verifyEmailChange(token: string): Promise<ActionResult> {
   ]);
 
   return { success: true };
-}
-
-export async function getProfile(): Promise<ActionResult<{
-  name: string;
-  email: string;
-  avatarUrl: string | null;
-  createdAt: string;
-}>> {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) return { success: false, error: "Não autenticado" };
-
-  const user = await prisma.user.findUnique({
-    where: { id: currentUser.id },
-    select: { name: true, email: true, avatarUrl: true, createdAt: true },
-  });
-
-  if (!user) return { success: false, error: "Usuário não encontrado" };
-
-  return {
-    success: true,
-    data: {
-      name: user.name,
-      email: user.email,
-      avatarUrl: user.avatarUrl,
-      createdAt: user.createdAt.toISOString(),
-    },
-  };
 }
