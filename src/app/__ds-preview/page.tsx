@@ -232,13 +232,9 @@ export default function DsPreviewPage() {
               <Home className="inline h-3.5 w-3.5 mr-1" />
               Home
             </Breadcrumb.Item>
-            <Breadcrumb.Separator>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Breadcrumb.Separator>
+            <Breadcrumb.Separator />
             <Breadcrumb.Item href="/settings">Settings</Breadcrumb.Item>
-            <Breadcrumb.Separator>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Breadcrumb.Separator>
+            <Breadcrumb.Separator />
             <Breadcrumb.Item current>Profile</Breadcrumb.Item>
           </Breadcrumb.Root>
         </Section>
