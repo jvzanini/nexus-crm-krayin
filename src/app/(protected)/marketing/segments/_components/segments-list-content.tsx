@@ -19,8 +19,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  PageHeader,
 } from "@nexusai360/design-system";
-import { Users2, Plus, Pencil, Trash2, Loader2, AlertTriangle, Filter } from "lucide-react";
+import { Layers, Users2, Plus, Pencil, Trash2, Loader2, AlertTriangle, Filter } from "lucide-react";
 import { toast } from "sonner";
 import {
   listSegmentsAction,
@@ -115,36 +116,35 @@ export function SegmentsListContent({ canManage }: SegmentsListContentProps) {
       className="space-y-6"
     >
       {/* Header */}
-      <motion.div
-        variants={itemVariants}
-        className="flex items-center justify-between"
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600/10 border border-violet-500/20">
-            <Users2 className="h-5 w-5 text-violet-400" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Segmentos de marketing</h1>
-            <p className="text-sm text-muted-foreground">
-              {loading
-                ? "Carregando..."
-                : count === 0
-                  ? "Nenhum segmento cadastrado"
-                  : count === 1
-                    ? "1 segmento cadastrado"
-                    : `${count} segmentos cadastrados`}
-            </p>
-          </div>
-        </div>
-        {canManage && (
-          <Button
-            onClick={() => router.push("/marketing/segments/new")}
-            className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
-          >
-            <Plus className="h-4 w-4" />
-            Novo segmento
-          </Button>
-        )}
+      <motion.div variants={itemVariants}>
+        <PageHeader.Root>
+          <PageHeader.Row>
+            <PageHeader.Icon icon={Layers} color="blue" />
+            <PageHeader.Heading>
+              <PageHeader.Title>Segmentos de marketing</PageHeader.Title>
+              <PageHeader.Description>
+                {loading
+                  ? "Carregando..."
+                  : count === 0
+                    ? "Nenhum segmento cadastrado"
+                    : count === 1
+                      ? "1 segmento cadastrado"
+                      : `${count} segmentos cadastrados`}
+              </PageHeader.Description>
+            </PageHeader.Heading>
+          </PageHeader.Row>
+          {canManage && (
+            <PageHeader.Actions>
+              <Button
+                onClick={() => router.push("/marketing/segments/new")}
+                className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
+              >
+                <Plus className="h-4 w-4" />
+                Novo segmento
+              </Button>
+            </PageHeader.Actions>
+          )}
+        </PageHeader.Root>
       </motion.div>
 
       {/* Tabela */}
