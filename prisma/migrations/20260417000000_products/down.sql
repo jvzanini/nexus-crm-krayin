@@ -3,7 +3,7 @@
 
 BEGIN;
 
-DROP TABLE IF EXISTS "product_prices";
-DROP TABLE IF EXISTS "products";
+DROP TABLE "product_prices";
+DROP TABLE "products";
 
 COMMIT;

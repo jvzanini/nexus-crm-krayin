@@ -474,14 +474,14 @@ model Product {
 
   @@unique([companyId, sku], name: "uq_product_sku_per_company")
   @@index([companyId, active, updatedAt(sort: Desc)], name: "idx_product_active_recent")
-  @@index([companyId, category], name: "idx_product_category")
+  @@index([companyId, category], name: "idx_product_company_category")
   @@map("products")
 }
 
 model ProductPrice {
   id        String   @id @default(uuid()) @db.Uuid
   productId String   @map("product_id") @db.Uuid
-  currency  String   @db.Char(3)
+  currency  String   @db.VarChar(3)
   amount    Decimal  @db.Decimal(18, 4)
   active    Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at")

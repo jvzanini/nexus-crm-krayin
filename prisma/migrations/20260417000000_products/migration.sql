@@ -23,7 +23,7 @@ CREATE TABLE "products" (
 CREATE TABLE "product_prices" (
     "id"         UUID         NOT NULL DEFAULT gen_random_uuid(),
     "product_id" UUID         NOT NULL,
-    "currency"   CHAR(3)      NOT NULL,
+    "currency"   VARCHAR(3)   NOT NULL,
     "amount"     DECIMAL(18,4) NOT NULL,
     "active"     BOOLEAN      NOT NULL DEFAULT true,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -39,7 +39,7 @@ CREATE UNIQUE INDEX "uq_product_sku_per_company"
 CREATE INDEX "idx_product_active_recent"
     ON "products" ("company_id", "active", "updated_at" DESC);
 
-CREATE INDEX "idx_product_category"
+CREATE INDEX "idx_product_company_category"
     ON "products" ("company_id", "category");
 
 -- Índices: product_prices
