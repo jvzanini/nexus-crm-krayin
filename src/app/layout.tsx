@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import { Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
-import { Toaster } from "@nexusai360/design-system";
+import { Toaster } from "@/components/providers/toaster";
 import { Providers } from "@/components/providers/theme-provider";
 import { LocaleClientProvider } from "@/components/locale/LocaleClientProvider";
 import { getResolvedThemeFromCookie } from "@/lib/theme";
