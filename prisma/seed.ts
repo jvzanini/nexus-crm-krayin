@@ -35,6 +35,96 @@ async function main() {
   });
 
   console.log(`Super admin criado/atualizado: ${user.email}`);
+
+  // Criar companies de demo
+  const demoCompanies = [
+    { name: "Nexus AI", slug: "nexus-ai" },
+    { name: "Tech Solutions", slug: "tech-solutions" },
+  ];
+
+  const companies = [];
+  for (const companyData of demoCompanies) {
+    const company = await prisma.company.upsert({
+      where: { slug: companyData.slug },
+      update: {},
+      create: { name: companyData.name, slug: companyData.slug },
+    });
+    companies.push(company);
+    console.log(`Company criada/encontrada: ${company.name}`);
+  }
+
+  // Demo products (6 produtos: 3 serviços + 3 licenças)
+  const demoProducts = [
+    {
+      sku: "SVC-001",
+      name: "Consultoria estratégica",
+      category: "Serviços",
+      prices: [
+        { currency: "BRL", amount: "5000.00" },
+        { currency: "USD", amount: "1000.00" },
+      ],
+    },
+    {
+      sku: "SVC-002",
+      name: "Implementação técnica",
+      category: "Serviços",
+      prices: [{ currency: "BRL", amount: "15000.00" }],
+    },
+    {
+      sku: "SVC-003",
+      name: "Suporte mensal",
+      category: "Serviços",
+      prices: [{ currency: "BRL", amount: "2500.00" }],
+    },
+    {
+      sku: "LIC-001",
+      name: "Licença anual básica",
+      category: "Licenças",
+      prices: [{ currency: "BRL", amount: "1200.00" }],
+    },
+    {
+      sku: "LIC-002",
+      name: "Licença anual pro",
+      category: "Licenças",
+      prices: [
+        { currency: "BRL", amount: "3600.00" },
+        { currency: "USD", amount: "720.00" },
+      ],
+    },
+    {
+      sku: "LIC-003",
+      name: "Add-on de integração",
+      category: "Licenças",
+      prices: [{ currency: "BRL", amount: "480.00" }],
+    },
+  ];
+
+  for (const company of companies) {
+    for (const p of demoProducts) {
+      const product = await prisma.product.upsert({
+        where: {
+          uq_product_sku_per_company: { companyId: company.id, sku: p.sku },
+        },
+        update: {},
+        create: {
+          companyId: company.id,
+          sku: p.sku,
+          name: p.name,
+          category: p.category,
+          active: true,
+          prices: {
+            create: p.prices.map((pr) => ({
+              currency: pr.currency,
+              amount: pr.amount,
+            })),
+          },
+        },
+      });
+      console.log(
+        `Produto criado/encontrado: ${product.sku} em ${company.name}`,
+      );
+    }
+  }
 }
 
 main()
