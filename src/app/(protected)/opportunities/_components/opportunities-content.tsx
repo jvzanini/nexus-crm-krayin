@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Table,
@@ -38,6 +39,7 @@ import {
   Trash2,
   Loader2,
   AlertTriangle,
+  LayoutGrid,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -280,6 +282,12 @@ export function OpportunitiesContent({ canCreate, canEdit, canDelete }: Opportun
             </PageHeader.Heading>
           </PageHeader.Row>
           <PageHeader.Actions>
+            <Link href="/opportunities/pipeline">
+              <Button variant="outline" className="cursor-pointer">
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                Pipeline
+              </Button>
+            </Link>
             {canCreate && (
               <Button
                 onClick={openCreate}
