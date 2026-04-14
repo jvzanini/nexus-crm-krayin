@@ -51,4 +51,31 @@ describe("rbac", () => {
     expect(isValidRole("admin")).toBe(true);
     expect(isValidRole("banana")).toBe(false);
   });
+
+  it("admin tem activities:delete e activities:complete", () => {
+    const a = mkUser("admin");
+    expect(userHasPermission(a, "activities:delete")).toBe(true);
+    expect(userHasPermission(a, "activities:complete")).toBe(true);
+  });
+
+  it("manager tem activities:delete e activities:complete", () => {
+    const m = mkUser("manager");
+    expect(userHasPermission(m, "activities:delete")).toBe(true);
+    expect(userHasPermission(m, "activities:complete")).toBe(true);
+  });
+
+  it("seller NÃO tem activities:delete mas tem activities:complete", () => {
+    const s = mkUser("seller");
+    expect(userHasPermission(s, "activities:delete")).toBe(false);
+    expect(userHasPermission(s, "activities:complete")).toBe(true);
+  });
+
+  it("viewer tem activities:view mas NÃO activities:create/edit/delete/complete", () => {
+    const v = mkUser("viewer");
+    expect(userHasPermission(v, "activities:view")).toBe(true);
+    expect(userHasPermission(v, "activities:create")).toBe(false);
+    expect(userHasPermission(v, "activities:edit")).toBe(false);
+    expect(userHasPermission(v, "activities:delete")).toBe(false);
+    expect(userHasPermission(v, "activities:complete")).toBe(false);
+  });
 });
