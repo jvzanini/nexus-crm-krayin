@@ -4,7 +4,8 @@ export type ConsentSource =
   | "lead_form"
   | "contact_form"
   | "admin_edit"
-  | "backfill_migration";
+  | "backfill_migration"
+  | "campaign_unsubscribe";
 
 export type SubjectType = "lead" | "contact";
 

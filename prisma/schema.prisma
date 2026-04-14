@@ -728,3 +728,91 @@ model WorkflowExecution {
   @@index([companyId, status, startedAt(sort: Desc)], name: "idx_execution_recent")
   @@map("workflow_executions")
 }
+
+// ============================================================
+// ENUMS — MARKETING
+// ============================================================
+
+enum CampaignStatus {
+  draft
+  scheduled
+  sending
+  sent
+  paused
+  canceled
+  failed
+}
+
+enum RecipientStatus {
+  pending
+  sent
+  failed
+  skipped_consent
+  skipped_quota
+  bounced
+  complained
+  unsubscribed
+}
+
+// ============================================================
+// MODELS — MARKETING
+// ============================================================
+
+model Segment {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  name        String
+  description String?
+  filters     Json
+  createdBy   String   @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  campaigns Campaign[]
+
+  @@index([companyId, updatedAt(sort: Desc)], name: "idx_segment_recent")
+  @@map("segments")
+}
+
+model Campaign {
+  id          String         @id @default(uuid()) @db.Uuid
+  companyId   String         @map("company_id") @db.Uuid
+  name        String
+  subject     String         @db.VarChar(500)
+  bodyHtml    String         @map("body_html") @db.Text
+  mailboxId   String         @map("mailbox_id") @db.Uuid
+  segmentId   String         @map("segment_id") @db.Uuid
+  status      CampaignStatus @default(draft)
+  scheduledAt DateTime?      @map("scheduled_at")
+  startedAt   DateTime?      @map("started_at")
+  finishedAt  DateTime?      @map("finished_at")
+  batchSize   Int            @default(100) @map("batch_size")
+  createdBy   String         @map("created_by") @db.Uuid
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  segment    Segment             @relation(fields: [segmentId], references: [id], onDelete: Restrict)
+  recipients CampaignRecipient[]
+
+  @@index([companyId, status, scheduledAt], name: "idx_campaign_queue")
+  @@map("campaigns")
+}
+
+model CampaignRecipient {
+  id             String          @id @default(uuid()) @db.Uuid
+  campaignId     String          @map("campaign_id") @db.Uuid
+  contactId      String          @map("contact_id") @db.Uuid
+  messageId      String?         @map("message_id")
+  status         RecipientStatus @default(pending)
+  errorMessage   String?         @map("error_message")
+  sentAt         DateTime?       @map("sent_at")
+  openedAt       DateTime?       @map("opened_at")
+  clickedAt      DateTime?       @map("clicked_at")
+  unsubscribedAt DateTime?       @map("unsubscribed_at")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, contactId], name: "uq_recipient_per_contact")
+  @@index([campaignId, status], name: "idx_recipient_status")
+  @@map("campaign_recipients")
+}
