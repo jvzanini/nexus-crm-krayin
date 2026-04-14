@@ -5,27 +5,20 @@ import { getCurrentUser } from "@/lib/auth";
 import { PLATFORM_ROLE_HIERARCHY } from "@/lib/constants/roles";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
+import {
+  createUserSchema,
+  updateUserSchema,
+  assertCanCreateUser,
+  assertCanUpdateUser,
+  assertCanDeleteUser,
+  PermissionDeniedError,
+} from "@nexusai360/users-ui/server-helpers";
+import type { UserItem } from "@nexusai360/users-ui/server-helpers";
+import type { PlatformRole } from "@nexusai360/types";
 
-type ActionResult<T = unknown> = {
-  success: boolean;
-  data?: T;
-  error?: string;
-};
-
-export interface UserItem {
-  id: string;
-  name: string;
-  email: string;
-  platformRole: string;
-  highestRole: string;
-  isActive: boolean;
-  companiesCount: number;
-  createdAt: Date;
-  canEdit: boolean;
-  canDelete: boolean;
-  avatarUrl: string | null;
-}
+type ActionResult<T = unknown> =
+  | { success: true; data: T }
+  | { success: false; error: string };
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: "Super Admin",
@@ -34,31 +27,62 @@ const ROLE_LABELS: Record<string, string> = {
   viewer: "Visualizador",
 };
 
-const createUserSchema = z.object({
-  name: z.string().min(2).max(100),
-  email: z.string().email(),
-  password: z.string().min(8),
-  platformRole: z.enum(["super_admin", "admin", "manager", "viewer"]),
-});
+function toUserItem(
+  u: {
+    id: string;
+    name: string;
+    email: string;
+    platformRole: string;
+    isActive: boolean;
+    avatarUrl: string | null;
+    createdAt: Date;
+    _count: { memberships: number };
+  },
+  currentUser: { id: string; isSuperAdmin: boolean; platformRole: string }
+): UserItem {
+  const myLevel = PLATFORM_ROLE_HIERARCHY[currentUser.platformRole] ?? 0;
+  const targetLevel = PLATFORM_ROLE_HIERARCHY[u.platformRole] ?? 0;
+  const isTargetSuperAdmin = u.platformRole === "super_admin";
 
-const updateUserSchema = z.object({
-  name: z.string().min(2).max(100).optional(),
-  platformRole: z
-    .enum(["super_admin", "admin", "manager", "viewer"])
-    .optional(),
-  isActive: z.boolean().optional(),
-});
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    platformRole: u.platformRole as PlatformRole,
+    highestRole: ROLE_LABELS[u.platformRole] ?? "Usuário",
+    isActive: u.isActive,
+    companiesCount: u._count.memberships,
+    createdAt: u.createdAt,
+    avatarUrl: u.avatarUrl,
+    canEdit:
+      u.id !== currentUser.id &&
+      (currentUser.isSuperAdmin ||
+        (!isTargetSuperAdmin && targetLevel < myLevel)),
+    canDelete:
+      u.id !== currentUser.id &&
+      !isTargetSuperAdmin &&
+      (currentUser.isSuperAdmin || targetLevel < myLevel),
+  };
+}
+
+const USER_SELECT = {
+  id: true,
+  name: true,
+  email: true,
+  platformRole: true,
+  isSuperAdmin: true,
+  isActive: true,
+  avatarUrl: true,
+  createdAt: true,
+  _count: { select: { memberships: true } },
+} as const;
 
 export async function getUsers(): Promise<ActionResult<UserItem[]>> {
   const currentUser = await getCurrentUser();
   if (!currentUser) return { success: false, error: "Não autenticado" };
 
-  const myLevel = PLATFORM_ROLE_HIERARCHY[currentUser.platformRole] ?? 0;
-
-  // Super admin vê todos
   let whereClause = {};
   if (!currentUser.isSuperAdmin) {
-    // Admin vê manager/viewer, manager/viewer não acessam /users
     if (currentUser.platformRole === "admin") {
       whereClause = {
         platformRole: { in: ["manager", "viewer"] },
@@ -70,62 +94,41 @@ export async function getUsers(): Promise<ActionResult<UserItem[]>> {
 
   const users = await prisma.user.findMany({
     where: whereClause,
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      platformRole: true,
-      isSuperAdmin: true,
-      isActive: true,
-      avatarUrl: true,
-      createdAt: true,
-      _count: { select: { memberships: true } },
-    },
+    select: USER_SELECT,
     orderBy: { createdAt: "desc" },
   });
 
-  const data: UserItem[] = users.map((u) => {
-    const targetLevel = PLATFORM_ROLE_HIERARCHY[u.platformRole] ?? 0;
-    const isTargetSuperAdmin = u.platformRole === "super_admin";
-
-    return {
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      platformRole: u.platformRole,
-      highestRole: ROLE_LABELS[u.platformRole] ?? "Usuário",
-      isActive: u.isActive,
-      companiesCount: u._count.memberships,
-      createdAt: u.createdAt,
-      avatarUrl: u.avatarUrl,
-      canEdit:
-        u.id !== currentUser.id &&
-        (currentUser.isSuperAdmin || (!isTargetSuperAdmin && targetLevel < myLevel)),
-      canDelete:
-        u.id !== currentUser.id &&
-        !isTargetSuperAdmin &&
-        (currentUser.isSuperAdmin || targetLevel < myLevel),
-    };
-  });
+  const data: UserItem[] = users.map((u) => toUserItem(u, currentUser));
 
   return { success: true, data };
 }
 
 export async function createUser(
-  input: z.infer<typeof createUserSchema>
-): Promise<ActionResult> {
+  input: unknown
+): Promise<ActionResult<UserItem>> {
   const currentUser = await getCurrentUser();
   if (!currentUser) return { success: false, error: "Não autenticado" };
+
+  try {
+    assertCanCreateUser(currentUser as any);
+  } catch (e) {
+    if (e instanceof PermissionDeniedError) {
+      return { success: false, error: e.message };
+    }
+    throw e;
+  }
 
   const parsed = createUserSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: "Dados inválidos" };
 
   const myLevel = PLATFORM_ROLE_HIERARCHY[currentUser.platformRole] ?? 0;
-  const targetLevel =
-    PLATFORM_ROLE_HIERARCHY[parsed.data.platformRole] ?? 0;
+  const targetLevel = PLATFORM_ROLE_HIERARCHY[parsed.data.platformRole] ?? 0;
 
   if (targetLevel >= myLevel && !currentUser.isSuperAdmin) {
-    return { success: false, error: "Sem permissão para criar usuário com este nível" };
+    return {
+      success: false,
+      error: "Sem permissão para criar usuário com este nível",
+    };
   }
 
   const existing = await prisma.user.findUnique({
@@ -144,6 +147,7 @@ export async function createUser(
       isSuperAdmin: parsed.data.platformRole === "super_admin",
       invitedById: currentUser.id,
     },
+    select: USER_SELECT,
   });
 
   // Se super_admin, auto-vincular a todas as empresas
@@ -159,16 +163,23 @@ export async function createUser(
         skipDuplicates: true,
       });
     }
+    // Re-fetch para pegar o count atualizado
+    const updated = await prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+      select: USER_SELECT,
+    });
+    revalidatePath("/users");
+    return { success: true, data: toUserItem(updated, currentUser) };
   }
 
   revalidatePath("/users");
-  return { success: true, data: { id: user.id } };
+  return { success: true, data: toUserItem(user, currentUser) };
 }
 
 export async function updateUser(
   userId: string,
-  input: z.infer<typeof updateUserSchema>
-): Promise<ActionResult> {
+  input: unknown
+): Promise<ActionResult<UserItem>> {
   const currentUser = await getCurrentUser();
   if (!currentUser) return { success: false, error: "Não autenticado" };
 
@@ -185,12 +196,23 @@ export async function updateUser(
 
   const targetLevel = PLATFORM_ROLE_HIERARCHY[target.platformRole] ?? 0;
 
-  // Apenas super_admin pode editar super_admin; admin pode editar abaixo
+  try {
+    assertCanUpdateUser(currentUser as any, {
+      id: userId,
+      platformRole: target.platformRole as PlatformRole,
+    });
+  } catch (e) {
+    if (e instanceof PermissionDeniedError) {
+      return { success: false, error: e.message };
+    }
+  }
+
+  // Fallback manual check
   if (targetLevel >= myLevel && !currentUser.isSuperAdmin) {
     return { success: false, error: "Sem permissão" };
   }
 
-  await prisma.user.update({
+  const updated = await prisma.user.update({
     where: { id: userId },
     data: {
       ...(parsed.data.name && { name: parsed.data.name }),
@@ -202,17 +224,32 @@ export async function updateUser(
         isActive: parsed.data.isActive,
       }),
     },
+    select: USER_SELECT,
   });
 
   revalidatePath("/users");
-  return { success: true };
+  return { success: true, data: toUserItem(updated, currentUser) };
 }
 
-export async function deleteUser(userId: string): Promise<ActionResult> {
+export async function deleteUser(userId: string): Promise<ActionResult<void>> {
   const currentUser = await getCurrentUser();
   if (!currentUser) return { success: false, error: "Não autenticado" };
-  if (!currentUser.isSuperAdmin) return { success: false, error: "Sem permissão" };
-  if (userId === currentUser.id) return { success: false, error: "Não pode excluir a si mesmo" };
+
+  try {
+    assertCanDeleteUser(currentUser as any, {
+      id: userId,
+      platformRole: "viewer",
+    });
+  } catch (e) {
+    if (e instanceof PermissionDeniedError) {
+      return { success: false, error: e.message };
+    }
+  }
+
+  if (!currentUser.isSuperAdmin)
+    return { success: false, error: "Sem permissão" };
+  if (userId === currentUser.id)
+    return { success: false, error: "Não pode excluir a si mesmo" };
 
   await prisma.user.update({
     where: { id: userId },
@@ -220,12 +257,12 @@ export async function deleteUser(userId: string): Promise<ActionResult> {
   });
 
   revalidatePath("/users");
-  return { success: true };
+  return { success: true, data: undefined };
 }
 
 export async function toggleUserRole(
   userId: string,
   newRole: string
-): Promise<ActionResult> {
+): Promise<ActionResult<UserItem>> {
   return updateUser(userId, { platformRole: newRole as any });
 }

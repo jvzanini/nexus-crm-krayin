@@ -243,4 +243,6 @@ Preenchida durante cada fase. Status: `parity` | `partial` | `dropped` | `pendin
 | Ops | Feature flags runtime | 1c | partial | lib `src/lib/flags` + migration + pg_notify triggers; UI /settings/flags pendente |
 | Ops | Backup Postgres + drill | 1c | partial | scripts `backup-postgres.sh` + `restore-drill.sh` + `docs/ops/backup.md`; cron Portainer + drill em staging pendentes |
 | Security | RBAC granular matriz + helpers | 1c | partial | `src/lib/rbac/` com 21 permissions × 5 roles + hasPermission/requirePermission; migração das Server Actions pendente |
-| Ops | Sentry + OTel SDK | 1c | pending | bloqueado por install local (GHCR); merge próximo ciclo CI |
+| Ops | Sentry + OTel SDK | 1c | parity | instrumentation.ts + sentry.{server,client,edge}.config.ts + withSentryConfig; DSN opcional (no-op sem env) |
+| CRM | Products + ProductPrice (multi-moeda) | 3 | parity | migration + 10-currency allowlist + Server Actions CRUD+prices + UI /products + i18n + seed 6×2 cat/company |
+| Security | RBAC products:view/create/edit/delete | 3 | parity | matriz atualizada em src/lib/rbac/permissions.ts |
