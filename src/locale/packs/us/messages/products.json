@@ -1,0 +1,41 @@
+{
+  "list": {
+    "title": "Products",
+    "subtitle.count": "{count, plural, =0 {No products} one {# product registered} other {# products registered}}",
+    "empty": "No products registered yet",
+    "filter": {
+      "category": "Category",
+      "status": "Status",
+      "search": "Search by name or SKU",
+      "all": "All",
+      "active": "Active",
+      "archived": "Archived"
+    }
+  },
+  "form": {
+    "create.title": "New product",
+    "edit.title": "Edit product",
+    "sku": "SKU",
+    "name": "Name",
+    "description": "Description",
+    "category": "Category",
+    "active": "Active",
+    "prices": {
+      "title": "Prices",
+      "addCurrency": "Add currency",
+      "amount": "Amount",
+      "currency": "Currency",
+      "noPrices": "No prices defined yet",
+      "remove": "Remove"
+    }
+  },
+  "action": {
+    "create": "Create product",
+    "save": "Save changes",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "delete": "Delete",
+    "confirmArchive": "Archive product \"{sku}\"? It will stop appearing in default lists.",
+    "confirmDelete": "Permanently delete product \"{sku}\"? This action is irreversible."
+  }
+}

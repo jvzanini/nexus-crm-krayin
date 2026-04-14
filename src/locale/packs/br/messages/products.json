@@ -1,0 +1,41 @@
+{
+  "list": {
+    "title": "Produtos",
+    "subtitle.count": "{count, plural, =0 {Nenhum produto} one {# produto cadastrado} other {# produtos cadastrados}}",
+    "empty": "Nenhum produto cadastrado ainda",
+    "filter": {
+      "category": "Categoria",
+      "status": "Status",
+      "search": "Buscar por nome ou SKU",
+      "all": "Todos",
+      "active": "Ativos",
+      "archived": "Arquivados"
+    }
+  },
+  "form": {
+    "create.title": "Novo produto",
+    "edit.title": "Editar produto",
+    "sku": "SKU",
+    "name": "Nome",
+    "description": "Descrição",
+    "category": "Categoria",
+    "active": "Ativo",
+    "prices": {
+      "title": "Preços",
+      "addCurrency": "Adicionar moeda",
+      "amount": "Valor",
+      "currency": "Moeda",
+      "noPrices": "Nenhum preço definido ainda",
+      "remove": "Remover"
+    }
+  },
+  "action": {
+    "create": "Criar produto",
+    "save": "Salvar alterações",
+    "archive": "Arquivar",
+    "unarchive": "Desarquivar",
+    "delete": "Excluir",
+    "confirmArchive": "Arquivar o produto \"{sku}\"? Ele deixará de aparecer em listas padrão.",
+    "confirmDelete": "Excluir permanentemente o produto \"{sku}\"? Essa ação é irreversível."
+  }
+}

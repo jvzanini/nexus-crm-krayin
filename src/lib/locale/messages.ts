@@ -7,12 +7,13 @@ import type { LocaleCode } from "@/locale/types";
 export async function loadMessages(locale: LocaleCode) {
   switch (locale) {
     case "pt-BR": {
-      const [common, auth, validation, address, consent] = await Promise.all([
+      const [common, auth, validation, address, consent, products] = await Promise.all([
         import("@/locale/packs/br/messages/common.json"),
         import("@/locale/packs/br/messages/auth.json"),
         import("@/locale/packs/br/messages/validation.json"),
         import("@/locale/packs/br/messages/address.json"),
         import("@/locale/packs/br/messages/consent.json"),
+        import("@/locale/packs/br/messages/products.json"),
       ]);
       return {
         common: common.default,
@@ -20,15 +21,17 @@ export async function loadMessages(locale: LocaleCode) {
         validation: validation.default,
         address: address.default,
         consent: consent.default,
+        products: products.default,
       };
     }
     case "en-US": {
-      const [common, auth, validation, address, consent] = await Promise.all([
+      const [common, auth, validation, address, consent, products] = await Promise.all([
         import("@/locale/packs/us/messages/common.json"),
         import("@/locale/packs/us/messages/auth.json"),
         import("@/locale/packs/us/messages/validation.json"),
         import("@/locale/packs/us/messages/address.json"),
         import("@/locale/packs/us/messages/consent.json"),
+        import("@/locale/packs/us/messages/products.json"),
       ]);
       return {
         common: common.default,
@@ -36,6 +39,7 @@ export async function loadMessages(locale: LocaleCode) {
         validation: validation.default,
         address: address.default,
         consent: consent.default,
+        products: products.default,
       };
     }
     default:
