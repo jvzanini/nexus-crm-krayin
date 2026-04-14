@@ -13,6 +13,7 @@ import {
 import { Button } from "@nexusai360/design-system";
 import { Input } from "@nexusai360/design-system";
 import { PageHeader } from "@nexusai360/design-system";
+import { EmptyState } from "@nexusai360/design-system";
 import {
   Dialog,
   DialogContent,
@@ -321,10 +322,23 @@ export function LeadsContent({ canCreate, canEdit, canDelete }: LeadsContentProp
             <TableSkeleton />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <Target className="h-12 w-12 mb-3 text-muted-foreground/60" />
-            <p className="text-sm">Nenhum lead encontrado</p>
-          </div>
+          <EmptyState.Root>
+            <EmptyState.Icon icon={Target} color="violet" />
+            <EmptyState.Title>Nenhum lead ainda</EmptyState.Title>
+            <EmptyState.Description>
+              Adicione seu primeiro lead para iniciar o funil de vendas.
+            </EmptyState.Description>
+            {canCreate && (
+              <EmptyState.Action>
+                <Button
+                  onClick={openCreate}
+                  className="bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
+                >
+                  Novo lead
+                </Button>
+              </EmptyState.Action>
+            )}
+          </EmptyState.Root>
         ) : (
           <Table>
             <TableHeader>
