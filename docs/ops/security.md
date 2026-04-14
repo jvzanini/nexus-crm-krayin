@@ -97,18 +97,27 @@ Complementar: `docs/ops/security-audit-checklist.md` (checklist OWASP).
 | Atualizar deps high CVE | backend | Q2 2026 | next DoS, nodemailer, rollup, hono |
 | Audit log retention policy | backend | Q2 2026 | Definir TTL + compliance LGPD |
 
-### 2.1 Vulnerabilidades high conhecidas (npm audit 2026-04-14)
+### 2.1 Vulnerabilidades conhecidas
 
-4 CVEs high presentes em prod, não-bloqueantes (warn only no CI):
+**Status 2026-04-14 pós-Fase 12.6:** `npm audit --audit-level=high --omit=dev` → **0 vulns**.
 
-| Advisory | Package | Via | Fix |
-|---|---|---|---|
-| [GHSA-q4gf-8mx6-v5v3](https://github.com/advisories/GHSA-q4gf-8mx6-v5v3) | next | direto | bump next@16.2.3 |
-| [GHSA-mm7p-fcc7-pg87](https://github.com/advisories/GHSA-mm7p-fcc7-pg87) | nodemailer | transitivo | atualizar dep raiz |
-| [GHSA-mw96-cpmx-2vgc](https://github.com/advisories/GHSA-mw96-cpmx-2vgc) | rollup | @sentry/nextjs | bump sentry@10 |
-| [GHSA-92pp-h63x-v22m](https://github.com/advisories/GHSA-92pp-h63x-v22m) | @hono/node-server | @prisma/dev | Prisma 7 upgrade |
+Resolvidas nesta fase:
 
-Plano: abrir PR por package em Q2 2026 após verificar compat matrix.
+| Advisory | Package | Resolução |
+|---|---|---|
+| GHSA-q4gf-8mx6-v5v3 | next | bump 16.2.3 |
+| GHSA-mm7p-fcc7-pg87 + 3 | nodemailer | bump 8.0.5 + override deep deps |
+| GHSA-mw96-cpmx-2vgc | rollup (via @sentry/nextjs) | remover @sentry/nextjs (dep morta sem DSN) |
+
+Remanescentes moderate (não bloqueantes):
+
+| Advisory | Package | Via |
+|---|---|---|
+| GHSA-r4q5-vmmm-2653 | follow-redirects | transitivo moderate |
+| GHSA-92pp-h63x-v22m | @hono/node-server | `@prisma/dev` — **dev-only**, excluído via `--omit=dev` |
+
+Plano para moderate: bump follow-redirects em próxima pass; hono aguarda
+upgrade maior de Prisma (7.6 → 7.7+).
 
 ---
 
@@ -204,7 +213,7 @@ Seguir **LEI ABSOLUTA #1** (`CLAUDE.md` §1):
 
 | Data | Auditor | Achados | Status |
 |---|---|---|---|
-| 2026-04-14 | Claude Opus 4.6 (autônomo) | ausência de security headers; sem npm audit/gitleaks CI; doc security canônico ausente; 4 CVEs high em deps | resolvido (headers+CI); CVEs tracked §2.1 |
+| 2026-04-14 | Claude Opus 4.6 (autônomo) | ausência de security headers; sem npm audit/gitleaks CI; doc security canônico ausente; 4 CVEs high em deps | resolvido integral (Fase 12.4 headers+CI+doc; Fase 12.6 zera CVEs high) |
 
 ---
 
