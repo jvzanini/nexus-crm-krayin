@@ -14,15 +14,19 @@
 **Produção:** `/api/health` 200 ✅ • `/api/ready` 200 ✅ • `/login` 200 ✅.
 Headers de segurança ativos (HSTS/CSP/XFO/XCTO/Referrer/Permissions).
 
-**Tags deployed nesta sessão (2026-04-14 noite):**
+**Tags deployed nesta sessão (2026-04-14 noite → madrugada):**
 
 - `prod-stable-2026-04-14-late` — após fix dual React + lazy Resend + migrations
 - `phase-12-4-deployed` — security headers + npm audit/gitleaks CI + docs/ops/security.md
 - `phase-12-5-deployed` — runbook expandido com LEI #1, playbooks, DB procedures, onboarding
 - `phase-12-6-deployed` — CVEs high zeradas (next 16.2.3, nodemailer 8.0.5, remove @sentry/nextjs)
-- `phase-13-ui-consistency-deployed` — sidebar com 4 módulos novos (Produtos/Tarefas/Marketing/Automações), 9 telas migradas para PageHeader do DS, stagger 0.08 unificado, dashboard space-y-6, tasks sem next-intl
+- `phase-13-ui-consistency-deployed` — sidebar com 4 módulos novos, 9 telas PageHeader DS, stagger 0.08, dashboard space-y-6, tasks sem next-intl
+- **Fase 14 — E2E CI Stabilizer:** webServer via `next start` (build em pipeline) resolveu timeout persistente de viewer login. Pré-fix: 0 specs rodavam. Pós-fix: 17 passed em 43s.
+- **Fase 15 — RBAC em Server Actions:** 8 arquivos cobertos (api-keys, company, users, settings, feature-flags, leads, contacts, opportunities); gating UI (botões Novo X escondidos para viewer); settings-ui resolver alinhado com RBAC do CRM.
+- **Fase 16 — Zero vulnerabilidades:** overrides follow-redirects 1.16 + @hono/node-server 1.19.13. `npm audit --audit-level=low` exit 0 com Prisma 7.6 mantido.
+- **Fase 17 — Pipeline Kanban:** rota nova `/opportunities/pipeline` com drag-and-drop via @dnd-kit, 6 colunas por stage com count+soma, card com probability badge, link "Pipeline" em /opportunities, E2E spec admin. 5 commits.
 
-**Fases 12.4, 12.5, 12.6 e 13 COMPLETAS.** Frente 17 (tenant scoping) também mergeada em main (`77e2918`).
+**Todas fases acima COMPLETAS.** Frente 17 tenant scoping (77e2918) e todas as fases subsequentes mergeadas em main.
 **LEI ABSOLUTA #4** adicionada: toda nova implementação deve consultar `nexus-blueprint/` (design-system.md, patterns/, modules/) antes de criar componentes/features.
 `npm audit --audit-level=high --omit=dev` → 0 vulns. Restam 4 moderate, tracked em `docs/ops/security.md` §2.1.
 
@@ -63,6 +67,10 @@ Recomendação: **A** (security hardening) → **C** (E2E verde) → **B** (RBAC
 | **`phase-12-5-deployed`** | **12.5 — Runbook expansion** | **✅ LEI #1 + playbooks + onboarding** |
 | **`phase-12-6-deployed`** | **12.6 — CVE high fixes** | **✅ 0 vulns high em prod** |
 | **`phase-13-ui-consistency-deployed`** | **13 — UI consistency** | **✅ sidebar + PageHeader em 9 telas + stagger 0.08** |
+| **`phase-14-e2e-ci-stabilizer`** | **14 — E2E CI** | **✅ next start em CI resolveu timeout viewer** |
+| **`phase-15-rbac-server-actions`** | **15 — RBAC Server Actions** | **✅ 8 arquivos + gating UI viewer** |
+| **`phase-16-zero-vulns`** | **16 — Zero CVEs** | **✅ 0 vulns (high + moderate)** |
+| **`phase-17-pipeline-kanban`** | **17 — Pipeline Kanban** | **✅ drag-drop dnd-kit, 6 stages** |
 | **`prod-stable-2026-04-14-late`** | **snapshot estável pós-fix** | **✅ referência para rollback** |
 
 ### 1.2. Commits recentes em `main` (últimos 10)
