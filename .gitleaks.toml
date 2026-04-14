@@ -1,0 +1,13 @@
+# Gitleaks config — Fase 12.4
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Docs, seeds e fixtures de teste — sem segredos reais"
+paths = [
+  '''docs/''',
+  '''.+\.md$''',
+  '''prisma/seed.*\.ts''',
+  '''tests/e2e/fixtures/.*''',
+]
