@@ -228,3 +228,8 @@ Preenchida durante cada fase. Status: `parity` | `partial` | `dropped` | `pendin
 | Reports | Funnel/Forecast | 11 | pending | cross-tenant test |
 | REST API | Public v1 | 11b | pending | versioned |
 | Webhooks | Outbound | 11b | pending | signed |
+| UI | Design System core (14 comps) | 1a | parity | @nexusai360/design-system@0.3.0 publicado; 32 unit tests; bundle 15.17KB/60KB gz |
+| UI | Tokens + theming (dark/light) | 1a | parity | theme-provider + tokens em v0.2.0, consumido em v0.3.0 |
+| UI | /__ds-preview smoke (3vp×2temas) | 1a | parity | Playwright spec + axe; baselines via workflow_dispatch |
+| Infra | GitHub Packages publish pipeline | 1a | parity | tag v<ver>-<pkg> → publish.yml |
+| Infra | Docker CRM build + deploy Portainer | 1a | parity | node:20-slim; rollout automático quando Portainer alcançável |
