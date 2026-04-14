@@ -492,3 +492,83 @@ model ProductPrice {
   @@unique([productId, currency], name: "uq_price_per_product_currency")
   @@map("product_prices")
 }
+
+// ============================================================
+// FASE 6 — ACTIVITIES + FILES + REMINDERS
+// ============================================================
+
+enum ActivityType {
+  call
+  meeting
+  task
+  note
+  file
+}
+
+enum ActivityStatus {
+  pending
+  completed
+  canceled
+}
+
+enum ActivitySubjectType {
+  lead
+  contact
+  opportunity
+}
+
+model Activity {
+  id           String              @id @default(uuid()) @db.Uuid
+  companyId    String              @map("company_id") @db.Uuid
+  type         ActivityType
+  status       ActivityStatus      @default(pending)
+
+  subjectType  ActivitySubjectType @map("subject_type")
+  subjectId    String              @map("subject_id") @db.Uuid
+
+  title        String
+  description  String?
+
+  // Call/Meeting/Task
+  scheduledAt  DateTime?           @map("scheduled_at")  // UTC
+  timezone     String?             @db.VarChar(64)        // IANA (meeting only)
+  durationMin  Int?                @map("duration_min")
+  location     String?             // url ou endereço (meeting)
+
+  // Task
+  dueAt        DateTime?           @map("due_at")
+  completedAt  DateTime?           @map("completed_at")
+
+  // Reminder
+  reminderAt    DateTime?           @map("reminder_at")    // UTC
+  reminderJobId String?             @map("reminder_job_id") // BullMQ
+
+  // Common
+  assignedTo   String?             @map("assigned_to") @db.Uuid
+  createdBy    String              @map("created_by") @db.Uuid
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  files        ActivityFile[]
+
+  @@index([companyId, subjectType, subjectId, scheduledAt(sort: Desc)], name: "idx_activity_timeline")
+  @@index([companyId, assignedTo, status, dueAt], name: "idx_activity_mytasks")
+  @@index([reminderAt], name: "idx_activity_reminder_due")
+  @@map("activities")
+}
+
+model ActivityFile {
+  id         String   @id @default(uuid()) @db.Uuid
+  activityId String   @map("activity_id") @db.Uuid
+  storageKey String   @map("storage_key")
+  filename   String
+  mimeType   String   @map("mime_type") @db.VarChar(128)
+  size       Int
+  createdAt  DateTime @default(now()) @map("created_at")
+  createdBy  String   @map("created_by") @db.Uuid
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@index([activityId], name: "idx_activity_file_by_activity")
+  @@map("activity_files")
+}

@@ -2,6 +2,19 @@
 
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  createCompanySchema,
+  updateCompanySchema,
+  assertCanCreateCompany,
+  assertCanUpdateCompany,
+  assertCanDeleteCompany,
+  PermissionDeniedError,
+} from "@nexusai360/companies-ui/server-helpers";
+import type { CompanyItem } from "@nexusai360/companies-ui/server-helpers";
+
+type ActionResult<T = unknown> =
+  | { success: true; data: T }
+  | { success: false; error: string };
 
 function slugify(name: string): string {
   return name
@@ -12,16 +25,56 @@ function slugify(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
-export async function getCompanies() {
+function toCompanyItem(
+  c: {
+    id: string;
+    name: string;
+    isActive: boolean;
+    createdAt: Date;
+    _count: { memberships: number };
+  },
+  currentUser: { isSuperAdmin: boolean; platformRole: string }
+): CompanyItem {
+  const canManage =
+    currentUser.isSuperAdmin ||
+    currentUser.platformRole === "admin";
+
+  return {
+    id: c.id,
+    name: c.name,
+    cnpj: null,
+    email: null,
+    phone: null,
+    address: null,
+    isActive: c.isActive,
+    membersCount: c._count.memberships,
+    createdAt: c.createdAt,
+    canEdit: canManage,
+    canDelete: canManage,
+  };
+}
+
+const COMPANY_SELECT = {
+  id: true,
+  name: true,
+  isActive: true,
+  createdAt: true,
+  _count: { select: { memberships: true } },
+} as const;
+
+export async function getCompanies(): Promise<ActionResult<CompanyItem[]>> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autorizado" };
 
   const companies = await prisma.company.findMany({
     orderBy: { name: "asc" },
-    include: { _count: { select: { memberships: true } } },
+    select: COMPANY_SELECT,
   });
 
-  return { success: true, companies };
+  return {
+    success: true,
+    data: companies.map((c) => toCompanyItem(c, user)),
+  };
 }
 
 export async function getCompany(id: string) {
@@ -41,43 +94,97 @@ export async function getCompany(id: string) {
   return { success: true, company };
 }
 
-export async function createCompany(data: { name: string; logoUrl?: string }) {
+export async function createCompany(
+  input: unknown
+): Promise<ActionResult<CompanyItem>> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autorizado" };
-  if (!["super_admin", "admin"].includes(user.platformRole)) {
-    return { success: false, error: "Permissão insuficiente" };
+
+  try {
+    assertCanCreateCompany(user as any);
+  } catch (e) {
+    if (e instanceof PermissionDeniedError) {
+      return { success: false, error: e.message };
+    }
+    throw e;
   }
 
-  const slug = slugify(data.name);
+  const parsed = createCompanySchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: "Dados inválidos" };
+
+  const slug = slugify(parsed.data.name);
   const existing = await prisma.company.findUnique({ where: { slug } });
   if (existing) {
     return { success: false, error: "Já existe uma empresa com esse nome" };
   }
 
   const company = await prisma.company.create({
-    data: { name: data.name, slug, logoUrl: data.logoUrl ?? null },
+    data: { name: parsed.data.name, slug },
+    select: COMPANY_SELECT,
   });
 
-  return { success: true, company };
+  return { success: true, data: toCompanyItem(company, user) };
 }
 
-export async function updateCompany(id: string, data: { name?: string; logoUrl?: string; isActive?: boolean }) {
+export async function updateCompany(
+  id: string,
+  input: unknown
+): Promise<ActionResult<CompanyItem>> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autorizado" };
-  if (!["super_admin", "admin"].includes(user.platformRole)) {
-    return { success: false, error: "Permissão insuficiente" };
+
+  try {
+    assertCanUpdateCompany(user as any);
+  } catch (e) {
+    if (e instanceof PermissionDeniedError) {
+      return { success: false, error: e.message };
+    }
+    throw e;
   }
+
+  const parsed = updateCompanySchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: "Dados inválidos" };
+
+  // Aceitar isActive diretamente no input (para toggleCompanyActive)
+  const rawInput = input as Record<string, unknown>;
+  const isActive = typeof rawInput?.isActive === "boolean" ? rawInput.isActive : undefined;
 
   const company = await prisma.company.update({
     where: { id },
     data: {
-      ...(data.name ? { name: data.name, slug: slugify(data.name) } : {}),
-      ...(data.logoUrl !== undefined ? { logoUrl: data.logoUrl } : {}),
-      ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+      ...(parsed.data.name ? { name: parsed.data.name, slug: slugify(parsed.data.name) } : {}),
+      ...(isActive !== undefined ? { isActive } : {}),
     },
+    select: COMPANY_SELECT,
   });
 
-  return { success: true, company };
+  return { success: true, data: toCompanyItem(company, user) };
+}
+
+export async function deleteCompany(id: string): Promise<ActionResult<void>> {
+  const user = await getCurrentUser();
+  if (!user) return { success: false, error: "Não autorizado" };
+
+  try {
+    assertCanDeleteCompany(user as any);
+  } catch (e) {
+    if (e instanceof PermissionDeniedError) {
+      return { success: false, error: e.message };
+    }
+    throw e;
+  }
+
+  await prisma.userCompanyMembership.deleteMany({ where: { companyId: id } });
+  await prisma.company.delete({ where: { id } });
+
+  return { success: true, data: undefined };
+}
+
+export async function toggleCompanyActive(
+  id: string,
+  isActive: boolean
+): Promise<ActionResult<CompanyItem>> {
+  return updateCompany(id, { isActive });
 }
 
 export async function addMember(companyId: string, userId: string, role: string) {
@@ -116,19 +223,6 @@ export async function removeMember(companyId: string, userId: string) {
     where: { userId_companyId: { userId, companyId } },
     data: { isActive: false },
   });
-
-  return { success: true };
-}
-
-export async function deleteCompany(id: string): Promise<{ success: boolean; error?: string }> {
-  const user = await getCurrentUser();
-  if (!user) return { success: false, error: "Não autorizado" };
-  if (!["super_admin", "admin"].includes(user.platformRole)) {
-    return { success: false, error: "Permissão insuficiente" };
-  }
-
-  await prisma.userCompanyMembership.deleteMany({ where: { companyId: id } });
-  await prisma.company.delete({ where: { id } });
 
   return { success: true };
 }
