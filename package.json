@@ -98,6 +98,8 @@
     "typescript": "^5"
   },
   "overrides": {
-    "nodemailer": "^8.0.5"
+    "nodemailer": "^8.0.5",
+    "follow-redirects": "^1.15.12",
+    "@hono/node-server": "^1.19.13"
   }
 }
