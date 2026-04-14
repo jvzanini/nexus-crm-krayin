@@ -5,8 +5,22 @@ const withNextIntl = createNextIntlPlugin("./src/i18n.ts");
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  transpilePackages: ["@nexusai360/types"],
-  serverExternalPackages: ["bcryptjs"],
+  // NÃO incluir @nexusai360/design-system em transpilePackages.
+  // Turbopack re-bundle resolve React incorretamente e quebra createContext em SSR
+  // (erro "s.createContext is not a function" — diagnosticado via /api/debug/layout).
+  // DS já vem pré-compilado (dual cjs/esm + peerDeps) — deve ser consumido direto.
+  transpilePackages: [
+    "@nexusai360/types",
+  ],
+  serverExternalPackages: [
+    "bcryptjs",
+    "@nexusai360/design-system",
+    "@nexusai360/users-ui",
+    "@nexusai360/companies-ui",
+    "@opentelemetry/sdk-node",
+    "@opentelemetry/instrumentation-http",
+    "@opentelemetry/instrumentation-pg",
+  ],
   // Next 16 usa turbopack por padrão em `next build`. webpack config é IGNORADO.
   // Alias força instância única de react/react-dom (fix dual-React — log prod:
   // "Cannot read properties of null (reading 'useContext')").
