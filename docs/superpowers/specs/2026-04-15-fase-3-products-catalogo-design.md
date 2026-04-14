@@ -10,7 +10,7 @@
 ## Changelog
 
 ### v2 → v3 (Review 2 profunda)
-- **Moeda base do tenant:** adicionado campo `Company.defaultCurrency` (ISO-4217, default "BRL"). Antes era campo livre; agora restringido à allowlist.
+- **Moeda base do tenant:** adicionado campo `Company.baseCurrency` (ISO-4217, default "BRL"). Antes era campo livre; agora restringido à allowlist.
 - **Allowlist de currencies:** `src/lib/currency/allowlist.ts` com 10 moedas iniciais (BRL, USD, EUR, GBP, ARS, CLP, MXN, CAD, AUD, JPY). Adição futura via migration de dados, não env.
 - **Índice composto:** `Product.sku` único por company (não global). Mudança crítica — impossibilita colisão cross-tenant e permite SKU "P-001" em múltiplos tenants.
 - **Preço `0`:** permitido (produto gratuito/gift); validado `>= 0`. Negativo rejeitado.
@@ -29,7 +29,7 @@
 
 1. Catálogo de produtos por tenant com **SKU único**, nome, descrição, categoria (string), ativo/arquivado.
 2. **Multi-currency:** cada produto tem N rows em `product_prices` (currency ISO-4217 + amount). Um Quote (Fase 4) pega o preço pela currency do tenant/opportunity.
-3. **Moeda base do tenant:** `Company.defaultCurrency`.
+3. **Moeda base do tenant:** `Company.baseCurrency`.
 4. UI CRUD com DS, RBAC, i18n.
 
 ## 2. Escopo
@@ -74,10 +74,7 @@ model ProductPrice {
 }
 ```
 
-Adicionar a `Company`:
-```
-defaultCurrency String @default("BRL") @db.Char(3) @map("default_currency")
-```
+`Company` **já tem** campo canônico `baseCurrency String @default("BRL") @db.VarChar(3) @map("base_currency")` (do schema pré-Fase 3). Reutilizar, **não** criar `default_currency`.
 
 ### 2.2. Currency allowlist
 
@@ -170,7 +167,7 @@ Pack `src/locale/packs/{br,us}/messages/products.json` com:
 ### 2.7. Seed
 
 Estender `prisma/seed.ts`:
-- Garantir `defaultCurrency="BRL"` nas companies existentes.
+- Garantir `baseCurrency="BRL"` nas companies existentes.
 - Inserir 6 produtos por company com 2 categorias, cada um com 1-3 prices.
 
 ### 2.8. Fora de escopo
@@ -224,7 +221,7 @@ Estender `prisma/seed.ts`:
 
 ## 7. Convenção de commits
 
-- `feat(crm): migration products + product_prices + Company.defaultCurrency` (schema)
+- `feat(crm): migration products + product_prices + Company.baseCurrency` (schema)
 - `feat(crm): currency allowlist + rbac products:*` (matriz)
 - `feat(crm): server actions products (CRUD + prices upsert)` (actions)
 - `feat(crm): /products UI (list + form + prices inline)` (UI)
