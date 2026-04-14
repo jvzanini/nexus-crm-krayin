@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { recordConsent, maskIp } from "@/lib/consent";
 import { z } from "zod";
+import { dispatch } from "@/lib/automation/dispatcher";
+import { logger } from "@/lib/logger";
 
 export interface LeadItem {
   id: string;
@@ -77,6 +79,15 @@ export async function getLeads(): Promise<ActionResult<LeadItem[]>> {
   return { success: true, data: leads };
 }
 
+async function resolveActiveCompanyId(userId: string): Promise<string | null> {
+  const membership = await prisma.userCompanyMembership.findFirst({
+    where: { userId, isActive: true },
+    select: { companyId: true },
+    orderBy: { createdAt: "asc" },
+  });
+  return membership?.companyId ?? null;
+}
+
 export async function createLead(data: {
   name: string;
   email?: string | null;
@@ -142,6 +153,27 @@ export async function createLead(data: {
   });
 
   revalidatePath("/leads");
+
+  const companyId = await resolveActiveCompanyId(user.id);
+  if (companyId) {
+    await dispatch("lead_created", {
+      companyId,
+      payload: {
+        id: lead.id,
+        name: lead.name,
+        email: lead.email,
+        phone: lead.phone,
+        company: lead.company,
+        source: lead.source,
+        status: lead.status,
+        consentMarketing: lead.consentMarketing,
+        consentTracking: lead.consentTracking,
+      },
+    }).catch((err) =>
+      logger.warn({ err, leadId: lead.id }, "automation.dispatch.lead_created.failed")
+    );
+  }
+
   return { success: true, data: { id: lead.id } };
 }
 

@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { recordConsent, maskIp } from "@/lib/consent";
 import { z } from "zod";
+import { dispatch } from "@/lib/automation/dispatcher";
+import { logger } from "@/lib/logger";
 
 export interface ContactItem {
   id: string;
@@ -54,6 +56,15 @@ const updateContactSchema = z.object({
   fields: contactFieldsSchema.partial(),
   consent: consentSchema.optional(),
 });
+
+async function resolveActiveCompanyId(userId: string): Promise<string | null> {
+  const membership = await prisma.userCompanyMembership.findFirst({
+    where: { userId, isActive: true },
+    select: { companyId: true },
+    orderBy: { createdAt: "asc" },
+  });
+  return membership?.companyId ?? null;
+}
 
 async function resolveRequestContext() {
   const h = await headers();
@@ -141,6 +152,25 @@ export async function createContact(data: {
   });
 
   revalidatePath("/contacts");
+
+  const companyId = await resolveActiveCompanyId(user.id);
+  if (companyId) {
+    await dispatch("contact_created", {
+      companyId,
+      payload: {
+        id: contact.id,
+        firstName: contact.firstName,
+        lastName: contact.lastName,
+        email: contact.email,
+        phone: contact.phone,
+        organization: contact.organization,
+        title: contact.title,
+      },
+    }).catch((err) =>
+      logger.warn({ err, contactId: contact.id }, "automation.dispatch.contact_created.failed")
+    );
+  }
+
   return { success: true, data: { id: contact.id } };
 }
 

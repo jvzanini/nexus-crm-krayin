@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requirePermission, PermissionDeniedError } from "@/lib/rbac";
 import { logger } from "@/lib/logger";
+import { dispatch } from "@/lib/automation/dispatcher";
 import { getFileDriver, enforceMime, enforceSize } from "@/lib/files";
 import { scheduleReminder, cancelReminder } from "@/lib/worker/queues/activity-reminders";
 import { ActivityType, ActivityStatus, ActivitySubjectType } from "@/generated/prisma/enums";
@@ -468,6 +469,22 @@ export async function completeActivity(id: string): Promise<ActionResult<Activit
     });
 
     revalidatePath("/tasks");
+
+    await dispatch("activity_completed", {
+      companyId: updated.companyId,
+      payload: {
+        id: updated.id,
+        type: updated.type,
+        subjectType: updated.subjectType,
+        subjectId: updated.subjectId,
+        completedAt: updated.completedAt ?? new Date(),
+        assignedTo: updated.assignedTo,
+        createdBy: updated.createdBy,
+      },
+    }).catch((err) =>
+      logger.warn({ err, activityId: updated.id }, "automation.dispatch.activity_completed.failed")
+    );
+
     return { success: true, data: serializeActivity(updated) };
   } catch (err) {
     return handleError(err, "Erro ao concluir atividade");
