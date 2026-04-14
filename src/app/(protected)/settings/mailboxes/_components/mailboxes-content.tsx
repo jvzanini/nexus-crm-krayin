@@ -35,6 +35,7 @@ import {
   TooltipRoot,
   TooltipTrigger,
   PageHeader,
+  EmptyState,
 } from "@nexusai360/design-system";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
@@ -241,10 +242,23 @@ export function MailboxesContent({
                   ))}
                 </div>
               ) : mailboxes.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                  <Mail className="h-12 w-12 mb-3 text-muted-foreground/60" />
-                  <p className="text-sm">{t("list.empty")}</p>
-                </div>
+                <EmptyState.Root>
+                  <EmptyState.Icon icon={Mail} color="blue" />
+                  <EmptyState.Title>Nenhuma caixa conectada</EmptyState.Title>
+                  <EmptyState.Description>
+                    Conecte uma caixa de e-mail para enviar mensagens a partir do CRM.
+                  </EmptyState.Description>
+                  {canConnect && (
+                    <EmptyState.Action>
+                      <Button
+                        onClick={() => setImapOpen(true)}
+                        className="bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
+                      >
+                        Conectar caixa
+                      </Button>
+                    </EmptyState.Action>
+                  )}
+                </EmptyState.Root>
               ) : (
                 <Table>
                   <TableHeader>
