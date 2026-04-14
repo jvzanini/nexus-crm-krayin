@@ -153,6 +153,7 @@ model Company {
   notifications       Notification[]
   auditLogs           AuditLog[]
   apiKeys             ApiKey[]
+  products            Product[]
 
   @@map("companies")
 }
@@ -450,4 +451,44 @@ model ConsentLog {
 
   @@index([subjectType, subjectId, consentKey, grantedAt(sort: Desc)], name: "idx_consent_log_subject_key_time")
   @@map("consent_logs")
+}
+
+// ============================================================
+// FASE 3 — PRODUCTS & CATÁLOGO MULTI-MOEDA
+// ============================================================
+
+model Product {
+  id          String    @id @default(uuid()) @db.Uuid
+  companyId   String    @map("company_id") @db.Uuid
+  sku         String
+  name        String
+  description String?
+  category    String?
+  active      Boolean   @default(true)
+  archivedAt  DateTime? @map("archived_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  company Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  prices  ProductPrice[]
+
+  @@unique([companyId, sku], name: "uq_product_sku_per_company")
+  @@index([companyId, active, updatedAt(sort: Desc)], name: "idx_product_active_recent")
+  @@index([companyId, category], name: "idx_product_category")
+  @@map("products")
+}
+
+model ProductPrice {
+  id        String   @id @default(uuid()) @db.Uuid
+  productId String   @map("product_id") @db.Uuid
+  currency  String   @db.Char(3)
+  amount    Decimal  @db.Decimal(18, 4)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, currency], name: "uq_price_per_product_currency")
+  @@map("product_prices")
 }
