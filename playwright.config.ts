@@ -6,6 +6,9 @@ export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: true,
   reporter: "list",
+  // Mantém nomes de snapshot sem sufixo de project (preserva snapshots pré-Frente 13).
+  snapshotPathTemplate:
+    "{testDir}/{testFilePath}-snapshots/{arg}{-platform}{ext}",
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
