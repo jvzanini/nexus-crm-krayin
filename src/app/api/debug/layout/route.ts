@@ -71,5 +71,61 @@ export async function GET() {
     };
   }
 
+  // Providers (theme-provider + SessionProvider)
+  try {
+    const mod = await import("@/components/providers/theme-provider");
+    results.providers_theme = { ok: true, value: { exports: Object.keys(mod).slice(0, 5) } };
+  } catch (err) {
+    results.providers_theme = {
+      ok: false,
+      error: `${(err as Error).name}: ${(err as Error).message}\n${(err as Error).stack?.split("\n").slice(0, 8).join("\n")}`,
+    };
+  }
+
+  // LocaleClientProvider
+  try {
+    const mod = await import("@/components/locale/LocaleClientProvider");
+    results.locale_client_provider = { ok: true, value: { exports: Object.keys(mod) } };
+  } catch (err) {
+    results.locale_client_provider = {
+      ok: false,
+      error: `${(err as Error).name}: ${(err as Error).message}\n${(err as Error).stack?.split("\n").slice(0, 8).join("\n")}`,
+    };
+  }
+
+  // Toaster wrapper
+  try {
+    const mod = await import("@/components/providers/toaster");
+    results.toaster = { ok: true, value: { exports: Object.keys(mod) } };
+  } catch (err) {
+    results.toaster = {
+      ok: false,
+      error: `${(err as Error).name}: ${(err as Error).message}\n${(err as Error).stack?.split("\n").slice(0, 8).join("\n")}`,
+    };
+  }
+
+  // LoginContent
+  try {
+    const mod = await import("@/components/login/login-content");
+    results.login_content = { ok: true, value: { exports: Object.keys(mod) } };
+  } catch (err) {
+    results.login_content = {
+      ok: false,
+      error: `${(err as Error).name}: ${(err as Error).message}\n${(err as Error).stack?.split("\n").slice(0, 8).join("\n")}`,
+    };
+  }
+
+  // Auth session
+  try {
+    const { auth } = await import("@/auth");
+    const session = await auth();
+    results.auth_session = { ok: true, value: { hasSession: !!session, user: session?.user?.email ?? null } };
+  } catch (err) {
+    results.auth_session = {
+      ok: false,
+      error: `${(err as Error).name}: ${(err as Error).message}\n${(err as Error).stack?.split("\n").slice(0, 8).join("\n")}`,
+    };
+  }
+
   return NextResponse.json(results, { status: 200 });
 }
