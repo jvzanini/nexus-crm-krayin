@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Button, Input } from "@nexusai360/design-system";
-import { Users2, Plus, Trash2, Loader2, Eye } from "lucide-react";
+import { Button, Input, PageHeader } from "@nexusai360/design-system";
+import { Layers, Plus, Trash2, Loader2, Eye } from "lucide-react";
 import { toast } from "sonner";
 import {
   createSegmentAction,
@@ -194,18 +194,20 @@ export function SegmentEditorContent({
       className="space-y-6 max-w-3xl"
     >
       {/* Header */}
-      <motion.div variants={itemVariants} className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600/10 border border-violet-500/20">
-          <Users2 className="h-5 w-5 text-violet-400" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-foreground">
-            {mode === "create" ? "Novo segmento" : "Editar segmento"}
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            Defina critérios de filtro para agrupar contatos
-          </p>
-        </div>
+      <motion.div variants={itemVariants}>
+        <PageHeader.Root>
+          <PageHeader.Row>
+            <PageHeader.Icon icon={Layers} color="blue" />
+            <PageHeader.Heading>
+              <PageHeader.Title>
+                {mode === "create" ? "Novo segmento" : "Editar segmento"}
+              </PageHeader.Title>
+              <PageHeader.Description>
+                Defina critérios de filtro para agrupar contatos
+              </PageHeader.Description>
+            </PageHeader.Heading>
+          </PageHeader.Row>
+        </PageHeader.Root>
       </motion.div>
 
       {/* Identificação */}
