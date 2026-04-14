@@ -1,9 +1,11 @@
-// Worker BullMQ — processa filas de email e outbox
+// Worker BullMQ — processa filas de email, outbox e activity-reminders
 // Bundled via esbuild (ver Dockerfile)
 
 import { Worker, Job } from "bullmq";
 import IORedis from "ioredis";
 import { Resend } from "resend";
+import { reenqueuePendingReminders } from "./boot";
+import { startActivityReminderWorker } from "./processors/activity-reminder";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://redis:6379";
 const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
@@ -64,12 +66,30 @@ outboxWorker.on("failed", (job, err) => {
 });
 
 // ============================================================
+// Worker: activity-reminders
+// ============================================================
+
+const activityReminderWorker = startActivityReminderWorker();
+
+// ============================================================
+// Boot: reenqueue lembretes pendentes
+// ============================================================
+
+reenqueuePendingReminders().catch((err) => {
+  console.error("[worker] Falha no reenqueue de lembretes:", err);
+});
+
+// ============================================================
 // Graceful shutdown
 // ============================================================
 
 async function shutdown() {
   console.log("[worker] Encerrando workers...");
-  await Promise.all([emailWorker.close(), outboxWorker.close()]);
+  await Promise.all([
+    emailWorker.close(),
+    outboxWorker.close(),
+    activityReminderWorker.close(),
+  ]);
   await connection.quit();
   process.exit(0);
 }
@@ -77,4 +97,4 @@ async function shutdown() {
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
 
-console.log("[worker] Workers iniciados — email, outbox");
+console.log("[worker] Workers iniciados — email, outbox, activity-reminders");
