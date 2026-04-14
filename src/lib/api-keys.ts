@@ -1,23 +1,30 @@
-// Helpers para API Keys
-import { createHash, randomBytes } from "crypto";
+// Helpers para API Keys — wrapper @nexusai360/api-keys
+import {
+  generateApiKey as generateApiKeyFromPkg,
+  hashApiKey,
+  timingSafeCompareHex,
+} from "@nexusai360/api-keys";
 
-const PREFIX_LENGTH = 8;
-
-/**
- * Gera um par (rawKey, keyPrefix, keyHash) para uma nova API key.
- * rawKey é mostrado UMA vez ao usuário e nunca armazenado.
- */
-export function generateApiKey(): { rawKey: string; keyPrefix: string; keyHash: string } {
-  const rawKey = `nxk_${randomBytes(32).toString("hex")}`;
-  const keyPrefix = rawKey.slice(0, PREFIX_LENGTH + 4); // "nxk_" + 8 chars
-  const keyHash = createHash("sha256").update(rawKey).digest("hex");
-  return { rawKey, keyPrefix, keyHash };
+export interface GeneratedApiKey {
+  rawKey: string;
+  keyPrefix: string;
+  keyHash: string;
 }
 
 /**
- * Verifica se uma rawKey corresponde ao hash armazenado.
+ * Gera nova API key. Formato: nxk_<32 chars nanoid>.
+ * keyPrefix = primeiros 12 chars (`nxk_<8 chars>`).
+ * rawKey é mostrado UMA vez ao usuário e nunca armazenado.
+ */
+export function generateApiKey(): GeneratedApiKey {
+  return generateApiKeyFromPkg("nxk");
+}
+
+/**
+ * Verifica se rawKey corresponde a um hash armazenado.
+ * Usa comparação timing-safe (fix vs implementação anterior que usava `===`).
+ * Compat: hashes de keys antigas (formato nxk_<64hex>) continuam validando.
  */
 export function verifyApiKey(rawKey: string, storedHash: string): boolean {
-  const hash = createHash("sha256").update(rawKey).digest("hex");
-  return hash === storedHash;
+  return timingSafeCompareHex(hashApiKey(rawKey), storedHash);
 }
