@@ -78,4 +78,31 @@ describe("rbac", () => {
     expect(userHasPermission(v, "activities:delete")).toBe(false);
     expect(userHasPermission(v, "activities:complete")).toBe(false);
   });
+
+  it("admin tem email:connect e email:manage", () => {
+    const a = mkUser("admin");
+    expect(userHasPermission(a, "email:connect")).toBe(true);
+    expect(userHasPermission(a, "email:manage")).toBe(true);
+  });
+
+  it("manager tem email:send e email:manage mas NÃO email:connect", () => {
+    const m = mkUser("manager");
+    expect(userHasPermission(m, "email:send")).toBe(true);
+    expect(userHasPermission(m, "email:manage")).toBe(true);
+    expect(userHasPermission(m, "email:connect")).toBe(false);
+  });
+
+  it("seller tem email:view e email:send mas NÃO email:connect nem email:manage", () => {
+    const s = mkUser("seller");
+    expect(userHasPermission(s, "email:view")).toBe(true);
+    expect(userHasPermission(s, "email:send")).toBe(true);
+    expect(userHasPermission(s, "email:connect")).toBe(false);
+    expect(userHasPermission(s, "email:manage")).toBe(false);
+  });
+
+  it("viewer tem email:view mas NÃO email:send", () => {
+    const v = mkUser("viewer");
+    expect(userHasPermission(v, "email:view")).toBe(true);
+    expect(userHasPermission(v, "email:send")).toBe(false);
+  });
 });

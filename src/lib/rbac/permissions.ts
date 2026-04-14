@@ -39,6 +39,10 @@ export const PERMISSIONS = [
   "activities:edit",
   "activities:delete",
   "activities:complete",
+  "email:view",
+  "email:connect",
+  "email:send",
+  "email:manage",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -84,6 +88,10 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "flags:manage",
     "audit:view",
     "api-keys:manage",
+    "email:view",
+    "email:connect",
+    "email:send",
+    "email:manage",
   ],
 
   manager: [
@@ -97,6 +105,9 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "users:view",
     "settings:view",
     "audit:view",
+    "email:view",
+    "email:send",
+    "email:manage",
   ],
 
   seller: [
@@ -114,6 +125,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "activities:create",
     "activities:edit",
     "activities:complete",
+    "email:view",
+    "email:send",
   ],
 
   viewer: [
@@ -124,6 +137,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "companies:view",
     "settings:view",
     "activities:view",
+    "email:view",
   ],
 };
 
