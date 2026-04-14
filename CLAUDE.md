@@ -37,6 +37,7 @@ Sempre responder em português brasileiro.
 - PostgreSQL 16 + Redis 7
 - NextAuth.js v5 (JWT stateless, trustHost: true)
 - Tailwind CSS 4 + shadcn/ui (base-ui) — usar `render` prop, NÃO `asChild`
+- UI base: `@nexusai360/design-system` v0.3.0+ (ver seção UI Components)
 - ThemeProvider customizado — dark/light/system via cookie SSR sync (**NÃO** usar next-themes)
 - Framer Motion — `as const` em variants com `ease`
 - Lucide React (ícones, NUNCA emojis)
@@ -110,6 +111,13 @@ Todas as Server Actions ficam em `src/lib/actions/`:
 ## Documentação
 - **Spec correção visual:** `docs/superpowers/specs/2026-04-13-correcao-visual-crm-design.md`
 - **Plano correção visual:** `docs/superpowers/plans/2026-04-13-correcao-visual-crm.md`
+
+## UI Components
+A partir de 2026-04-14 (Fase 1a), componentes base de UI vêm de `@nexusai360/design-system` v0.3.0+.
+Imports: `import { Button, Card, Dialog, Skeleton, AppShell, PageHeader, ... } from "@nexusai360/design-system"`.
+CSS global importado em `src/app/layout.tsx` (`@nexusai360/design-system/styles.css` antes de `./globals.css`).
+Componentes específicos do CRM (ex: Popover, Checkbox custom) continuam em `src/components/ui/`.
+Flag `DS_V3_ENABLED` (default true) permite kill-switch em runtime; `DS_PREVIEW=true` habilita rota `/__ds-preview` para QA visual (gated em middleware — 404 quando desligada).
 
 ## Padrão Visual (referência canônica)
 Todas as telas devem seguir 1:1 o padrão do Roteador Webhook (`/Users/joaovitorzanini/Developer/Claude Code/Roteador Webhook Meta/`).
