@@ -13,6 +13,7 @@ import {
 import { Button } from "@nexusai360/design-system";
 import { Input } from "@nexusai360/design-system";
 import { PageHeader } from "@nexusai360/design-system";
+import { EmptyState } from "@nexusai360/design-system";
 import {
   Dialog,
   DialogContent,
@@ -287,10 +288,23 @@ export function ContactsContent({ canCreate, canEdit, canDelete }: ContactsConte
             <TableSkeleton />
           </div>
         ) : contacts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <Users className="h-12 w-12 mb-3 text-muted-foreground/60" />
-            <p className="text-sm">Nenhum contato encontrado</p>
-          </div>
+          <EmptyState.Root>
+            <EmptyState.Icon icon={Users} color="emerald" />
+            <EmptyState.Title>Nenhum contato cadastrado</EmptyState.Title>
+            <EmptyState.Description>
+              Comece adicionando contatos à sua base.
+            </EmptyState.Description>
+            {canCreate && (
+              <EmptyState.Action>
+                <Button
+                  onClick={openCreate}
+                  className="bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
+                >
+                  Novo contato
+                </Button>
+              </EmptyState.Action>
+            )}
+          </EmptyState.Root>
         ) : (
           <Table>
             <TableHeader>
