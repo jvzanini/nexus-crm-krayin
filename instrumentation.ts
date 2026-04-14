@@ -35,6 +35,23 @@ export async function register() {
       console.warn("[instrumentation] configureAudit falhou:", err);
     }
 
+    // Settings-UI permission resolver: alinha vendor com matriz RBAC do CRM
+    // (vendor default não inclui flags:manage para admin).
+    try {
+      const { setPermissionResolver } = await import(
+        "@nexusai360/settings-ui/server-helpers"
+      );
+      const { ROLE_PERMISSIONS } = await import("@/lib/rbac");
+      setPermissionResolver((role) => {
+        const perms = ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] ?? [];
+        return perms.filter((p) =>
+          p === "settings:view" || p === "settings:edit" || p === "flags:manage",
+        ) as readonly ("settings:view" | "settings:edit" | "flags:manage")[];
+      });
+    } catch (err) {
+      console.warn("[instrumentation] setPermissionResolver settings-ui falhou:", err);
+    }
+
     if (process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
       const { NodeSDK } = await import("@opentelemetry/sdk-node");
       const { OTLPTraceExporter } = await import(
