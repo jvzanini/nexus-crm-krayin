@@ -217,9 +217,9 @@ export default function DsPreviewPage() {
             <ErrorState.Description>
               Não foi possível carregar os dados.
             </ErrorState.Description>
-            <ErrorState.Details>
-              Error: network timeout after 30000ms
-            </ErrorState.Details>
+            <ErrorState.Details
+              error={{ message: "network timeout after 30000ms", stack: "Error: network timeout after 30000ms\n    at DsPreviewPage" }}
+            />
             <ErrorState.Action>
               <Button variant="outline">Tentar novamente</Button>
             </ErrorState.Action>
