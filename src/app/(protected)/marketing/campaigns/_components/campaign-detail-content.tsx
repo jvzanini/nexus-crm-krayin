@@ -171,71 +171,71 @@ export function CampaignDetailContent({
       className="space-y-6 max-w-4xl"
     >
       {/* Header */}
-      <motion.div variants={itemVariants} className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600/10 border border-violet-500/20">
-            <Mail className="h-5 w-5 text-violet-400" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-foreground">{campaign.name}</h1>
-              <span
-                className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[campaign.status] ?? "bg-muted text-muted-foreground border-border"}`}
-              >
-                {STATUS_LABELS[campaign.status] ?? campaign.status}
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground mt-0.5">{campaign.subject}</p>
-          </div>
-        </div>
+      <motion.div variants={itemVariants}>
+        <PageHeader.Root>
+          <PageHeader.Row>
+            <PageHeader.Icon icon={Megaphone} color="violet" />
+            <PageHeader.Heading>
+              <div className="flex items-center gap-2">
+                <PageHeader.Title>{campaign.name}</PageHeader.Title>
+                <span
+                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[campaign.status] ?? "bg-muted text-muted-foreground border-border"}`}
+                >
+                  {STATUS_LABELS[campaign.status] ?? campaign.status}
+                </span>
+              </div>
+              <PageHeader.Description>{campaign.subject}</PageHeader.Description>
+            </PageHeader.Heading>
+          </PageHeader.Row>
 
-        {/* Botões de ação conforme status */}
-        {canSend && (
-          <div className="flex items-center gap-2 shrink-0">
-            {campaign.status === "draft" && (
-              <Button
-                onClick={handleActivate}
-                disabled={acting}
-                className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200 disabled:opacity-50"
-              >
-                {acting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                Ativar
-              </Button>
-            )}
-            {["sending", "scheduled"].includes(campaign.status) && (
-              <Button
-                onClick={handlePause}
-                disabled={acting}
-                variant="outline"
-                className="gap-2 border-border cursor-pointer transition-all duration-200 disabled:opacity-50"
-              >
-                {acting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pause className="h-4 w-4" />}
-                Pausar
-              </Button>
-            )}
-            {campaign.status === "paused" && (
-              <Button
-                onClick={handleResume}
-                disabled={acting}
-                className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200 disabled:opacity-50"
-              >
-                {acting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                Retomar
-              </Button>
-            )}
-            {!["sent", "canceled", "failed"].includes(campaign.status) && (
-              <button
-                type="button"
-                onClick={handleCancel}
-                disabled={acting}
-                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-red-400 cursor-pointer transition-colors disabled:opacity-50"
-              >
-                <X className="h-4 w-4" />
-                Cancelar
-              </button>
-            )}
-          </div>
-        )}
+          {/* Botões de ação conforme status */}
+          {canSend && (
+            <PageHeader.Actions>
+              {campaign.status === "draft" && (
+                <Button
+                  onClick={handleActivate}
+                  disabled={acting}
+                  className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200 disabled:opacity-50"
+                >
+                  {acting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                  Ativar
+                </Button>
+              )}
+              {["sending", "scheduled"].includes(campaign.status) && (
+                <Button
+                  onClick={handlePause}
+                  disabled={acting}
+                  variant="outline"
+                  className="gap-2 border-border cursor-pointer transition-all duration-200 disabled:opacity-50"
+                >
+                  {acting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pause className="h-4 w-4" />}
+                  Pausar
+                </Button>
+              )}
+              {campaign.status === "paused" && (
+                <Button
+                  onClick={handleResume}
+                  disabled={acting}
+                  className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200 disabled:opacity-50"
+                >
+                  {acting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                  Retomar
+                </Button>
+              )}
+              {!["sent", "canceled", "failed"].includes(campaign.status) && (
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  disabled={acting}
+                  className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-red-400 cursor-pointer transition-colors disabled:opacity-50"
+                >
+                  <X className="h-4 w-4" />
+                  Cancelar
+                </button>
+              )}
+            </PageHeader.Actions>
+          )}
+        </PageHeader.Root>
       </motion.div>
 
       {/* Informações da campanha */}
