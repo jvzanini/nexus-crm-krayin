@@ -138,7 +138,7 @@ async function canDo(
   subjectId: string,
   key: ConsentKey,
 ): Promise<boolean> {
-  const subject = await readDelegate(db, subjectType).findUnique({
+  const subject = await (readDelegate(db, subjectType) as any).findUnique({
     where: { id: subjectId },
     select:
       key === "marketing"
