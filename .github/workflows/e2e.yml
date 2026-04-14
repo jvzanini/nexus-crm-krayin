@@ -42,6 +42,7 @@ jobs:
       UNSUBSCRIBE_TOKEN_SECRET: e2e-unsubscribe-secret-min-32-chars-pad-xxxx
       ADMIN_EMAIL: e2e-super@nexus.test
       ADMIN_PASSWORD: E2E-Test-Pass-2026!
+      E2E_BYPASS_RATELIMIT: "true"
       CI: "true"
 
     steps:

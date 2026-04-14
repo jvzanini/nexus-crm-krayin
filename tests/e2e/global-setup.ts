@@ -3,6 +3,21 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { E2E_USERS, E2E_PASSWORD, type E2ERole } from "./fixtures/e2e-users";
 
+async function warmupServer(baseURL: string) {
+  const browser = await chromium.launch();
+  const ctx = await browser.newContext({ baseURL });
+  const page = await ctx.newPage();
+  try {
+    await page.goto("/login", { waitUntil: "domcontentloaded", timeout: 120_000 });
+    console.log("[global-setup] warmup /login done");
+    await page.goto("/dashboard", { waitUntil: "domcontentloaded", timeout: 120_000 });
+    console.log("[global-setup] warmup /dashboard done");
+  } catch (err) {
+    console.warn("[global-setup] warmup error (ignorado):", (err as Error).message);
+  }
+  await browser.close().catch(() => {});
+}
+
 async function loginRole(baseURL: string, role: E2ERole, storagePath: string) {
   const user = E2E_USERS[role];
   const maxAttempts = 3;
@@ -20,7 +35,7 @@ async function loginRole(baseURL: string, role: E2ERole, storagePath: string) {
       await Promise.all([
         page.waitForURL(
           (url) => !url.pathname.startsWith("/login"),
-          { timeout: 90_000 },
+          { timeout: 120_000 },
         ),
         page.click('button[type="submit"]'),
       ]);
@@ -40,7 +55,7 @@ async function loginRole(baseURL: string, role: E2ERole, storagePath: string) {
       lastErr = err;
       await browser.close().catch(() => {});
       if (attempt < maxAttempts) {
-        await new Promise((r) => setTimeout(r, 5_000));
+        await new Promise((r) => setTimeout(r, 20_000));
       }
     }
   }
@@ -51,6 +66,8 @@ export default async function globalSetup(config: FullConfig) {
   const baseURL = config.projects[0]?.use?.baseURL || "http://localhost:3000";
   const authDir = path.resolve(__dirname, ".auth");
   await fs.mkdir(authDir, { recursive: true });
+
+  await warmupServer(baseURL);
 
   const roles: E2ERole[] = ["admin", "manager", "viewer"];
   for (const role of roles) {

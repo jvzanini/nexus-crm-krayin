@@ -18,11 +18,14 @@ export async function authorizeCredentials(
 ): Promise<AuthUser | null> {
   const { email, password } = credentials;
 
-  // Verificar rate limit
-  const rateLimit = await checkLoginRateLimit(email, ipAddress).catch(() => ({
-    allowed: true,
-    remaining: 5,
-  }));
+  // Verificar rate limit (bypass em CI E2E via env var)
+  const rateLimit =
+    process.env.E2E_BYPASS_RATELIMIT === "true"
+      ? { allowed: true, remaining: 999 }
+      : await checkLoginRateLimit(email, ipAddress).catch(() => ({
+          allowed: true,
+          remaining: 5,
+        }));
 
   if (!rateLimit.allowed) {
     return null;
