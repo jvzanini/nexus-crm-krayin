@@ -11,8 +11,23 @@
 
 ## 0. TL;DR — onde paramos (ler PRIMEIRO)
 
-**Produção:** `/api/health` 200 ✅ • `/api/ready` 200 ✅ • `/login` 200 ✅.
+**Produção:** `/api/health` 200 ✅ • `/api/ready` 200 ✅ • `/login` 200 ✅ •
+`/opportunities/pipeline` 307 (rota deploy OK).
 Headers de segurança ativos (HSTS/CSP/XFO/XCTO/Referrer/Permissions).
+
+### ⚠️ ALERTA BILLING GitHub Actions (2026-04-14 22:40 UTC)
+
+Últimos 2 builds (`docs(handoff)` e `feat(ui): pipeline kanban responsivo`)
+**falharam no job "deploy"** com mensagem:
+> "The job was not started because recent account payments have failed or
+> your spending limit needs to be increased."
+
+**Código está em `main`** (commits + tags aplicadas), mas prod ainda está
+no state do deploy anterior bem-sucedido (`f4eb57d` Fase 20 T2 EmptyStates).
+Fases 21 (mobile kanban) só entrarão em prod após resolver billing em
+github.com/settings/billing.
+
+Testes E2E continuam rodando normalmente (job separado).
 
 **Tags deployed nesta sessão (2026-04-14 noite → madrugada):**
 
@@ -78,6 +93,8 @@ Recomendação: **A** (security hardening) → **C** (E2E verde) → **B** (RBAC
 | **`phase-19-sidebar-pipeline`** | **19 — Sidebar Pipeline** | **✅ item "Pipeline" no menu principal** |
 | **`phase-12-2-deployed`** | **12.2 — E2E CI verde** | **✅ 17+ tests passed em ~43s** |
 | **`phase-14-e2e-ci-stabilizer`** | **14 — E2E CI Stabilizer** | **✅ next start em CI resolveu timeout** |
+| **`phase-20-empty-states`** | **20 T2 — EmptyStates** | **✅ 9 telas com EmptyState amigável** |
+| **`phase-21-mobile-kanban`** | **21 — Mobile Kanban** | **🟡 código OK, deploy pendente (billing GH)** |
 | **`prod-stable-2026-04-14-late`** | **snapshot estável pós-fix** | **✅ referência para rollback** |
 
 ### 1.2. Commits recentes em `main` (últimos 10)
