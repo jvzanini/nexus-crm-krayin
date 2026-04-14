@@ -550,6 +550,7 @@ model Activity {
   updatedAt    DateTime            @updatedAt @map("updated_at")
 
   files        ActivityFile[]
+  emailMessages EmailMessage[]
 
   @@index([companyId, subjectType, subjectId, scheduledAt(sort: Desc)], name: "idx_activity_timeline")
   @@index([companyId, assignedTo, status, dueAt], name: "idx_activity_mytasks")
@@ -571,4 +572,93 @@ model ActivityFile {
 
   @@index([activityId], name: "idx_activity_file_by_activity")
   @@map("activity_files")
+}
+
+// ============================================================
+// ENUMS — EMAIL
+// ============================================================
+
+enum MailboxProvider {
+  gmail
+  outlook
+  imap_smtp
+}
+
+// ============================================================
+// MODELS — EMAIL
+// ============================================================
+
+model Mailbox {
+  id                 String          @id @default(uuid()) @db.Uuid
+  companyId          String          @map("company_id") @db.Uuid
+  userId             String          @map("user_id") @db.Uuid
+  provider           MailboxProvider
+  emailAddress       String          @map("email_address")
+  displayName        String?         @map("display_name")
+  isPrimary          Boolean         @default(false) @map("is_primary")
+  isActive           Boolean         @default(true) @map("is_active")
+
+  // OAuth (gmail/outlook)
+  accessTokenEnc     String?         @map("access_token_enc")
+  accessTokenExpAt   DateTime?       @map("access_token_exp_at")
+  refreshTokenEnc    String?         @map("refresh_token_enc")
+
+  // IMAP/SMTP fallback
+  imapHost           String?         @map("imap_host")
+  imapPort           Int?            @map("imap_port")
+  smtpHost           String?         @map("smtp_host")
+  smtpPort           Int?            @map("smtp_port")
+  authUsername       String?         @map("auth_username")
+  authPasswordEnc    String?         @map("auth_password_enc")
+
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+
+  messages EmailMessage[]
+
+  @@unique([userId, emailAddress], name: "uq_mailbox_user_addr")
+  @@index([companyId, isActive], name: "idx_mailbox_active")
+  @@map("mailboxes")
+}
+
+model EmailMessage {
+  id              String   @id @default(uuid()) @db.Uuid
+  companyId       String   @map("company_id") @db.Uuid
+  mailboxId       String   @map("mailbox_id") @db.Uuid
+
+  // threading
+  messageId       String   @map("message_id")
+  inReplyTo       String?  @map("in_reply_to")
+  threadKey       String?  @map("thread_key")
+
+  // subject refs (timeline)
+  subjectType     ActivitySubjectType? @map("subject_type")
+  subjectId       String?  @map("subject_id") @db.Uuid
+  activityId      String?  @map("activity_id") @db.Uuid
+
+  // content
+  fromAddress     String   @map("from_address")
+  toAddresses     String[] @map("to_addresses")
+  ccAddresses     String[] @map("cc_addresses")
+  bccAddresses    String[] @map("bcc_addresses")
+  subject         String   @db.VarChar(500)
+  bodyText        String?  @map("body_text")
+  bodyHtml        String?  @map("body_html") @db.Text
+
+  // tracking
+  trackingEnabled Boolean  @default(false) @map("tracking_enabled")
+  openedAt        DateTime? @map("opened_at")
+  clickedAt       DateTime? @map("clicked_at")
+
+  sentAt          DateTime? @map("sent_at")
+  receivedAt      DateTime? @map("received_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  mailbox  Mailbox   @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
+  activity Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, messageId], name: "uq_message_per_tenant")
+  @@index([companyId, threadKey, sentAt(sort: Desc)], name: "idx_message_thread")
+  @@index([companyId, subjectType, subjectId, sentAt(sort: Desc)], name: "idx_message_subject")
+  @@map("email_messages")
 }
