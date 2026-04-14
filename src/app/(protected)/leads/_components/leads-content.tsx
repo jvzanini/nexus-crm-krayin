@@ -12,6 +12,7 @@ import {
 } from "@nexusai360/design-system";
 import { Button } from "@nexusai360/design-system";
 import { Input } from "@nexusai360/design-system";
+import { PageHeader } from "@nexusai360/design-system";
 import {
   Dialog,
   DialogContent,
@@ -260,30 +261,29 @@ export function LeadsContent() {
       className="space-y-6"
     >
       {/* Header */}
-      <motion.div
-        variants={itemVariants}
-        className="flex items-center justify-between"
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600/10 border border-violet-500/20">
-            <Target className="h-5 w-5 text-violet-400" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Leads</h1>
-            <p className="text-sm text-muted-foreground">
-              {loading
-                ? "Carregando..."
-                : `${leads.length} lead${leads.length !== 1 ? "s" : ""} cadastrado${leads.length !== 1 ? "s" : ""}`}
-            </p>
-          </div>
-        </div>
-        <Button
-          onClick={openCreate}
-          className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
-        >
-          <Plus className="h-4 w-4" />
-          Novo Lead
-        </Button>
+      <motion.div variants={itemVariants}>
+        <PageHeader.Root>
+          <PageHeader.Row>
+            <PageHeader.Icon icon={Target} color="violet" />
+            <PageHeader.Heading>
+              <PageHeader.Title>Leads</PageHeader.Title>
+              <PageHeader.Description>
+                {loading
+                  ? "Carregando..."
+                  : `${leads.length} lead${leads.length !== 1 ? "s" : ""} cadastrado${leads.length !== 1 ? "s" : ""}`}
+              </PageHeader.Description>
+            </PageHeader.Heading>
+          </PageHeader.Row>
+          <PageHeader.Actions>
+            <Button
+              onClick={openCreate}
+              className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
+            >
+              <Plus className="h-4 w-4" />
+              Novo Lead
+            </Button>
+          </PageHeader.Actions>
+        </PageHeader.Root>
       </motion.div>
 
       {/* Status Filters */}
