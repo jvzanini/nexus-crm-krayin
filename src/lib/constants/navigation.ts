@@ -3,10 +3,13 @@ import {
   Users,
   Building2,
   Settings,
-  UserCircle,
   Target,
   Contact,
   TrendingUp,
+  Package,
+  CheckSquare,
+  Megaphone,
+  Workflow,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -24,6 +27,10 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
   { label: "Contatos", href: "/contacts", icon: Contact },
   { label: "Oportunidades", href: "/opportunities", icon: TrendingUp },
   { label: "Empresas", href: "/companies", icon: Building2 },
+  { label: "Produtos", href: "/products", icon: Package },
+  { label: "Tarefas", href: "/tasks", icon: CheckSquare },
+  { label: "Marketing", href: "/marketing/campaigns", icon: Megaphone },
+  { label: "Automações", href: "/automation/workflows", icon: Workflow },
 ];
 
 // Itens restritos por role
