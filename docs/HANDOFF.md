@@ -293,6 +293,34 @@ Validar cada PR isoladamente (build + login funcional + testes) antes de merge.
 
 ---
 
-## 8. Contato
+## 8. Fase 12.2 — E2E Golden Paths (entregue parcial 2026-04-14, CI pendente)
+
+**Código completo, CI aguardando prod estabilizar.** 10 commits (`0f7d0a0` até `2c9a7b4`) criaram toda a infra de E2E Playwright:
+
+- `tests/e2e/fixtures/e2e-users.ts` — 3 roles (admin/manager/viewer) + 2 tenants (password `E2E-Test-Pass-2026!`).
+- `prisma/seed-e2e.ts` — seed idempotente (`npm run test:e2e:seed`).
+- `tests/e2e/global-setup.ts` — login 1× por role, persiste `storageState` em `tests/e2e/.auth/<role>.json` (gitignored), com retry 3× e timeout 90s.
+- `tests/e2e/golden-paths/{admin,manager,viewer,cross-tenant}.spec.ts` — smoke por rota/permission + cross-tenant 404.
+- `playwright.config.ts` — projects matrix (unauth/admin/manager/viewer) + globalSetup.
+- `.github/workflows/e2e.yml` — postgres:16 + redis:7 services, `prisma db push --url $DATABASE_URL`, tsx para seed, `--legacy-peer-deps`.
+
+**Bloqueio atual:** CI `E2E Tests` não conclui porque a app tem bugs pré-existentes em cascata que várias sessões pararelas corrigiram (i18n nested keys, dual React, DS ThemeProvider), e novos commits de vendor packages (`@nexusai360/core|api-keys|multi-tenant`) reintroduziram dual React (`useState null`). Global-setup diagnostic mostrou admin logando OK, manager timing out sem erro visível — provável lentidão de compile do next dev.
+
+**Ao retomar:**
+
+1. Confirme que prod está com `/login` + `/dashboard` renderizando sem erros de React/ThemeProvider (use logs container — LEI #1).
+2. Rode localmente `npm run dev` + `npm run test:e2e:seed` + `npm run test:e2e -- --project=admin` para validar antes de confiar no CI.
+3. Se verde local: push trivial (empty commit) para disparar CI e validar E2E workflow.
+4. Se verde em CI: `git tag phase-12-2-deployed && git push origin phase-12-2-deployed`.
+
+**Próximas fases actionable (sem bloqueios externos):**
+
+- **12.4 — Security audit:** checklist OWASP + `npm audit --audit-level=high` + gitleaks. Sem dependência.
+- **12.5 — Runbook docs:** completar `docs/ops/runbook.md` (on-call + deploy). Parcialmente entregue.
+- **7b/7c — Email OAuth + send:** bloqueado por secrets OAuth em Portainer (`GOOGLE_OAUTH_*`, `MS_OAUTH_*`).
+
+---
+
+## 9. Contato
 
 Este handoff foi gerado pelo Claude Opus 4.6 (1M context) em sessão autônoma. Decisões arquiteturais estão nos specs v3. Aprendizados operacionais (debug, LEI #1) estão em `CLAUDE.md` + memory.
