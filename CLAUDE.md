@@ -45,6 +45,49 @@ Ver seção "Skills Obrigatórias" abaixo — `brainstorming → writing-plans �
 
 Ver seção "Skills Obrigatórias".
 
+### 4. SEMPRE consultar `nexus-blueprint` antes de novos componentes/módulos
+
+**Para toda nova implementação** (componente, seção, módulo, feature, fluxo
+de UX, integração), **primeira ação = ler o blueprint**:
+
+```
+/Users/joaovitorzanini/Developer/Claude Code/nexus-blueprint/
+├── core/
+│   ├── design-system.md      ← cores, espaçamentos, tipografia, tokens
+│   ├── database.md           ← padrões Prisma, migrations, conventions
+│   ├── deploy.md             ← CI/CD, Portainer, GHCR
+│   └── overview.md
+├── patterns/                 ← padrões reutilizáveis (dashboard, settings,
+│   │                           queue, outbox, webhook-routing, reference-index)
+├── modules/                  ← módulos canônicos (api-keys, audit-log,
+│   │                           multi-tenant, notifications, encryption,
+│   │                           search, toast, realtime, billing, onboarding)
+├── architecture.md
+├── integration-map.md
+└── registry.json
+```
+
+**Por quê:** garantir consistência entre projetos Nexus (CRM, Roteador Webhook,
+outros). Componentes, botões, cards, cores e espaçamentos devem seguir o
+blueprint — ele é a fonte única de verdade. Divergência causa retrabalho e
+inconsistência visual.
+
+**Quando aplicar:**
+
+1. Criar novo módulo/feature → ler `modules/<nome>.md` se existir, senão
+   `patterns/` para achar padrão análogo.
+2. Criar novo componente UI → ler `core/design-system.md` para tokens
+   (cores, spacing, typography) + `patterns/dashboard.md` ou `settings.md`
+   para estrutura.
+3. Decisão arquitetural (DB, queue, webhook, etc.) → consultar `patterns/`
+   + `core/database.md` + `architecture.md`.
+4. Ao discordar do blueprint, documentar o porquê no spec da fase —
+   divergência justificada OK, divergência sem motivo NÃO.
+
+**Anti-padrão:** criar componente/módulo "do zero" ou copiando de outro
+projeto sem antes ver se o blueprint já tem o padrão definido. Isso acumula
+débito visual e faz cada CRM ficar "parecido-mas-diferente".
+
 ## Projeto
 Gestão de leads, contatos, oportunidades e pipeline de vendas com automação
 
