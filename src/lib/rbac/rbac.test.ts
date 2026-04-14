@@ -129,4 +129,23 @@ describe("rbac", () => {
     expect(userHasPermission(v, "workflows:view")).toBe(true);
     expect(userHasPermission(v, "workflows:manage")).toBe(false);
   });
+
+  it("admin tem marketing:manage e marketing:send", () => {
+    const a = mkUser("admin");
+    expect(userHasPermission(a, "marketing:manage")).toBe(true);
+    expect(userHasPermission(a, "marketing:send")).toBe(true);
+  });
+
+  it("manager tem marketing:send mas NÃO manage", () => {
+    const m = mkUser("manager");
+    expect(userHasPermission(m, "marketing:send")).toBe(true);
+    expect(userHasPermission(m, "marketing:manage")).toBe(false);
+  });
+
+  it("seller tem marketing:view mas NÃO send/manage", () => {
+    const s = mkUser("seller");
+    expect(userHasPermission(s, "marketing:view")).toBe(true);
+    expect(userHasPermission(s, "marketing:send")).toBe(false);
+    expect(userHasPermission(s, "marketing:manage")).toBe(false);
+  });
 });
