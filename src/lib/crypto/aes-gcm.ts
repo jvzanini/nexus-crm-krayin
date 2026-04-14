@@ -3,9 +3,24 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:
 const SCRYPT_SALT = "nexus-crm-v1";
 
 function deriveKey(): Buffer {
+  // Preferência: ENCRYPTION_KEY (64 hex chars = 32 bytes, convenção existente
+  // do .env.example do projeto). Fallback: ENCRYPTION_MASTER_KEY (≥ 32 chars,
+  // derivado via scrypt) para compat com setup legado.
+  const hex = process.env.ENCRYPTION_KEY;
+  if (hex) {
+    if (hex.length !== 64 || !/^[0-9a-fA-F]+$/.test(hex)) {
+      throw new Error("ENCRYPTION_KEY must be 64 hex chars (32 bytes)");
+    }
+    return Buffer.from(hex, "hex");
+  }
+
   const master = process.env.ENCRYPTION_MASTER_KEY;
-  if (!master) throw new Error("ENCRYPTION_MASTER_KEY is required");
-  if (master.length < 32) throw new Error("ENCRYPTION_MASTER_KEY must be >= 32 chars");
+  if (!master) {
+    throw new Error("ENCRYPTION_KEY (preferred) or ENCRYPTION_MASTER_KEY is required");
+  }
+  if (master.length < 32) {
+    throw new Error("ENCRYPTION_MASTER_KEY must be >= 32 chars");
+  }
   return scryptSync(master, SCRYPT_SALT, 32);
 }
 

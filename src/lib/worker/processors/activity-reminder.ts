@@ -42,7 +42,7 @@ export function startActivityReminderWorker(): Worker {
 
       await createNotification({
         userId,
-        type: NotificationType.info,
+        type: NotificationType.activity_reminder,
         title: `Lembrete: ${title}`,
         message: `Você tem uma atividade pendente: ${title}`,
         link: `/activities/${id}`,
