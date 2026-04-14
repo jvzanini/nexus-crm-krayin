@@ -1,4 +1,4 @@
-// Worker BullMQ — processa filas de email, outbox e activity-reminders
+// Worker BullMQ — processa filas de email, outbox, activity-reminders e automation-execute
 // Bundled via esbuild (ver Dockerfile)
 
 import { Worker, Job } from "bullmq";
@@ -6,6 +6,7 @@ import IORedis from "ioredis";
 import { Resend } from "resend";
 import { reenqueuePendingReminders } from "./boot";
 import { startActivityReminderWorker } from "./processors/activity-reminder";
+import { startAutomationWorker } from "./processors/automation-execute";
 import { logger } from "@/lib/logger";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://redis:6379";
@@ -73,6 +74,12 @@ outboxWorker.on("failed", (job, err) => {
 const activityReminderWorker = startActivityReminderWorker();
 
 // ============================================================
+// Worker: automation-execute
+// ============================================================
+
+const automationWorker = startAutomationWorker();
+
+// ============================================================
 // Boot: reenqueue lembretes pendentes
 // ============================================================
 
@@ -90,6 +97,7 @@ async function shutdown() {
     emailWorker.close(),
     outboxWorker.close(),
     activityReminderWorker.close(),
+    automationWorker.close(),
   ]);
   await connection.quit();
   process.exit(0);
@@ -98,4 +106,4 @@ async function shutdown() {
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
 
-logger.info({ queues: ["email", "outbox", "activity-reminders"] }, "worker.startup.ready");
+logger.info({ queues: ["email", "outbox", "activity-reminders", "automation-execute"] }, "worker.startup.ready");
