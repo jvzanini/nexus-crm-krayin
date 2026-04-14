@@ -20,8 +20,10 @@ Headers de segurança ativos (HSTS/CSP/XFO/XCTO/Referrer/Permissions).
 - `phase-12-4-deployed` — security headers + npm audit/gitleaks CI + docs/ops/security.md
 - `phase-12-5-deployed` — runbook expandido com LEI #1, playbooks, DB procedures, onboarding
 - `phase-12-6-deployed` — CVEs high zeradas (next 16.2.3, nodemailer 8.0.5, remove @sentry/nextjs)
+- `phase-13-ui-consistency-deployed` — sidebar com 4 módulos novos (Produtos/Tarefas/Marketing/Automações), 9 telas migradas para PageHeader do DS, stagger 0.08 unificado, dashboard space-y-6, tasks sem next-intl
 
-**Fases 12.4, 12.5 e 12.6 COMPLETAS.** Frente 17 (tenant scoping) também mergeada em main (`77e2918`).
+**Fases 12.4, 12.5, 12.6 e 13 COMPLETAS.** Frente 17 (tenant scoping) também mergeada em main (`77e2918`).
+**LEI ABSOLUTA #4** adicionada: toda nova implementação deve consultar `nexus-blueprint/` (design-system.md, patterns/, modules/) antes de criar componentes/features.
 `npm audit --audit-level=high --omit=dev` → 0 vulns. Restam 4 moderate, tracked em `docs/ops/security.md` §2.1.
 
 **Próximas opções actionable (sem blockers externos):**
@@ -60,6 +62,7 @@ Recomendação: **A** (security hardening) → **C** (E2E verde) → **B** (RBAC
 | **`phase-12-4-deployed`** | **12.4 — Security audit** | **✅ headers + CI scans + doc** |
 | **`phase-12-5-deployed`** | **12.5 — Runbook expansion** | **✅ LEI #1 + playbooks + onboarding** |
 | **`phase-12-6-deployed`** | **12.6 — CVE high fixes** | **✅ 0 vulns high em prod** |
+| **`phase-13-ui-consistency-deployed`** | **13 — UI consistency** | **✅ sidebar + PageHeader em 9 telas + stagger 0.08** |
 | **`prod-stable-2026-04-14-late`** | **snapshot estável pós-fix** | **✅ referência para rollback** |
 
 ### 1.2. Commits recentes em `main` (últimos 10)
