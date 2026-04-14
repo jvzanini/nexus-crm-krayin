@@ -14,6 +14,7 @@ import {
 import { Button } from "@nexusai360/design-system";
 import { Input } from "@nexusai360/design-system";
 import { PageHeader } from "@nexusai360/design-system";
+import { EmptyState } from "@nexusai360/design-system";
 import {
   Dialog,
   DialogContent,
@@ -328,10 +329,23 @@ export function OpportunitiesContent({ canCreate, canEdit, canDelete }: Opportun
             <TableSkeleton />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <TrendingUp className="h-12 w-12 mb-3 text-muted-foreground/60" />
-            <p className="text-sm">Nenhuma oportunidade encontrada</p>
-          </div>
+          <EmptyState.Root>
+            <EmptyState.Icon icon={TrendingUp} color="amber" />
+            <EmptyState.Title>Nenhuma oportunidade aberta</EmptyState.Title>
+            <EmptyState.Description>
+              Crie oportunidades para acompanhar negócios em andamento.
+            </EmptyState.Description>
+            {canCreate && (
+              <EmptyState.Action>
+                <Button
+                  onClick={openCreate}
+                  className="bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
+                >
+                  Nova oportunidade
+                </Button>
+              </EmptyState.Action>
+            )}
+          </EmptyState.Root>
         ) : (
           <Table>
             <TableHeader>
