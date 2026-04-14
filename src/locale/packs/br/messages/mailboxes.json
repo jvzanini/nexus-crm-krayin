@@ -1,7 +1,9 @@
 {
   "list": {
     "title": "Caixas de e-mail",
-    "subtitle.count": "{count, plural, =0 {Nenhuma caixa conectada} one {# caixa conectada} other {# caixas conectadas}}",
+    "subtitle": {
+      "count": "{count, plural, =0 {Nenhuma caixa conectada} one {# caixa conectada} other {# caixas conectadas}}"
+    },
     "empty": "Nenhuma caixa conectada ainda",
     "connected": "Caixas conectadas",
     "loading": "Carregando...",
@@ -43,25 +45,33 @@
     "outlookNotConfigured": "Defina MS_OAUTH_CLIENT_ID no ambiente para habilitar"
   },
   "imap": {
-    "dialog.title": "Conectar via IMAP / SMTP",
-    "dialog.description": "Use quando não for possível OAuth. As credenciais são encriptadas antes de persistir.",
-    "section.identity": "Identidade",
-    "section.imap": "IMAP (receber)",
-    "section.smtp": "SMTP (enviar)",
-    "section.auth": "Autenticação",
-    "field.emailAddress": "E-mail",
-    "field.displayName": "Nome de exibição",
-    "field.imapHost": "Servidor IMAP",
-    "field.imapPort": "Porta IMAP",
-    "field.smtpHost": "Servidor SMTP",
-    "field.smtpPort": "Porta SMTP",
-    "field.authUsername": "Usuário",
-    "field.authPassword": "Senha",
-    "placeholder.emailAddress": "você@exemplo.com",
-    "placeholder.displayName": "Opcional",
-    "placeholder.imapHost": "imap.exemplo.com",
-    "placeholder.smtpHost": "smtp.exemplo.com",
-    "placeholder.authUsername": "usuário ou e-mail",
+    "dialog": {
+      "title": "Conectar via IMAP / SMTP",
+      "description": "Use quando não for possível OAuth. As credenciais são encriptadas antes de persistir."
+    },
+    "section": {
+      "identity": "Identidade",
+      "imap": "IMAP (receber)",
+      "smtp": "SMTP (enviar)",
+      "auth": "Autenticação"
+    },
+    "field": {
+      "emailAddress": "E-mail",
+      "displayName": "Nome de exibição",
+      "imapHost": "Servidor IMAP",
+      "imapPort": "Porta IMAP",
+      "smtpHost": "Servidor SMTP",
+      "smtpPort": "Porta SMTP",
+      "authUsername": "Usuário",
+      "authPassword": "Senha"
+    },
+    "placeholder": {
+      "emailAddress": "você@exemplo.com",
+      "displayName": "Opcional",
+      "imapHost": "imap.exemplo.com",
+      "smtpHost": "smtp.exemplo.com",
+      "authUsername": "usuário ou e-mail"
+    },
     "submit": "Conectar",
     "cancel": "Cancelar"
   }

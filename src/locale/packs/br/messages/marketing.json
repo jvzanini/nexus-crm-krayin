@@ -2,7 +2,9 @@
   "segments": {
     "list": {
       "title": "Segmentos de marketing",
-      "subtitle.count": "{count, plural, =0 {Nenhum segmento} one {# segmento cadastrado} other {# segmentos cadastrados}}",
+      "subtitle": {
+        "count": "{count, plural, =0 {Nenhum segmento} one {# segmento cadastrado} other {# segmentos cadastrados}}"
+      },
       "empty": "Nenhum segmento cadastrado ainda",
       "columns": {
         "name": "Nome",
@@ -11,15 +13,24 @@
       }
     },
     "form": {
-      "create.title": "Novo segmento",
-      "edit.title": "Editar segmento",
-      "field.name": "Nome",
-      "field.description": "Descrição",
-      "section.filters": "Filtros",
+      "create": {
+        "title": "Novo segmento"
+      },
+      "edit": {
+        "title": "Editar segmento"
+      },
+      "field": {
+        "name": "Nome",
+        "description": "Descrição"
+      },
+      "section": {
+        "filters": "Filtros"
+      },
       "addFilter": "Adicionar filtro",
-      "preview": "Prévia",
-      "preview.count": "{count} contatos correspondem",
-      "preview.sample": "Amostra"
+      "preview": {
+        "count": "{count} contatos correspondem",
+        "sample": "Amostra"
+      }
     },
     "op": {
       "eq": "Igual a",
@@ -41,7 +52,9 @@
   "campaigns": {
     "list": {
       "title": "Campanhas",
-      "subtitle.count": "{count, plural, =0 {Nenhuma campanha} one {# campanha cadastrada} other {# campanhas cadastradas}}",
+      "subtitle": {
+        "count": "{count, plural, =0 {Nenhuma campanha} one {# campanha cadastrada} other {# campanhas cadastradas}}"
+      },
       "empty": "Nenhuma campanha cadastrada ainda",
       "columns": {
         "name": "Nome",
@@ -52,15 +65,21 @@
       }
     },
     "form": {
-      "create.title": "Nova campanha",
-      "edit.title": "Editar campanha",
-      "field.name": "Nome interno",
-      "field.subject": "Assunto do e-mail",
-      "field.bodyHtml": "Corpo HTML",
-      "field.mailboxId": "Caixa remetente",
-      "field.segmentId": "Segmento",
-      "field.scheduledAt": "Agendar para (opcional)",
-      "field.batchSize": "Tamanho do lote (por minuto)"
+      "create": {
+        "title": "Nova campanha"
+      },
+      "edit": {
+        "title": "Editar campanha"
+      },
+      "field": {
+        "name": "Nome interno",
+        "subject": "Assunto do e-mail",
+        "bodyHtml": "Corpo HTML",
+        "mailboxId": "Caixa remetente",
+        "segmentId": "Segmento",
+        "scheduledAt": "Agendar para (opcional)",
+        "batchSize": "Tamanho do lote (por minuto)"
+      }
     },
     "stats": {
       "title": "Estatísticas",
@@ -102,9 +121,17 @@
     "confirmDeleteSegment": "Excluir segmento \"{name}\"? Não é possível excluir se há campanhas ativas usando."
   },
   "unsubscribe": {
-    "page.success.title": "Inscrição cancelada com sucesso",
-    "page.success.body": "Você não receberá mais e-mails de marketing deste remetente.",
-    "page.invalid.title": "Link inválido ou expirado",
-    "page.error.title": "Erro ao processar desinscrição"
+    "page": {
+      "success": {
+        "title": "Inscrição cancelada com sucesso",
+        "body": "Você não receberá mais e-mails de marketing deste remetente."
+      },
+      "invalid": {
+        "title": "Link inválido ou expirado"
+      },
+      "error": {
+        "title": "Erro ao processar desinscrição"
+      }
+    }
   }
 }

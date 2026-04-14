@@ -1,18 +1,10 @@
 /**
- * Next.js instrumentation hook (Fase 1c.0.f).
- *
- * - Server runtime: carrega Sentry SDK + OTel SDK condicional a env vars.
- * - Edge runtime: Sentry edge config apenas.
- *
- * Sem DSN/endpoint, SDKs são no-op (não crasham).
+ * Next.js instrumentation hook.
+ * OTel SDK carrega condicional a OTEL_EXPORTER_OTLP_ENDPOINT.
+ * Sentry completamente removido (sem SDK ativo; re-integrar em Fase 12).
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
-    // Sentry só carrega quando DSN presente (evita side-effects em SSR sem config).
-    if (process.env.SENTRY_DSN) {
-      await import("./sentry.server.config");
-    }
-
     // Rate-limit singleton: best-effort — se @nexusai360/core ou redis falharem,
     // logger warn e continua (login funciona sem rate-limit customizado).
     try {
@@ -48,18 +40,9 @@ export async function register() {
         traceExporter: new OTLPTraceExporter({
           url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
         }),
-        instrumentations: [
-          new HttpInstrumentation(),
-          new PgInstrumentation(),
-        ],
+        instrumentations: [new HttpInstrumentation(), new PgInstrumentation()],
       });
       sdk.start();
-    }
-  }
-
-  if (process.env.NEXT_RUNTIME === "edge") {
-    if (process.env.SENTRY_DSN) {
-      await import("./sentry.edge.config");
     }
   }
 }

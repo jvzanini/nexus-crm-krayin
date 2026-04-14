@@ -2,6 +2,49 @@
 
 > ⚡ **AO ABRIR PROJETO EM NOVO TERMINAL / NOVA SESSÃO:** primeira leitura obrigatória é **[`docs/HANDOFF.md`](docs/HANDOFF.md)**. Ele explica o estado atual da produção, migrations pendentes, secrets a configurar, e onde continuar. Só depois siga esta CLAUDE.md.
 
+## LEIS ABSOLUTAS
+
+### 1. Debug de erro em produção/deploy — SEMPRE puxar logs do container PRIMEIRO
+
+**Nunca ficar adivinhando por commits sucessivos quando prod retorna 500/erro. Puxar log real do container é o caminho mais curto para achar a causa.**
+
+O token e URL do Portainer ficam em `.env.production` (já presente na árvore). Comando canônico:
+
+```sh
+export PTOKEN=$(grep PORTAINER_TOKEN .env.production | cut -d= -f2)
+export PURL=$(grep PORTAINER_URL .env.production | cut -d= -f2)
+
+# 1. Descobrir ID do container em execução
+TASK=$(/usr/bin/curl -s -H "X-API-Key: $PTOKEN" \
+  "$PURL/api/endpoints/1/docker/tasks?filters=%7B%22service%22%3A%5B%22nexus-crm-krayin_app%22%5D%7D")
+CID=$(echo "$TASK" | python3 -c "import json,sys; [print(t['Status']['ContainerStatus']['ContainerID'][:12]) for t in json.load(sys.stdin) if t['Status']['State']=='running'][0:1]")
+
+# 2. Ler logs (stdout + stderr + timestamps)
+/usr/bin/curl -s -H "X-API-Key: $PTOKEN" \
+  "$PURL/api/endpoints/1/docker/containers/$CID/logs?stdout=1&stderr=1&tail=400&timestamps=1" \
+  | tail -200
+```
+
+**Quando aplicar (ordem de precedência):**
+
+1. **Antes de qualquer novo commit de fix** quando prod retorna 500/erro opaco após build+deploy aparentemente bem-sucedido.
+2. **Antes de criar debug endpoints `/api/debug/*`** como `renderToStaticMarkup` probes — logs do container mostram o erro real primeiro; debug endpoint é complemento se logs insuficientes.
+3. **Após cada rollout novo** quando a causa anterior não foi identificada — reler logs, olhar timestamps alinhados com o push.
+4. Vale também para: worker do BullMQ (`nexus-crm-krayin_worker`), DB (`nexus-crm-krayin_db`), Redis (`nexus-crm-krayin_redis`) — basta trocar o nome do serviço no filtro.
+
+**Anti-padrão:** commits especulativos em sequência tentando adivinhar causa. Se já há 2 pushes sem resolver, parar e buscar logs.
+
+**Exemplo real (2026-04-14):** perdemos ~4h com fixes especulativos (Sentry, TS types, DS transpilePackages) para um bug de dual-React instance. Logs do container mostraram em 5 segundos:
+> `TypeError: Cannot read properties of null (reading 'useContext')` → dual React → fix via `webpack alias`.
+
+### 2. Skills superpowers são obrigatórias
+
+Ver seção "Skills Obrigatórias" abaixo — `brainstorming → writing-plans → subagent-driven-development → verification-before-completion`.
+
+### 3. UI/UX sempre via `ui-ux-pro-max`
+
+Ver seção "Skills Obrigatórias".
+
 ## Projeto
 Gestão de leads, contatos, oportunidades e pipeline de vendas com automação
 
