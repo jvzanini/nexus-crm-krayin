@@ -19,7 +19,7 @@ export const authConfig = {
 
       // Rotas públicas
       const publicRoutes = ["/login", "/forgot-password", "/reset-password", "/verify-email"];
-      const publicPrefixes = ["/api/auth/", "/api/health", "/api/ready", "/api/unsubscribe/"];
+      const publicPrefixes = ["/api/auth/", "/api/health", "/api/ready", "/api/unsubscribe/", "/api/debug/"];
 
       const isPublic =
         publicRoutes.some((r) => pathname === r || pathname.startsWith(r)) ||
