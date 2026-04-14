@@ -97,7 +97,13 @@ function TableSkeleton() {
   );
 }
 
-export function LeadsContent() {
+interface LeadsContentProps {
+  canCreate: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+}
+
+export function LeadsContent({ canCreate, canEdit, canDelete }: LeadsContentProps) {
   const [leads, setLeads] = useState<LeadItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
@@ -275,13 +281,15 @@ export function LeadsContent() {
             </PageHeader.Heading>
           </PageHeader.Row>
           <PageHeader.Actions>
-            <Button
-              onClick={openCreate}
-              className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
-            >
-              <Plus className="h-4 w-4" />
-              Novo Lead
-            </Button>
+            {canCreate && (
+              <Button
+                onClick={openCreate}
+                className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
+              >
+                <Plus className="h-4 w-4" />
+                Novo Lead
+              </Button>
+            )}
           </PageHeader.Actions>
         </PageHeader.Root>
       </motion.div>
@@ -327,7 +335,9 @@ export function LeadsContent() {
                 <TableHead className="text-muted-foreground">Empresa</TableHead>
                 <TableHead className="text-muted-foreground text-center">Status</TableHead>
                 <TableHead className="text-muted-foreground text-center hidden sm:table-cell">Criado em</TableHead>
-                <TableHead className="text-muted-foreground text-center">Ações</TableHead>
+                {(canEdit || canDelete) && (
+                  <TableHead className="text-muted-foreground text-center">Ações</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -369,26 +379,32 @@ export function LeadsContent() {
                         locale: ptBR,
                       })}
                     </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(lead)}
-                          title="Editar lead"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer transition-all duration-200"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openDeleteDialog(lead)}
-                          title="Excluir lead"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 cursor-pointer transition-all duration-200"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </TableCell>
+                    {(canEdit || canDelete) && (
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={() => openEdit(lead)}
+                              title="Editar lead"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer transition-all duration-200"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              type="button"
+                              onClick={() => openDeleteDialog(lead)}
+                              title="Excluir lead"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 cursor-pointer transition-all duration-200"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
                   </motion.tr>
                 );
               })}

@@ -105,7 +105,13 @@ function formatCurrency(value: number | null): string {
   return Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-export function OpportunitiesContent() {
+interface OpportunitiesContentProps {
+  canCreate: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+}
+
+export function OpportunitiesContent({ canCreate, canEdit, canDelete }: OpportunitiesContentProps) {
   const [opportunities, setOpportunities] = useState<OpportunityItem[]>([]);
   const [contacts, setContacts] = useState<ContactItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -274,13 +280,15 @@ export function OpportunitiesContent() {
             </PageHeader.Heading>
           </PageHeader.Row>
           <PageHeader.Actions>
-            <Button
-              onClick={openCreate}
-              className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
-            >
-              <Plus className="h-4 w-4" />
-              Nova Oportunidade
-            </Button>
+            {canCreate && (
+              <Button
+                onClick={openCreate}
+                className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
+              >
+                <Plus className="h-4 w-4" />
+                Nova Oportunidade
+              </Button>
+            )}
           </PageHeader.Actions>
         </PageHeader.Root>
       </motion.div>
@@ -326,7 +334,9 @@ export function OpportunitiesContent() {
                 <TableHead className="text-muted-foreground text-center">Stage</TableHead>
                 <TableHead className="text-muted-foreground text-center">Probabilidade</TableHead>
                 <TableHead className="text-muted-foreground text-center hidden sm:table-cell">Criado em</TableHead>
-                <TableHead className="text-muted-foreground text-center">A\u00e7\u00f5es</TableHead>
+                {(canEdit || canDelete) && (
+                  <TableHead className="text-muted-foreground text-center">A\u00e7\u00f5es</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -370,26 +380,32 @@ export function OpportunitiesContent() {
                         locale: ptBR,
                       })}
                     </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(opp)}
-                          title="Editar oportunidade"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer transition-all duration-200"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openDeleteDialog(opp)}
-                          title="Excluir oportunidade"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 cursor-pointer transition-all duration-200"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </TableCell>
+                    {(canEdit || canDelete) && (
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={() => openEdit(opp)}
+                              title="Editar oportunidade"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer transition-all duration-200"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              type="button"
+                              onClick={() => openDeleteDialog(opp)}
+                              title="Excluir oportunidade"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 cursor-pointer transition-all duration-200"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
                   </motion.tr>
                 );
               })}
