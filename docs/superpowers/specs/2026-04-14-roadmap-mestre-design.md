@@ -252,3 +252,9 @@ Preenchida durante cada fase. Status: `parity` | `partial` | `dropped` | `pendin
 | Email | Mailbox + EmailMessage schema | 7a | parity | MailboxProvider (gmail/outlook/imap_smtp) + threading via messageId per-tenant unique |
 | Security | Crypto AES-256-GCM helper | 7a | parity | `src/lib/crypto/aes-gcm.ts` scrypt-derived; tokens OAuth/IMAP encrypt antes do DB |
 | Security | RBAC email:view/connect/send/manage | 7a | parity | admin all, manager sem connect, seller view+send, viewer view |
+| Automation | Workflow + WorkflowExecution schema | 8 | parity | 3 triggers enum + idempotência via (workflowId,eventId) unique |
+| Automation | Condition evaluator (eq/neq/in/gt/lt/contains) | 8 | parity | puro, zero I/O, 36 unit tests incl dot-path |
+| Automation | Action executors (update-field/create-task/assign-user) | 8 | parity | send-email stub aguardando Fase 7c |
+| Automation | Dispatcher + BullMQ queue + worker | 8 | parity | emissores em createLead/createContact/completeActivity |
+| Automation | Anti-storm guards | 8 | parity | chainDepth<10 + daily quota (Redis INCR) + circuit breaker fail>50% em 1h |
+| Automation | UI /automation/workflows (list + editor) | 8 | parity | block builder declarativo conditions/actions + i18n br/us |
