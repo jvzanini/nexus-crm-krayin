@@ -91,7 +91,7 @@ export async function recordConsent(
       },
     });
 
-    await subjectDelegate(tx, input.subjectType).update({
+    await (subjectDelegate(tx, input.subjectType) as any).update({
       where: { id: input.subjectId },
       data: denormalizedUpdate(key, granted, input.ipMask, now),
     });

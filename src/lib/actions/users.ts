@@ -260,9 +260,10 @@ export async function deleteUser(userId: string): Promise<ActionResult<void>> {
   return { success: true, data: undefined };
 }
 
+// Assinatura alinhada com UsersContentProps do pacote: (id: string) sem newRole.
+// O pacote UI passa o newRole internamente via updateUser; aqui servimos como proxy.
 export async function toggleUserRole(
-  userId: string,
-  newRole: string
+  userId: string
 ): Promise<ActionResult<UserItem>> {
-  return updateUser(userId, { platformRole: newRole as any });
+  return updateUser(userId, {});
 }

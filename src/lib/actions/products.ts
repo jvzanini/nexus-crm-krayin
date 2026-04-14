@@ -51,7 +51,7 @@ async function resolveActiveCompanyId(userId: string): Promise<string | null> {
   return membership?.companyId ?? null;
 }
 
-function handleError(err: unknown, fallback: string): ActionResult {
+function handleError(err: unknown, fallback: string): ActionResult<never> {
   if (err instanceof PermissionDeniedError) {
     return { success: false, error: err.message };
   }
@@ -256,7 +256,7 @@ export async function createProduct(input: {
 
     // Verifica SKU único por empresa
     const existing = await prisma.product.findUnique({
-      where: { companyId_sku: { companyId, sku } },
+      where: { uq_product_sku_per_company: { companyId, sku } },
       select: { id: true },
     });
     if (existing) {
@@ -326,7 +326,7 @@ export async function updateProduct(
     // Se SKU mudou, verifica unicidade
     if (data.sku) {
       const skuConflict = await prisma.product.findUnique({
-        where: { companyId_sku: { companyId, sku: data.sku } },
+        where: { uq_product_sku_per_company: { companyId, sku: data.sku } },
         select: { id: true },
       });
       if (skuConflict && skuConflict.id !== id) {
@@ -466,7 +466,7 @@ export async function upsertPrice(
     }
 
     await prisma.productPrice.upsert({
-      where: { productId_currency: { productId, currency: currencyParsed.data } },
+      where: { uq_price_per_product_currency: { productId, currency: currencyParsed.data } },
       create: {
         productId,
         currency: currencyParsed.data,
@@ -505,7 +505,7 @@ export async function deletePrice(
     }
 
     await prisma.productPrice.delete({
-      where: { productId_currency: { productId, currency } },
+      where: { uq_price_per_product_currency: { productId, currency } },
     });
 
     revalidatePath("/products");

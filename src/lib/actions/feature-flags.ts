@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requirePermission, PermissionDeniedError } from "@/lib/rbac";
-import { setFlag, overrideFlag, clearOverride, listFlags } from "@/lib/flags";
+import { setFlag, overrideFlag, clearOverride, listFlags } from "@/lib/flags/index";
 import { logger } from "@/lib/logger";
 
 type ActionResult<T = unknown> = {
@@ -26,7 +26,7 @@ const overrideSchema = z.object({
   enabled: z.boolean(),
 });
 
-function handleError(err: unknown, fallback: string): ActionResult {
+function handleError(err: unknown, fallback: string): ActionResult<never> {
   if (err instanceof PermissionDeniedError) {
     return { success: false, error: err.message };
   }
