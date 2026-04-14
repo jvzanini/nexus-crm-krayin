@@ -1,9 +1,9 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { requireActiveCompanyId } from "@/lib/tenant-scope";
+import { requirePermission, PermissionDeniedError } from "@/lib/rbac";
 
 export interface OpportunityItem {
   id: string;
@@ -31,27 +31,33 @@ type ActionResult<T = unknown> = {
 };
 
 export async function getOpportunities(): Promise<ActionResult<OpportunityItem[]>> {
-  const user = await getCurrentUser();
-  if (!user) return { success: false, error: "Não autenticado" };
-
-  let companyId: string;
   try {
-    companyId = await requireActiveCompanyId();
-  } catch {
-    return { success: false, error: "Empresa ativa não encontrada" };
-  }
+    await requirePermission("opportunities:view");
 
-  const opportunities = await prisma.opportunity.findMany({
-    where: { companyId },
-    orderBy: { createdAt: "desc" },
-    include: {
-      contact: {
-        select: { firstName: true, lastName: true },
+    let companyId: string;
+    try {
+      companyId = await requireActiveCompanyId();
+    } catch {
+      return { success: false, error: "Empresa ativa não encontrada" };
+    }
+
+    const opportunities = await prisma.opportunity.findMany({
+      where: { companyId },
+      orderBy: { createdAt: "desc" },
+      include: {
+        contact: {
+          select: { firstName: true, lastName: true },
+        },
       },
-    },
-  });
+    });
 
-  return { success: true, data: opportunities };
+    return { success: true, data: opportunities };
+  } catch (err) {
+    if (err instanceof PermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
+  }
 }
 
 export async function createOpportunity(data: {
@@ -65,8 +71,14 @@ export async function createOpportunity(data: {
   notes?: string;
   assignedTo?: string;
 }): Promise<ActionResult<{ id: string }>> {
-  const user = await getCurrentUser();
-  if (!user) return { success: false, error: "Não autenticado" };
+  try {
+    await requirePermission("opportunities:create");
+  } catch (err) {
+    if (err instanceof PermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
+  }
 
   let companyId: string;
   try {
@@ -119,8 +131,14 @@ export async function updateOpportunity(
     assignedTo?: string;
   }
 ): Promise<ActionResult> {
-  const user = await getCurrentUser();
-  if (!user) return { success: false, error: "Não autenticado" };
+  try {
+    await requirePermission("opportunities:edit");
+  } catch (err) {
+    if (err instanceof PermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
+  }
 
   let companyId: string;
   try {
@@ -164,8 +182,14 @@ export async function updateOpportunity(
 }
 
 export async function deleteOpportunity(id: string): Promise<ActionResult> {
-  const user = await getCurrentUser();
-  if (!user) return { success: false, error: "Não autenticado" };
+  try {
+    await requirePermission("opportunities:delete");
+  } catch (err) {
+    if (err instanceof PermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
+  }
 
   let companyId: string;
   try {
