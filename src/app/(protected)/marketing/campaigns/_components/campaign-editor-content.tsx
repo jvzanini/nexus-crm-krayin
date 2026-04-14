@@ -3,8 +3,8 @@
 import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Button, Input } from "@nexusai360/design-system";
-import { Mail, Loader2 } from "lucide-react";
+import { Button, Input, PageHeader } from "@nexusai360/design-system";
+import { Megaphone, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   createCampaignAction,
@@ -135,18 +135,20 @@ export function CampaignEditorContent({ mode, campaign }: CampaignEditorContentP
       className="space-y-6 max-w-3xl"
     >
       {/* Header */}
-      <motion.div variants={itemVariants} className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600/10 border border-violet-500/20">
-          <Mail className="h-5 w-5 text-violet-400" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-foreground">
-            {mode === "create" ? "Nova campanha" : "Editar campanha"}
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            Configure e envie e-mails para um segmento de contatos
-          </p>
-        </div>
+      <motion.div variants={itemVariants}>
+        <PageHeader.Root>
+          <PageHeader.Row>
+            <PageHeader.Icon icon={Megaphone} color="violet" />
+            <PageHeader.Heading>
+              <PageHeader.Title>
+                {mode === "create" ? "Nova campanha" : "Editar campanha"}
+              </PageHeader.Title>
+              <PageHeader.Description>
+                Configure e envie e-mails para um segmento de contatos
+              </PageHeader.Description>
+            </PageHeader.Heading>
+          </PageHeader.Row>
+        </PageHeader.Root>
       </motion.div>
 
       {/* Identificação */}

@@ -139,7 +139,7 @@ export function DashboardContent({ userName }: DashboardContentProps) {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-8"
+      className="space-y-6"
     >
       {/* Greeting + Bell */}
       <motion.div variants={itemVariants} className="flex items-start justify-between">

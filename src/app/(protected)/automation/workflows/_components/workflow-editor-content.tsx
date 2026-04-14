@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@nexusai360/design-system";
 import { Input } from "@nexusai360/design-system";
+import { PageHeader } from "@nexusai360/design-system";
 import {
   Workflow,
   Plus,
@@ -515,18 +516,20 @@ export function WorkflowEditorContent({
       className="space-y-6 max-w-3xl"
     >
       {/* Header */}
-      <motion.div variants={itemVariants} className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600/10 border border-violet-500/20">
-          <Workflow className="h-5 w-5 text-violet-400" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-foreground">
-            {mode === "create" ? "Novo workflow" : "Editar workflow"}
-          </h1>
-          {workflow && (
-            <p className="text-xs text-muted-foreground">v{workflow.version}</p>
-          )}
-        </div>
+      <motion.div variants={itemVariants}>
+        <PageHeader.Root>
+          <PageHeader.Row>
+            <PageHeader.Icon icon={Workflow} color="purple" />
+            <PageHeader.Heading>
+              <PageHeader.Title>
+                {mode === "create" ? "Novo workflow" : "Editar workflow"}
+              </PageHeader.Title>
+              {workflow && (
+                <PageHeader.Description>{`v${workflow.version}`}</PageHeader.Description>
+              )}
+            </PageHeader.Heading>
+          </PageHeader.Row>
+        </PageHeader.Root>
       </motion.div>
 
       {/* Campos básicos */}

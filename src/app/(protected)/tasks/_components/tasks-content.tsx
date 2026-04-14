@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import {
   Table,
@@ -85,18 +84,17 @@ type StatusFilter = (typeof STATUS_FILTER_VALUES)[number];
 // ---------------------------------------------------------------------------
 
 function StatusBadge({ status }: { status: ActivityItem["status"] }) {
-  const t = useTranslations("activities");
   const configs = {
     pending: {
-      label: t("status.pending"),
+      label: "Pendente",
       className: "bg-amber-500/15 text-amber-400 border-amber-500/30",
     },
     completed: {
-      label: t("status.completed"),
+      label: "Concluída",
       className: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
     },
     canceled: {
-      label: t("status.canceled"),
+      label: "Cancelada",
       className: "bg-rose-500/15 text-rose-400 border-rose-500/30",
     },
   };
@@ -183,7 +181,6 @@ function TaskFormDialog({
   mode,
   onSaved,
 }: TaskFormDialogProps) {
-  const t = useTranslations("activities");
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [dueAt, setDueAt] = useState(toDatetimeLocal(initial?.dueAt));
@@ -219,11 +216,11 @@ function TaskFormDialog({
 
   function handleSubmit() {
     if (!title.trim()) {
-      toast.error(`${t("form.fields.title")} é obrigatório`);
+      toast.error("Título é obrigatório");
       return;
     }
     if (mode === "create" && !subjectId.trim()) {
-      toast.error(`${t("form.fields.subjectId")} é obrigatório`);
+      toast.error("ID do assunto é obrigatório");
       return;
     }
 
@@ -239,10 +236,10 @@ function TaskFormDialog({
           reminderAt: toISOWithOffset(reminderAt),
         });
         if (!result.success) {
-          toast.error(result.error ?? t("action.create"));
+          toast.error(result.error ?? "Erro ao criar tarefa");
           return;
         }
-        toast.success(t("action.create"));
+        toast.success("Tarefa criada");
       } else {
         if (!initial) return;
         const result = await updateActivity(initial.id, {
@@ -252,10 +249,10 @@ function TaskFormDialog({
           reminderAt: toISOWithOffset(reminderAt),
         });
         if (!result.success) {
-          toast.error(result.error ?? t("action.save"));
+          toast.error(result.error ?? "Erro ao salvar tarefa");
           return;
         }
-        toast.success(t("action.save"));
+        toast.success("Tarefa salva");
       }
       onSaved();
       onOpenChange(false);
@@ -267,23 +264,21 @@ function TaskFormDialog({
       <DialogContent className="sm:max-w-lg overflow-visible">
         <DialogHeader>
           <DialogTitle>
-            {mode === "create"
-              ? t("form.create.title", { type: t("form.type.task") })
-              : t("form.edit.title", { type: t("form.type.task") })}
+            {mode === "create" ? "Nova tarefa" : "Editar tarefa"}
           </DialogTitle>
           <DialogDescription>
-            {mode === "create" ? t("action.create") : t("action.save")} — {t("form.type.task")}
+            {mode === "create" ? "Criar" : "Salvar"} — Tarefa
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Título */}
           <div>
-            <label className={labelClass}>{t("form.fields.title")} *</label>
+            <label className={labelClass}>Título *</label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={t("form.fields.title")}
+              placeholder="Título"
               className={inputClass}
               disabled={saving}
             />
@@ -293,7 +288,7 @@ function TaskFormDialog({
           {mode === "create" && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelClass}>{t("form.fields.subjectType")} *</label>
+                <label className={labelClass}>Tipo de assunto *</label>
                 <select
                   value={subjectType}
                   onChange={(e) =>
@@ -308,7 +303,7 @@ function TaskFormDialog({
                 </select>
               </div>
               <div>
-                <label className={labelClass}>{t("form.fields.subjectId")} *</label>
+                <label className={labelClass}>ID do assunto *</label>
                 <Input
                   value={subjectId}
                   onChange={(e) => setSubjectId(e.target.value)}
@@ -323,7 +318,7 @@ function TaskFormDialog({
           {/* Prazo + Lembrete */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClass}>{t("form.fields.dueAt")}</label>
+              <label className={labelClass}>Vencimento</label>
               <Input
                 type="datetime-local"
                 value={dueAt}
@@ -333,7 +328,7 @@ function TaskFormDialog({
               />
             </div>
             <div>
-              <label className={labelClass}>{t("form.fields.reminderAt")}</label>
+              <label className={labelClass}>Lembrete em</label>
               <Input
                 type="datetime-local"
                 value={reminderAt}
@@ -346,7 +341,7 @@ function TaskFormDialog({
 
           {/* Descrição */}
           <div>
-            <label className={labelClass}>{t("form.fields.description")}</label>
+            <label className={labelClass}>Descrição</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -365,7 +360,7 @@ function TaskFormDialog({
             className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            {mode === "create" ? t("action.create") : t("action.save")}
+            {mode === "create" ? "Criar" : "Salvar"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -383,7 +378,6 @@ export function TasksContent({
   canDelete,
   canComplete,
 }: TasksContentProps) {
-  const t = useTranslations("activities");
   const [tasks, setTasks] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -422,7 +416,7 @@ export function TasksContent({
     if (result.success && result.data) {
       setTasks(result.data);
     } else {
-      toast.error(result.error ?? t("list.empty"));
+      toast.error(result.error ?? "Sem tarefas registradas");
     }
     setLoading(false);
   }
@@ -450,10 +444,10 @@ export function TasksContent({
     startCompleting(async () => {
       const result = await completeActivity(task.id);
       if (result.success) {
-        toast.success(t("action.complete"));
+        toast.success("Tarefa concluída");
         await load();
       } else {
-        toast.error(result.error ?? t("action.complete"));
+        toast.error(result.error ?? "Erro ao concluir tarefa");
       }
     });
   }
@@ -462,10 +456,10 @@ export function TasksContent({
     startCanceling(async () => {
       const result = await cancelActivity(task.id);
       if (result.success) {
-        toast.success(t("action.cancel"));
+        toast.success("Tarefa cancelada");
         await load();
       } else {
-        toast.error(result.error ?? t("action.cancel"));
+        toast.error(result.error ?? "Erro ao cancelar tarefa");
       }
     });
   }
@@ -480,12 +474,12 @@ export function TasksContent({
     startDeleting(async () => {
       const result = await deleteActivity(deletingTask.id);
       if (result.success) {
-        toast.success(t("action.delete"));
+        toast.success("Tarefa excluída");
         setDeleteDialogOpen(false);
         setDeletingTask(null);
         await load();
       } else {
-        toast.error(result.error ?? t("action.delete"));
+        toast.error(result.error ?? "Erro ao excluir tarefa");
       }
     });
   }
@@ -511,11 +505,15 @@ export function TasksContent({
             <CheckSquare className="h-5 w-5 text-violet-400" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">{t("list.title")}</h1>
+            <h1 className="text-xl font-bold text-foreground">Tarefas</h1>
             <p className="text-sm text-muted-foreground">
               {loading
                 ? "..."
-                : t("list.subtitle.count", { count: tasks.length })}
+                : tasks.length === 0
+                  ? "Sem tarefas"
+                  : tasks.length === 1
+                    ? "1 tarefa registrada"
+                    : `${tasks.length} tarefas registradas`}
             </p>
           </div>
         </div>
@@ -525,7 +523,7 @@ export function TasksContent({
             className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
           >
             <Plus className="h-4 w-4" />
-            {t("timeline.newActivity")}
+            Nova tarefa
           </Button>
         )}
       </motion.div>
@@ -544,10 +542,10 @@ export function TasksContent({
                   : "border-border text-muted-foreground hover:border-muted-foreground/30"
               }`}
             >
-              {val === "all" ? t("list.filter.all")
-                : val === "pending" ? t("list.filter.pending")
-                : val === "completed" ? t("list.filter.completed")
-                : t("list.filter.canceled")}
+              {val === "all" ? "Todas"
+                : val === "pending" ? "Pendentes"
+                : val === "completed" ? "Concluídas"
+                : "Canceladas"}
             </button>
           ))}
         </div>
@@ -555,7 +553,7 @@ export function TasksContent({
         {/* Filtro por dias */}
         <div className="flex items-center gap-2">
           <label className="text-sm text-muted-foreground shrink-0">
-            {t("list.filter.dueWithinDays")}:
+            Vencimento em (dias):
           </label>
           <Input
             type="number"
@@ -590,14 +588,14 @@ export function TasksContent({
         ) : tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <CheckSquare className="h-12 w-12 mb-3 text-muted-foreground/60" />
-            <p className="text-sm">{t("list.empty")}</p>
+            <p className="text-sm">Sem tarefas registradas ainda</p>
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-muted-foreground">{t("form.fields.title")}</TableHead>
-                <TableHead className="text-muted-foreground hidden md:table-cell">{t("form.fields.dueAt")}</TableHead>
+                <TableHead className="text-muted-foreground">Título</TableHead>
+                <TableHead className="text-muted-foreground hidden md:table-cell">Vencimento</TableHead>
                 <TableHead className="text-muted-foreground text-center">Status</TableHead>
                 {(canEdit || canDelete || canComplete) && (
                   <TableHead className="text-muted-foreground text-center">Ações</TableHead>
@@ -643,7 +641,7 @@ export function TasksContent({
                               type="button"
                               onClick={() => handleComplete(task)}
                               disabled={completing}
-                              title={t("action.complete")}
+                              title="Concluir"
                               className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer transition-all duration-200 disabled:opacity-50"
                             >
                               <Check className="h-4 w-4" />
@@ -654,7 +652,7 @@ export function TasksContent({
                               <button
                                 type="button"
                                 onClick={() => openEdit(task)}
-                                title={t("action.edit")}
+                                title="Editar"
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer transition-all duration-200"
                               >
                                 <Pencil className="h-4 w-4" />
@@ -663,7 +661,7 @@ export function TasksContent({
                                 type="button"
                                 onClick={() => handleCancel(task)}
                                 disabled={canceling}
-                                title={t("action.cancel")}
+                                title="Cancelar"
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-amber-400 hover:bg-amber-500/10 cursor-pointer transition-all duration-200 disabled:opacity-50"
                               >
                                 <X className="h-4 w-4" />
@@ -674,7 +672,7 @@ export function TasksContent({
                             <button
                               type="button"
                               onClick={() => openDeleteDialog(task)}
-                              title={t("action.delete")}
+                              title="Excluir"
                               className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 cursor-pointer transition-all duration-200"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -708,12 +706,12 @@ export function TasksContent({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-foreground">
               <AlertTriangle className="h-5 w-5 text-red-400" />
-              {t("action.delete")}
+              Excluir
             </AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
               {deletingTask?.title
-                ? t("action.confirmDelete", { title: deletingTask.title })
-                : t("action.delete")}
+                ? `Excluir permanentemente "${deletingTask.title}"?`
+                : "Excluir"}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -721,7 +719,7 @@ export function TasksContent({
               disabled={deleting}
               className="border-border text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer transition-all duration-200"
             >
-              {t("action.cancel")}
+              Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
@@ -729,7 +727,7 @@ export function TasksContent({
               className="bg-red-600 text-white hover:bg-red-700 cursor-pointer transition-all duration-200"
             >
               {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t("action.delete")}
+              Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

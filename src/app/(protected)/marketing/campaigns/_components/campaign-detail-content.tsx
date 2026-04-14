@@ -3,9 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Button } from "@nexusai360/design-system";
+import { Button, PageHeader } from "@nexusai360/design-system";
 import {
-  Mail,
+  Megaphone,
   Loader2,
   Pause,
   Play,
