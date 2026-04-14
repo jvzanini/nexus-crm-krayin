@@ -2,9 +2,17 @@
 
 > **Para continuar em outro terminal:** leia este arquivo do início ao fim, depois `CLAUDE.md`, depois `memory/MEMORY.md`. Todos os contextos importantes estão em um desses três lugares.
 
-**Commit de referência do handoff:** `859228f` (fix build "use server" — aguardando CI).
+**Commit de referência do handoff:** `b0fb63f` (fix wrap app com DS ThemeProvider — resolveu o /login 500).
 
-**Status do deploy no momento do handoff:** 🟡 **CI em queue** — o fix do build acabou de ser pushed. Aguarde `gh run list --limit 1` mostrar `conclusion: success` antes de considerar produção OK. Workflow: `Build and Push` + rollout Portainer automático.
+**Status do deploy no momento do handoff:** ✅ **PRODUÇÃO NO AR.** `/login` = 200, `/api/health` = 200, `/api/ready` = 200. Valida em `https://crm2.nexusai360.com/login`.
+
+## Causa raiz do 500 que derrubou prod (resolvido)
+
+`@nexusai360/design-system` exporta `useTheme` mas o barrel `index.cjs` não exporta `ThemeProvider` (ele fica em `/theme-provider` entry). Nosso layout usava apenas `useTheme` do barrel sem envolver com `ThemeProvider` correspondente → `useTheme must be used within ThemeProvider`.
+
+**Fix (`b0fb63f`):** wrap com DS `ThemeProvider` explicitamente no layout em adição ao nosso custom theme provider.
+
+**Debug hard-learned:** a primeira coisa em qualquer erro de prod = **puxar logs do container via Portainer API** (token em `.env.production`). Sem isso, perdemos ~4h em commits especulativos. Está registrado em `CLAUDE.md` LEI ABSOLUTA #1 + memory `law_debug_via_container_logs.md`.
 
 ---
 
