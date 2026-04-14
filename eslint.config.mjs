@@ -21,8 +21,8 @@ export default [
     },
     rules: {
       "nexus-crm/no-direct-consent-write": "error",
-      // warn-first em Fase 1c.0; migrar para "error" após grep de console.* = 0
-      "nexus-crm/no-console-in-src": "warn",
+      // Promovido a error após migração completa de console.* para logger (src/ grep=0).
+      "nexus-crm/no-console-in-src": "error",
       // warn em 1c.3; escalar para error em Fase 12 quando actions migradas
       "nexus-crm/no-ad-hoc-role-check": "warn",
     },

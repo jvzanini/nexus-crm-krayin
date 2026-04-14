@@ -8,6 +8,7 @@ import { auditLog } from "@/lib/audit-log";
 import { AVAILABLE_LOCALES } from "@/locale/registry";
 import { LOCALE_COOKIE, COOKIE_MAX_AGE } from "@/lib/locale/constants";
 import type { LocaleCode } from "@/locale/types";
+import { logger } from "@/lib/logger";
 
 type ActionResult<T = void> = { success: boolean; data?: T; error?: string };
 
@@ -46,7 +47,7 @@ export async function setUserLocale(locale: string): Promise<ActionResult> {
     revalidatePath("/", "layout");
     return { success: true };
   } catch (error) {
-    console.error("[setUserLocale]", error);
+    logger.error({ err: error }, "locale.setUserLocale.failed");
     return { success: false, error: "Erro ao alterar idioma" };
   }
 }
@@ -74,7 +75,7 @@ export async function setUserTimezone(timezone: string): Promise<ActionResult> {
     revalidatePath("/", "layout");
     return { success: true };
   } catch (error) {
-    console.error("[setUserTimezone]", error);
+    logger.error({ err: error }, "locale.setUserTimezone.failed");
     return { success: false, error: "Erro ao alterar fuso horário" };
   }
 }
@@ -116,7 +117,7 @@ export async function setCompanyLocale(
     revalidatePath("/", "layout");
     return { success: true };
   } catch (error) {
-    console.error("[setCompanyLocale]", error);
+    logger.error({ err: error, companyId }, "locale.setCompanyLocale.failed");
     return { success: false, error: "Erro ao alterar idioma da empresa" };
   }
 }
@@ -148,7 +149,7 @@ export async function setCompanyTimezone(
     revalidatePath("/", "layout");
     return { success: true };
   } catch (error) {
-    console.error("[setCompanyTimezone]", error);
+    logger.error({ err: error, companyId }, "locale.setCompanyTimezone.failed");
     return { success: false, error: "Erro ao alterar fuso horário da empresa" };
   }
 }
@@ -180,7 +181,7 @@ export async function setCompanyBaseCurrency(
     revalidatePath("/", "layout");
     return { success: true };
   } catch (error) {
-    console.error("[setCompanyBaseCurrency]", error);
+    logger.error({ err: error, companyId, currency }, "locale.setCompanyBaseCurrency.failed");
     return { success: false, error: "Erro ao alterar moeda da empresa" };
   }
 }

@@ -6,6 +6,7 @@ import IORedis from "ioredis";
 import { Resend } from "resend";
 import { reenqueuePendingReminders } from "./boot";
 import { startActivityReminderWorker } from "./processors/activity-reminder";
+import { logger } from "@/lib/logger";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://redis:6379";
 const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
@@ -23,13 +24,13 @@ const emailWorker = new Worker(
     const from = process.env.EMAIL_FROM || "Nexus CRM <contato@nexusai360.com>";
 
     await resend.emails.send({ from, to, subject, html });
-    console.log(`[worker:email] Enviado para ${to}: ${subject}`);
+    logger.info({ queue: "email", to, subject }, "worker.email.sent");
   },
   { connection }
 );
 
 emailWorker.on("failed", (job, err) => {
-  console.error(`[worker:email] Job ${job?.id} falhou:`, err.message);
+  logger.error({ queue: "email", jobId: job?.id, err }, "worker.email.failed");
 });
 
 // ============================================================
@@ -56,13 +57,13 @@ const outboxWorker = new Worker(
       throw new Error(`Outbox API retornou ${res.status}`);
     }
 
-    console.log(`[worker:outbox] Evento ${eventType} (${eventId}) processado`);
+    logger.info({ queue: "outbox", eventId, eventType }, "worker.outbox.processed");
   },
   { connection }
 );
 
 outboxWorker.on("failed", (job, err) => {
-  console.error(`[worker:outbox] Job ${job?.id} falhou:`, err.message);
+  logger.error({ queue: "outbox", jobId: job?.id, err }, "worker.outbox.failed");
 });
 
 // ============================================================
@@ -76,7 +77,7 @@ const activityReminderWorker = startActivityReminderWorker();
 // ============================================================
 
 reenqueuePendingReminders().catch((err) => {
-  console.error("[worker] Falha no reenqueue de lembretes:", err);
+  logger.error({ err }, "worker.reminder.reenqueue_boot.failed");
 });
 
 // ============================================================
@@ -84,7 +85,7 @@ reenqueuePendingReminders().catch((err) => {
 // ============================================================
 
 async function shutdown() {
-  console.log("[worker] Encerrando workers...");
+  logger.info({}, "worker.shutdown.start");
   await Promise.all([
     emailWorker.close(),
     outboxWorker.close(),
@@ -97,4 +98,4 @@ async function shutdown() {
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
 
-console.log("[worker] Workers iniciados — email, outbox, activity-reminders");
+logger.info({ queues: ["email", "outbox", "activity-reminders"] }, "worker.startup.ready");

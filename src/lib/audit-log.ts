@@ -1,6 +1,7 @@
 // Audit Log — fire-and-forget helper
 import { prisma } from "@/lib/prisma";
 import { ActorType } from "@/generated/prisma/client";
+import { logger } from "@/lib/logger";
 
 interface AuditInput {
   actorType: ActorType;
@@ -39,6 +40,6 @@ export async function auditLog(input: AuditInput): Promise<void> {
       },
     });
   } catch (err) {
-    console.error("[audit-log] Falha ao registrar:", err);
+    logger.error({ err, action: input.action, resourceType: input.resourceType }, "audit-log.create.failed");
   }
 }

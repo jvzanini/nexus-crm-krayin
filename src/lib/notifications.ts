@@ -1,6 +1,7 @@
 // Helpers para criação de notificações
 import { prisma } from "@/lib/prisma";
 import { NotificationType } from "@/generated/prisma/client";
+import { logger } from "@/lib/logger";
 
 interface CreateNotificationInput {
   userId: string;
@@ -28,6 +29,6 @@ export async function createNotification(input: CreateNotificationInput): Promis
       },
     });
   } catch (err) {
-    console.error("[notifications] Falha ao criar notificação:", err);
+    logger.error({ err, userId: input.userId, type: input.type }, "notifications.create.failed");
   }
 }
