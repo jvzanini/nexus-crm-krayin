@@ -7,6 +7,7 @@ import { Resend } from "resend";
 import { reenqueuePendingReminders } from "./boot";
 import { startActivityReminderWorker } from "./processors/activity-reminder";
 import { startAutomationWorker } from "./processors/automation-execute";
+import { startMarketingSendWorker } from "./processors/marketing-send";
 import { logger } from "@/lib/logger";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://redis:6379";
@@ -80,6 +81,12 @@ const activityReminderWorker = startActivityReminderWorker();
 const automationWorker = startAutomationWorker();
 
 // ============================================================
+// Worker: marketing-send
+// ============================================================
+
+const marketingWorker = startMarketingSendWorker();
+
+// ============================================================
 // Boot: reenqueue lembretes pendentes
 // ============================================================
 
@@ -98,6 +105,7 @@ async function shutdown() {
     outboxWorker.close(),
     activityReminderWorker.close(),
     automationWorker.close(),
+    marketingWorker.close(),
   ]);
   await connection.quit();
   process.exit(0);
@@ -106,4 +114,4 @@ async function shutdown() {
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
 
-logger.info({ queues: ["email", "outbox", "activity-reminders", "automation-execute"] }, "worker.startup.ready");
+logger.info({ queues: ["email", "outbox", "activity-reminders", "automation-execute", "marketing-send"] }, "worker.startup.ready");
