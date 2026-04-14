@@ -148,4 +148,20 @@ describe("rbac", () => {
     expect(userHasPermission(s, "marketing:send")).toBe(false);
     expect(userHasPermission(s, "marketing:manage")).toBe(false);
   });
+
+  it("admin tem dsar:execute", () => {
+    expect(userHasPermission(mkUser("admin"), "dsar:execute")).toBe(true);
+  });
+  it("manager NÃO tem dsar:execute", () => {
+    expect(userHasPermission(mkUser("manager"), "dsar:execute")).toBe(false);
+  });
+  it("seller NÃO tem dsar:execute", () => {
+    expect(userHasPermission(mkUser("seller"), "dsar:execute")).toBe(false);
+  });
+  it("viewer NÃO tem dsar:execute", () => {
+    expect(userHasPermission(mkUser("viewer"), "dsar:execute")).toBe(false);
+  });
+  it("super_admin tem dsar:execute", () => {
+    expect(userHasPermission(mkUser("admin", true), "dsar:execute")).toBe(true);
+  });
 });

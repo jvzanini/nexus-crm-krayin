@@ -48,6 +48,7 @@ export const PERMISSIONS = [
   "marketing:view",
   "marketing:manage",
   "marketing:send",
+  "dsar:execute",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -102,6 +103,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "marketing:view",
     "marketing:manage",
     "marketing:send",
+    "dsar:execute",
   ],
 
   manager: [
