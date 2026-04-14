@@ -43,6 +43,8 @@ export const PERMISSIONS = [
   "email:connect",
   "email:send",
   "email:manage",
+  "workflows:view",
+  "workflows:manage",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -92,6 +94,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "email:connect",
     "email:send",
     "email:manage",
+    "workflows:view",
+    "workflows:manage",
   ],
 
   manager: [
@@ -108,6 +112,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "email:view",
     "email:send",
     "email:manage",
+    "workflows:view",
+    "workflows:manage",
   ],
 
   seller: [
@@ -127,6 +133,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "activities:complete",
     "email:view",
     "email:send",
+    "workflows:view",
   ],
 
   viewer: [
@@ -138,6 +145,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "settings:view",
     "activities:view",
     "email:view",
+    "workflows:view",
   ],
 };
 

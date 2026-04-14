@@ -105,4 +105,28 @@ describe("rbac", () => {
     expect(userHasPermission(v, "email:view")).toBe(true);
     expect(userHasPermission(v, "email:send")).toBe(false);
   });
+
+  it("admin tem workflows:manage", () => {
+    const a = mkUser("admin");
+    expect(userHasPermission(a, "workflows:manage")).toBe(true);
+    expect(userHasPermission(a, "workflows:view")).toBe(true);
+  });
+
+  it("manager tem workflows:manage", () => {
+    const m = mkUser("manager");
+    expect(userHasPermission(m, "workflows:manage")).toBe(true);
+    expect(userHasPermission(m, "workflows:view")).toBe(true);
+  });
+
+  it("seller NÃO tem workflows:manage mas tem workflows:view", () => {
+    const s = mkUser("seller");
+    expect(userHasPermission(s, "workflows:manage")).toBe(false);
+    expect(userHasPermission(s, "workflows:view")).toBe(true);
+  });
+
+  it("viewer tem workflows:view mas NÃO workflows:manage", () => {
+    const v = mkUser("viewer");
+    expect(userHasPermission(v, "workflows:view")).toBe(true);
+    expect(userHasPermission(v, "workflows:manage")).toBe(false);
+  });
 });
