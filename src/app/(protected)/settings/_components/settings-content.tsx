@@ -4,11 +4,11 @@ import { useState, useEffect, useTransition } from "react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Settings, Globe, Bell, Shield } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardHeader, CardTitle } from "@nexusai360/design-system";
+import { Button } from "@nexusai360/design-system";
+import { Input } from "@nexusai360/design-system";
+import { Label } from "@nexusai360/design-system";
+import { Switch } from "@nexusai360/design-system";
 import { getAllSettings, setSetting } from "@/lib/actions/settings";
 
 export function SettingsContent() {

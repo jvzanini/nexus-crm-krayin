@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Bell } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@nexusai360/design-system";
 import { getNotifications, markAsRead, markAllAsRead } from "@/lib/actions/notifications";
 
 type Notification = {

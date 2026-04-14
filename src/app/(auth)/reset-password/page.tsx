@@ -5,9 +5,9 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
 import { motion } from "framer-motion";
 import { ShieldCheck, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@nexusai360/design-system";
+import { Input } from "@nexusai360/design-system";
+import { Label } from "@nexusai360/design-system";
 import { resetPassword } from "@/lib/actions/password-reset";
 import Link from "next/link";
 

@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Target, Users, TrendingUp, Percent, ArrowUpRight, ArrowDownRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@nexusai360/design-system";
 import { Badge } from "@/components/ui/badge";
 import type { DashboardStats } from "@/lib/actions/dashboard";
 

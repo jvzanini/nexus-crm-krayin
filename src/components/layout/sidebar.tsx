@@ -15,7 +15,7 @@ import {
   Monitor,
 } from "lucide-react";
 import { getNavItems } from "@/lib/constants/navigation";
-import { Button } from "@/components/ui/button";
+import { Button } from "@nexusai360/design-system";
 import { signOut } from "next-auth/react";
 import { useSearch } from "@/components/layout/search-context";
 import Image from "next/image";

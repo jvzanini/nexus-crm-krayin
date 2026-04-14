@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Mail, ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@nexusai360/design-system";
+import { Input } from "@nexusai360/design-system";
+import { Label } from "@nexusai360/design-system";
 import { requestPasswordReset } from "@/lib/actions/password-reset";
 import Link from "next/link";
 import { APP_CONFIG } from "@/lib/app.config";

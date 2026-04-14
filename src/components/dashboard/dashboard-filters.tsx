@@ -1,7 +1,7 @@
 "use client";
 
 import { RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@nexusai360/design-system";
 
 interface DashboardFiltersProps {
   selectedPeriod: string;

@@ -8,7 +8,7 @@ import { NotificationBell } from "@/components/layout/notification-bell";
 import { DashboardFilters } from "./dashboard-filters";
 import { StatsCards } from "./stats-cards";
 import { RecentActivity } from "./recent-activity";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@nexusai360/design-system";
 import {
   LineChart,
   Line,
