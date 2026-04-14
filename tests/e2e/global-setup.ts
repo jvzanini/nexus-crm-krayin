@@ -9,14 +9,28 @@ async function loginRole(baseURL: string, role: E2ERole, storagePath: string) {
   const page = await ctx.newPage();
   const user = E2E_USERS[role];
 
-  await page.goto("/login");
+  await page.goto("/login", { waitUntil: "domcontentloaded" });
+  await page.waitForSelector('input[type="email"]', { timeout: 30_000 });
   await page.fill('input[type="email"]', user.email);
   await page.fill('input[type="password"]', E2E_PASSWORD);
   await page.click('button[type="submit"]');
-  await page.waitForURL(
-    (url) => !url.pathname.startsWith("/login"),
-    { timeout: 20_000 },
-  );
+  try {
+    await page.waitForURL(
+      (url) => !url.pathname.startsWith("/login"),
+      { timeout: 45_000 },
+    );
+  } catch (err) {
+    const url = page.url();
+    const errorBox = await page
+      .getByText(/inválid|erro|invalid|error/i)
+      .first()
+      .textContent()
+      .catch(() => null);
+    const html = (await page.content()).slice(0, 2000);
+    console.error(`[global-setup] login ${role} timeout — url=${url} errorBox=${errorBox}`);
+    console.error(`[global-setup] page html (first 2000 chars): ${html}`);
+    throw err;
+  }
 
   await ctx.storageState({ path: storagePath });
   await browser.close();
