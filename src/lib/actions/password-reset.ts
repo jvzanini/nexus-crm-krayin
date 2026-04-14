@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
-import bcrypt from "bcryptjs";
+import { hashPassword } from "@nexusai360/core";
 import { sendPasswordResetEmail } from "@/lib/email";
 
 type ActionResult<T = unknown> = {
@@ -58,7 +58,7 @@ export async function resetPassword(
   if (tokenRecord.usedAt) return { success: false, error: "Token já utilizado" };
   if (tokenRecord.expiresAt < new Date()) return { success: false, error: "Token expirado" };
 
-  const hashedPassword = await bcrypt.hash(newPassword, 12);
+  const hashedPassword = await hashPassword(newPassword);
 
   await prisma.$transaction([
     prisma.user.update({

@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import bcrypt from "bcryptjs";
+import { validatePassword, hashPassword } from "@nexusai360/core";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
 import { sendEmailVerificationEmail } from "@/lib/email";
@@ -68,10 +68,10 @@ export async function changePassword(input: {
   });
   if (!user) return { success: false, error: "Usuário não encontrado" };
 
-  const valid = await bcrypt.compare(input.currentPassword, user.password);
+  const valid = await validatePassword(input.currentPassword, user.password);
   if (!valid) return { success: false, error: "Senha atual incorreta" };
 
-  const hashed = await bcrypt.hash(input.newPassword, 12);
+  const hashed = await hashPassword(input.newPassword);
   await prisma.user.update({
     where: { id: currentUser.id },
     data: { password: hashed },

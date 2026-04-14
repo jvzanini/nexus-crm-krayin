@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { PLATFORM_ROLE_HIERARCHY } from "@/lib/constants/roles";
-import bcrypt from "bcryptjs";
+import { hashPassword } from "@nexusai360/core";
 import { revalidatePath } from "next/cache";
 import {
   createUserSchema,
@@ -136,7 +136,7 @@ export async function createUser(
   });
   if (existing) return { success: false, error: "E-mail já cadastrado" };
 
-  const hashedPassword = await bcrypt.hash(parsed.data.password, 12);
+  const hashedPassword = await hashPassword(parsed.data.password);
 
   const user = await prisma.user.create({
     data: {

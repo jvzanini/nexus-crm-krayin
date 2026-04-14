@@ -5,6 +5,16 @@
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
+    // Rate-limit singleton: best-effort — se @nexusai360/core ou redis falharem,
+    // logger warn e continua (login funciona sem rate-limit customizado).
+    try {
+      const { configureRateLimit } = await import("@nexusai360/core");
+      const { redis } = await import("@/lib/redis");
+      configureRateLimit(redis);
+    } catch (err) {
+      console.warn("[instrumentation] configureRateLimit falhou:", err);
+    }
+
     if (process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
       const { NodeSDK } = await import("@opentelemetry/sdk-node");
       const { OTLPTraceExporter } = await import(
