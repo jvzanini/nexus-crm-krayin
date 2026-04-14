@@ -12,6 +12,7 @@ import {
   TableRow,
   Button,
   PageHeader,
+  EmptyState,
 } from "@nexusai360/design-system";
 import { Megaphone, Mail, Plus, Eye, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -163,18 +164,23 @@ export function CampaignsListContent({ canManage }: CampaignsListContentProps) {
             ))}
           </div>
         ) : campaigns.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <Mail className="h-12 w-12 mb-3 text-muted-foreground/60" />
-            <p className="text-sm">Nenhuma campanha cadastrada ainda</p>
+          <EmptyState.Root>
+            <EmptyState.Icon icon={Megaphone} color="violet" />
+            <EmptyState.Title>Nenhuma campanha cadastrada</EmptyState.Title>
+            <EmptyState.Description>
+              Crie campanhas para engajar sua base de contatos.
+            </EmptyState.Description>
             {canManage && (
-              <button
-                onClick={() => router.push("/marketing/campaigns/new")}
-                className="mt-3 text-sm text-violet-400 hover:text-violet-300 cursor-pointer transition-colors"
-              >
-                Criar primeira campanha
-              </button>
+              <EmptyState.Action>
+                <Button
+                  onClick={() => router.push("/marketing/campaigns/new")}
+                  className="bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
+                >
+                  Nova campanha
+                </Button>
+              </EmptyState.Action>
             )}
-          </div>
+          </EmptyState.Root>
         ) : (
           <Table>
             <TableHeader>
