@@ -25,6 +25,9 @@ Headers de segurança ativos (HSTS/CSP/XFO/XCTO/Referrer/Permissions).
 - **Fase 15 — RBAC em Server Actions:** 8 arquivos cobertos (api-keys, company, users, settings, feature-flags, leads, contacts, opportunities); gating UI (botões Novo X escondidos para viewer); settings-ui resolver alinhado com RBAC do CRM.
 - **Fase 16 — Zero vulnerabilidades:** overrides follow-redirects 1.16 + @hono/node-server 1.19.13. `npm audit --audit-level=low` exit 0 com Prisma 7.6 mantido.
 - **Fase 17 — Pipeline Kanban:** rota nova `/opportunities/pipeline` com drag-and-drop via @dnd-kit, 6 colunas por stage com count+soma, card com probability badge, link "Pipeline" em /opportunities, E2E spec admin. 5 commits.
+- **Fase 18 — Dashboard Funnel:** 3 cards novos (FunnelCard leads→contacts→opps→won, PipelineValueCard bar por stage, TopOpportunitiesCard top 5 por valor). Extensão do `getDashboardData` Server Action. 4 commits.
+- **Fase 19 — Sidebar Pipeline:** item "Pipeline" adicionado ao menu principal abaixo de Oportunidades (ícone LayoutGrid).
+- **Fase 20 T2 — EmptyStates:** 9 telas (leads, contacts, opportunities, products, tasks, workflows, campaigns, segments, mailboxes) agora mostram EmptyState amigável com CTA quando lista vazia.
 
 **Todas fases acima COMPLETAS.** Frente 17 tenant scoping (77e2918) e todas as fases subsequentes mergeadas em main.
 **LEI ABSOLUTA #4** adicionada: toda nova implementação deve consultar `nexus-blueprint/` (design-system.md, patterns/, modules/) antes de criar componentes/features.
@@ -71,6 +74,10 @@ Recomendação: **A** (security hardening) → **C** (E2E verde) → **B** (RBAC
 | **`phase-15-rbac-server-actions`** | **15 — RBAC Server Actions** | **✅ 8 arquivos + gating UI viewer** |
 | **`phase-16-zero-vulns`** | **16 — Zero CVEs** | **✅ 0 vulns (high + moderate)** |
 | **`phase-17-pipeline-kanban`** | **17 — Pipeline Kanban** | **✅ drag-drop dnd-kit, 6 stages** |
+| **`phase-18-dashboard-funnel`** | **18 — Dashboard Funnel** | **✅ FunnelCard + PipelineValueCard + TopOpportunitiesCard** |
+| **`phase-19-sidebar-pipeline`** | **19 — Sidebar Pipeline** | **✅ item "Pipeline" no menu principal** |
+| **`phase-12-2-deployed`** | **12.2 — E2E CI verde** | **✅ 17+ tests passed em ~43s** |
+| **`phase-14-e2e-ci-stabilizer`** | **14 — E2E CI Stabilizer** | **✅ next start em CI resolveu timeout** |
 | **`prod-stable-2026-04-14-late`** | **snapshot estável pós-fix** | **✅ referência para rollback** |
 
 ### 1.2. Commits recentes em `main` (últimos 10)
