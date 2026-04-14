@@ -237,3 +237,10 @@ Preenchida durante cada fase. Status: `parity` | `partial` | `dropped` | `pendin
 | Compliance | Consent LGPD Leads/Contacts | 1b | parity | migration + lib recordConsent + forms + consent_logs + backfill + docs/lgpd.md |
 | Quality | ESLint rule no-direct-consent-write | 1b | parity | rule local em `eslint-rules/`, wired em `eslint.config.mjs`, teste RuleTester |
 | Quality | i18n parity check (br × us) | 1b | parity | `scripts/check-i18n-parity.ts`; pacotes locale-específicos (address, common) pulados por design |
+| Ops | Logger pino + redactors PII | 1c | parity | `src/lib/logger.ts`; lint `no-console-in-src` (warn-first) |
+| Ops | /api/health + /api/ready | 1c | parity | liveness puro + readiness (DB + Redis); públicos via authConfig allowlist |
+| Ops | x-request-id middleware | 1c | parity | gera UUID se ausente; propaga no response |
+| Ops | Feature flags runtime | 1c | partial | lib `src/lib/flags` + migration + pg_notify triggers; UI /settings/flags pendente |
+| Ops | Backup Postgres + drill | 1c | partial | scripts `backup-postgres.sh` + `restore-drill.sh` + `docs/ops/backup.md`; cron Portainer + drill em staging pendentes |
+| Security | RBAC granular matriz + helpers | 1c | partial | `src/lib/rbac/` com 21 permissions × 5 roles + hasPermission/requirePermission; migração das Server Actions pendente |
+| Ops | Sentry + OTel SDK | 1c | pending | bloqueado por install local (GHCR); merge próximo ciclo CI |

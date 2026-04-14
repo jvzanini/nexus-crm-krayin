@@ -400,6 +400,38 @@ model Opportunity {
 }
 
 // ============================================================
+// FEATURE FLAGS — toggles em runtime com override por tenant/usuário
+// ============================================================
+
+model FeatureFlag {
+  key         String   @id
+  description String?
+  enabled     Boolean  @default(false)
+  rolloutPct  Int      @default(0) @map("rollout_pct")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedBy   String?  @map("updated_by") @db.Uuid
+
+  overrides FeatureFlagOverride[]
+
+  @@map("feature_flags")
+}
+
+model FeatureFlagOverride {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String
+  scope     String
+  scopeId   String   @map("scope_id") @db.Uuid
+  enabled   Boolean
+  createdAt DateTime @default(now()) @map("created_at")
+
+  flag FeatureFlag @relation(fields: [key], references: [key], onDelete: Cascade)
+
+  @@unique([key, scope, scopeId])
+  @@index([key, scope, scopeId], name: "idx_flag_override_lookup")
+  @@map("feature_flag_overrides")
+}
+
+// ============================================================
 // CONSENT LGPD — trilha de auditoria imutável
 // ============================================================
 
