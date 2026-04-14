@@ -5,18 +5,24 @@ const withNextIntl = createNextIntlPlugin("./src/i18n.ts");
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  // NÃO incluir @nexusai360/design-system em transpilePackages.
-  // Turbopack re-bundle resolve React incorretamente e quebra createContext em SSR
-  // (erro "s.createContext is not a function" — diagnosticado via /api/debug/layout).
-  // DS já vem pré-compilado (dual cjs/esm + peerDeps) — deve ser consumido direto.
+  // Vendor packages @nexusai360/* DEVEM estar em transpilePackages + turbopack
+  // resolveAlias abaixo garante instância única de react/react-dom entre app e vendor.
+  // Sem transpile, standalone copia vendor para node_modules e o require em runtime
+  // cria segunda instância de React → useState null em SSR (dual React 2026-04-14).
   transpilePackages: [
     "@nexusai360/types",
-  ],
-  serverExternalPackages: [
-    "bcryptjs",
     "@nexusai360/design-system",
     "@nexusai360/users-ui",
     "@nexusai360/companies-ui",
+    "@nexusai360/profile-ui",
+    "@nexusai360/settings-ui",
+    "@nexusai360/api-keys",
+    "@nexusai360/core",
+    "@nexusai360/multi-tenant",
+    "@nexusai360/audit-log",
+  ],
+  serverExternalPackages: [
+    "bcryptjs",
     "@opentelemetry/sdk-node",
     "@opentelemetry/instrumentation-http",
     "@opentelemetry/instrumentation-pg",
