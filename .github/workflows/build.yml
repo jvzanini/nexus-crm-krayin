@@ -21,7 +21,7 @@ jobs:
           cache: npm
           registry-url: https://npm.pkg.github.com
           scope: '@nexusai360'
-      - run: npm install --no-audit --no-fund
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GHCR_TOKEN }}
       - name: Commit updated package-lock.json
