@@ -6,6 +6,12 @@ const withNextIntl = createNextIntlPlugin("./src/i18n.ts");
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  transpilePackages: [
+    "@nexusai360/design-system",
+    "@nexusai360/users-ui",
+    "@nexusai360/companies-ui",
+    "@nexusai360/types",
+  ],
   serverExternalPackages: [
     "bcryptjs",
     "@opentelemetry/sdk-node",
