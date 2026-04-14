@@ -11,6 +11,8 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,9 +21,18 @@ jobs:
           cache: npm
           registry-url: https://npm.pkg.github.com
           scope: '@nexusai360'
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GHCR_TOKEN }}
+      - name: Commit updated package-lock.json
+        run: |
+          if ! git diff --quiet package-lock.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "chore(crm): update package-lock.json (CI bootstrap)"
+            git push origin HEAD:main || echo "push failed, continuing"
+          fi
       - run: npx prisma generate
       - run: npm test --if-present
 

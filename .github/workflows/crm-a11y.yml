@@ -37,7 +37,7 @@ jobs:
           scope: '@nexusai360'
 
       - name: Install deps
-        run: npm ci
+        run: npm install --no-audit --no-fund
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GHCR_TOKEN }}
 

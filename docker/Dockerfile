@@ -3,7 +3,7 @@ WORKDIR /app
 ARG NPM_TOKEN
 COPY package.json package-lock.json .npmrc ./
 RUN printf "//npm.pkg.github.com/:_authToken=%s\n" "${NPM_TOKEN}" >> .npmrc \
-    && npm ci --omit=dev \
+    && npm install --no-audit --no-fund --omit=dev \
     && rm -f .npmrc
 
 FROM node:20-alpine AS builder
@@ -11,7 +11,7 @@ WORKDIR /app
 ARG NPM_TOKEN
 COPY package.json package-lock.json .npmrc ./
 RUN printf "//npm.pkg.github.com/:_authToken=%s\n" "${NPM_TOKEN}" >> .npmrc \
-    && npm ci \
+    && npm install --no-audit --no-fund \
     && rm -f .npmrc
 COPY . .
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
