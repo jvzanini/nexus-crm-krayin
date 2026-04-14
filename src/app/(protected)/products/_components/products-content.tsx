@@ -14,6 +14,7 @@ import { Button } from "@nexusai360/design-system";
 import { Input } from "@nexusai360/design-system";
 import { Switch } from "@nexusai360/design-system";
 import { PageHeader } from "@nexusai360/design-system";
+import { EmptyState } from "@nexusai360/design-system";
 import {
   Dialog,
   DialogContent,
@@ -793,10 +794,23 @@ export function ProductsContent({
             <TableSkeleton />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <Package className="h-12 w-12 mb-3 text-muted-foreground/60" />
-            <p className="text-sm">Nenhum produto encontrado</p>
-          </div>
+          <EmptyState.Root>
+            <EmptyState.Icon icon={Package} color="blue" />
+            <EmptyState.Title>Nenhum produto cadastrado</EmptyState.Title>
+            <EmptyState.Description>
+              Adicione produtos ao seu catálogo para associar a oportunidades.
+            </EmptyState.Description>
+            {canCreate && (
+              <EmptyState.Action>
+                <Button
+                  onClick={openCreate}
+                  className="bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
+                >
+                  Novo produto
+                </Button>
+              </EmptyState.Action>
+            )}
+          </EmptyState.Root>
         ) : (
           <Table>
             <TableHeader>
