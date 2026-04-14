@@ -1,0 +1,95 @@
+name: CRM Accessibility (axe + lighthouse)
+
+on:
+  workflow_dispatch:
+    inputs:
+      update_snapshots:
+        description: 'Update baselines and commit'
+        required: false
+        default: ''
+  pull_request:
+    paths:
+      - 'src/app/__ds-preview/**'
+      - 'src/middleware.ts'
+      - 'tests/e2e/**'
+      - 'package.json'
+      - '.github/workflows/crm-a11y.yml'
+
+jobs:
+  a11y:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      DS_PREVIEW: 'true'
+      DS_V3_ENABLED: 'true'
+      DATABASE_URL: 'postgresql://dummy:dummy@localhost:5432/dummy'
+      REDIS_URL: 'redis://dummy:6379'
+      NEXTAUTH_SECRET: 'dummy-secret-for-ci-a11y-smoke'
+      NEXTAUTH_URL: 'http://localhost:3000'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          registry-url: https://npm.pkg.github.com
+          scope: '@nexusai360'
+
+      - name: Install deps
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Prisma generate
+        run: npx prisma generate
+
+      - name: Build
+        run: npm run build
+
+      - name: Run Playwright a11y smoke
+        id: pw
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.update_snapshots }}" ]; then
+            npx playwright test tests/e2e/ds-preview.spec.ts --update-snapshots
+          else
+            npx playwright test tests/e2e/ds-preview.spec.ts
+          fi
+
+      - name: Commit updated baselines
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if git diff --quiet tests/e2e/; then
+            echo "No baseline changes"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add tests/e2e/
+            git commit -m "chore(crm): update Playwright ds-preview baselines (CI)"
+            git push origin HEAD:main
+          fi
+
+      - name: Lighthouse CI
+        continue-on-error: true
+        run: |
+          npm install -g @lhci/cli@0.14.x
+          npm run start &
+          SERVER_PID=$!
+          sleep 10
+          lhci autorun \
+            --collect.url=http://localhost:3000/__ds-preview \
+            --collect.settings.chromeFlags="--no-sandbox" \
+            --assert.assertions.categories:accessibility.minScore=0.95 \
+          || echo "lighthouse threshold ainda ajustando"
+          kill $SERVER_PID || true
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

@@ -21,7 +21,7 @@ jobs:
           scope: '@nexusai360'
       - run: npm ci
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GHCR_TOKEN }}
       - run: npx prisma generate
       - run: npm test --if-present
 
@@ -56,7 +56,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            NPM_TOKEN=${{ secrets.GITHUB_TOKEN }}
+            NPM_TOKEN=${{ secrets.GHCR_TOKEN }}
 
   deploy:
     needs: build
