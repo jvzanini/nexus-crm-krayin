@@ -10,7 +10,7 @@ import {
   setSettingSchema,
   canEditSettings,
 } from "@nexusai360/settings-ui/server-helpers";
-import { getCurrentUser } from "@/lib/auth";
+import { requirePermission, PermissionDeniedError } from "@/lib/rbac";
 import { settingsAdapter } from "@/lib/adapters/settings";
 import { logger } from "@/lib/logger";
 
@@ -25,8 +25,7 @@ export async function saveSettingAction(
         error: parsed.error.issues[0]?.message ?? "invalid_input",
       };
     }
-    const user = await getCurrentUser();
-    if (!user) return { success: false, error: "unauthenticated" };
+    const user = await requirePermission("settings:edit");
     if (!canEditSettings(user.platformRole as PlatformRole)) {
       return { success: false, error: "forbidden" };
     }
@@ -38,6 +37,9 @@ export async function saveSettingAction(
     revalidatePath("/settings");
     return { success: true };
   } catch (err) {
+    if (err instanceof PermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
     logger.error({ err }, "settings.save.failed");
     return { success: false, error: "internal_error" };
   }
