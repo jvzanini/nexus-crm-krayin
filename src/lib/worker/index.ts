@@ -13,7 +13,13 @@ import { logger } from "@/lib/logger";
 const REDIS_URL = process.env.REDIS_URL || "redis://redis:6379";
 const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY ?? "re_missing_key");
+  }
+  return _resend;
+}
 
 // ============================================================
 // Worker: email
@@ -25,7 +31,7 @@ const emailWorker = new Worker(
     const { to, subject, html } = job.data;
     const from = process.env.EMAIL_FROM || "Nexus CRM <contato@nexusai360.com>";
 
-    await resend.emails.send({ from, to, subject, html });
+    await getResend().emails.send({ from, to, subject, html });
     logger.info({ queue: "email", to, subject }, "worker.email.sent");
   },
   { connection }

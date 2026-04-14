@@ -1,13 +1,19 @@
 import { Resend } from "resend";
 import { APP_CONFIG } from "@/lib/app.config";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY ?? "re_missing_key");
+  }
+  return _resend;
+}
 
 export async function sendPasswordResetEmail(
   to: string,
   resetUrl: string
 ): Promise<void> {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: APP_CONFIG.emailFrom,
     to,
     subject: `Redefinição de senha — ${APP_CONFIG.name}`,
@@ -36,7 +42,7 @@ export async function sendEmailVerificationEmail(
   to: string,
   verifyUrl: string
 ): Promise<void> {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: APP_CONFIG.emailFrom,
     to,
     subject: `Confirmação de e-mail — ${APP_CONFIG.name}`,
