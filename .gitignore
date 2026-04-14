@@ -38,5 +38,9 @@ npm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Playwright E2E auth storage
+# Playwright E2E auth storage + artifacts
 tests/e2e/.auth/*.json
+test-results/
+
+# Claude Code runtime state (session locks)
+.claude/scheduled_tasks.lock
