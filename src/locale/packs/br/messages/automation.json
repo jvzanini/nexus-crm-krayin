@@ -1,0 +1,61 @@
+{
+  "list": {
+    "title": "Workflows de automação",
+    "subtitle.count": "{count, plural, =0 {Nenhum workflow} one {# workflow cadastrado} other {# workflows cadastrados}}",
+    "empty": "Nenhum workflow cadastrado ainda",
+    "columns": {
+      "name": "Nome",
+      "trigger": "Disparo",
+      "status": "Status",
+      "version": "Versão",
+      "actions": "Ações"
+    }
+  },
+  "trigger": {
+    "lead_created": "Lead criado",
+    "contact_created": "Contato criado",
+    "activity_completed": "Atividade concluída"
+  },
+  "status": {
+    "draft": "Rascunho",
+    "active": "Ativo",
+    "paused": "Pausado"
+  },
+  "editor": {
+    "create.title": "Novo workflow",
+    "edit.title": "Editar workflow",
+    "field.name": "Nome",
+    "field.description": "Descrição",
+    "section.trigger": "Disparo (quando)",
+    "section.conditions": "Condições (se)",
+    "section.actions": "Ações (então)",
+    "addCondition": "Adicionar condição",
+    "addAction": "Adicionar ação",
+    "removeItem": "Remover",
+    "op": {
+      "eq": "Igual a",
+      "neq": "Diferente de",
+      "in": "Em (lista)",
+      "gt": "Maior que",
+      "lt": "Menor que",
+      "contains": "Contém"
+    },
+    "actionType": {
+      "update-field": "Atualizar campo",
+      "create-task": "Criar tarefa",
+      "assign-user": "Atribuir usuário",
+      "send-email": "Enviar e-mail"
+    }
+  },
+  "action": {
+    "new": "Novo workflow",
+    "save": "Salvar rascunho",
+    "activate": "Ativar",
+    "pause": "Pausar",
+    "resume": "Retomar",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "cancel": "Cancelar",
+    "confirmDelete": "Excluir workflow \"{name}\"? Histórico de execuções será removido em cascata."
+  }
+}

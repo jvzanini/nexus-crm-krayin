@@ -1,0 +1,61 @@
+{
+  "list": {
+    "title": "Automation workflows",
+    "subtitle.count": "{count, plural, =0 {No workflows} one {# workflow registered} other {# workflows registered}}",
+    "empty": "No workflow configured yet",
+    "columns": {
+      "name": "Name",
+      "trigger": "Trigger",
+      "status": "Status",
+      "version": "Version",
+      "actions": "Actions"
+    }
+  },
+  "trigger": {
+    "lead_created": "Lead created",
+    "contact_created": "Contact created",
+    "activity_completed": "Activity completed"
+  },
+  "status": {
+    "draft": "Draft",
+    "active": "Active",
+    "paused": "Paused"
+  },
+  "editor": {
+    "create.title": "New workflow",
+    "edit.title": "Edit workflow",
+    "field.name": "Name",
+    "field.description": "Description",
+    "section.trigger": "Trigger (when)",
+    "section.conditions": "Conditions (if)",
+    "section.actions": "Actions (then)",
+    "addCondition": "Add condition",
+    "addAction": "Add action",
+    "removeItem": "Remove",
+    "op": {
+      "eq": "Equals",
+      "neq": "Not equals",
+      "in": "In (list)",
+      "gt": "Greater than",
+      "lt": "Less than",
+      "contains": "Contains"
+    },
+    "actionType": {
+      "update-field": "Update field",
+      "create-task": "Create task",
+      "assign-user": "Assign user",
+      "send-email": "Send email"
+    }
+  },
+  "action": {
+    "new": "New workflow",
+    "save": "Save draft",
+    "activate": "Activate",
+    "pause": "Pause",
+    "resume": "Resume",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "confirmDelete": "Delete workflow \"{name}\"? Execution history will be removed in cascade."
+  }
+}
