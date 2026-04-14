@@ -26,12 +26,15 @@ export default async function ContactActivitiesPage({ params }: PageProps) {
 
   if (!membership) redirect("/dashboard");
 
+  // Contact não tem companyId no schema. Também não tem `name` — tem firstName + lastName.
   const contact = await prisma.contact.findFirst({
-    where: { id, companyId: membership.companyId },
-    select: { id: true, name: true },
+    where: { id },
+    select: { id: true, firstName: true, lastName: true },
   });
 
   if (!contact) notFound();
+
+  const contactName = `${contact.firstName} ${contact.lastName}`.trim();
 
   const canCreate = userHasPermission(user, "activities:create");
   const canEdit = userHasPermission(user, "activities:edit");
@@ -43,7 +46,7 @@ export default async function ContactActivitiesPage({ params }: PageProps) {
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         {/* TODO T7: extract to i18n key activities.breadcrumb.contact */}
         <span>Contato:</span>
-        <span className="font-medium text-foreground">{contact.name}</span>
+        <span className="font-medium text-foreground">{contactName}</span>
       </div>
       <ActivityTimeline
         subjectType="contact"

@@ -159,7 +159,10 @@ export async function updateSegmentAction(
 }
 
 export async function previewSegmentAction(input: unknown): Promise<
-  ActionResult<{ count: number; sample: { id: string; email: string | null; name: string }[] }>
+  ActionResult<{
+    count: number;
+    sample: { id: string; email: string | null; firstName: string; lastName: string }[];
+  }>
 > {
   try {
     await requirePermission("marketing:view");
@@ -170,7 +173,6 @@ export async function previewSegmentAction(input: unknown): Promise<
     }
 
     const where = buildWhereFromFilters(parsed.data.filters);
-    // Adiciona filtro implícito de consent
     const finalWhere = {
       AND: [...where.AND, { consentMarketing: true }],
     };
@@ -180,7 +182,7 @@ export async function previewSegmentAction(input: unknown): Promise<
       prisma.contact.findMany({
         where: finalWhere as any,
         take: 5,
-        select: { id: true, email: true, name: true },
+        select: { id: true, email: true, firstName: true, lastName: true },
       }),
     ]);
 

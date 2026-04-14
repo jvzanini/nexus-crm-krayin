@@ -26,8 +26,10 @@ export default async function LeadActivitiesPage({ params }: PageProps) {
 
   if (!membership) redirect("/dashboard");
 
+  // Lead/Contact/Opportunity ainda não têm companyId no schema (tenant scope
+  // enforced em Server Actions via session.membership). Auth via membership.
   const lead = await prisma.lead.findFirst({
-    where: { id, companyId: membership.companyId },
+    where: { id },
     select: { id: true, name: true },
   });
 

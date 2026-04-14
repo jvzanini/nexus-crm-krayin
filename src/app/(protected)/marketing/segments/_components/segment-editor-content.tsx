@@ -95,7 +95,7 @@ export function SegmentEditorContent({
 
   const [previewData, setPreviewData] = useState<{
     count: number;
-    sample: { id: string; email: string | null; name: string }[];
+    sample: { id: string; email: string | null; firstName: string; lastName: string }[];
   } | null>(null);
 
   const isPending = saving || previewing;
@@ -357,7 +357,7 @@ export function SegmentEditorContent({
                       key={contact.id}
                       className="flex items-center gap-2 text-xs text-muted-foreground p-1.5 rounded-md bg-muted/30"
                     >
-                      <span className="font-medium text-foreground">{contact.name}</span>
+                      <span className="font-medium text-foreground">{`${contact.firstName} ${contact.lastName}`.trim()}</span>
                       {contact.email && <span>{contact.email}</span>}
                     </div>
                   ))}

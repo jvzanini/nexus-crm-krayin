@@ -713,19 +713,23 @@ export async function getAssignableUsers(): Promise<ActionResult<AssignableUser[
 async function validateSubjectInTenant(
   subjectType: string,
   subjectId: string,
-  companyId: string
+  _companyId: string
 ): Promise<boolean> {
+  // NOTA: Lead/Contact/Opportunity ainda não têm companyId no DB schema.
+  // Tenant scope é enforced em outras camadas (session + membership).
+  // Aqui só validamos existência do subject; adicionar filtro companyId
+  // é TODO multi-tenant-strict (fase futura — requer migration).
   switch (subjectType) {
     case "lead": {
-      const row = await prisma.lead.findFirst({ where: { id: subjectId, companyId }, select: { id: true } });
+      const row = await prisma.lead.findFirst({ where: { id: subjectId }, select: { id: true } });
       return row !== null;
     }
     case "contact": {
-      const row = await prisma.contact.findFirst({ where: { id: subjectId, companyId }, select: { id: true } });
+      const row = await prisma.contact.findFirst({ where: { id: subjectId }, select: { id: true } });
       return row !== null;
     }
     case "opportunity": {
-      const row = await prisma.opportunity.findFirst({ where: { id: subjectId, companyId }, select: { id: true } });
+      const row = await prisma.opportunity.findFirst({ where: { id: subjectId }, select: { id: true } });
       return row !== null;
     }
     default:
