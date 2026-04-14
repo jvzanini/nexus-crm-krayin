@@ -8,6 +8,7 @@ import { Providers } from "@/components/providers/theme-provider";
 import { LocaleClientProvider } from "@/components/locale/LocaleClientProvider";
 import { getResolvedThemeFromCookie } from "@/lib/theme";
 import { APP_CONFIG } from "@/lib/app.config";
+import "@nexusai360/design-system/styles.css";
 import "./globals.css";
 
 const inter = Inter({
