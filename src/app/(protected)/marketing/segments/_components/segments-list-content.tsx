@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   PageHeader,
+  EmptyState,
 } from "@nexusai360/design-system";
 import { Layers, Users2, Plus, Pencil, Trash2, Loader2, AlertTriangle, Filter } from "lucide-react";
 import { toast } from "sonner";
@@ -162,18 +163,23 @@ export function SegmentsListContent({ canManage }: SegmentsListContentProps) {
             ))}
           </div>
         ) : segments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <Filter className="h-12 w-12 mb-3 text-muted-foreground/60" />
-            <p className="text-sm">Nenhum segmento cadastrado ainda</p>
+          <EmptyState.Root>
+            <EmptyState.Icon icon={Layers} color="blue" />
+            <EmptyState.Title>Nenhum segmento criado</EmptyState.Title>
+            <EmptyState.Description>
+              Segmente seus contatos para campanhas mais eficazes.
+            </EmptyState.Description>
             {canManage && (
-              <button
-                onClick={() => router.push("/marketing/segments/new")}
-                className="mt-3 text-sm text-violet-400 hover:text-violet-300 cursor-pointer transition-colors"
-              >
-                Criar primeiro segmento
-              </button>
+              <EmptyState.Action>
+                <Button
+                  onClick={() => router.push("/marketing/segments/new")}
+                  className="bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
+                >
+                  Novo segmento
+                </Button>
+              </EmptyState.Action>
             )}
-          </div>
+          </EmptyState.Root>
         ) : (
           <Table>
             <TableHeader>
