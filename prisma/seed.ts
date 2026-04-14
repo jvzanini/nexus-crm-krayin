@@ -16,6 +16,28 @@ async function main() {
 
   const hashedPassword = await bcrypt.hash(password, 12);
 
+  // System user — usado como createdBy em actions automatizadas (ex.: automation create-task).
+  // UUID fixo nil para referenciar em código sem depender de lookup.
+  const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000000";
+  const systemPassword = await bcrypt.hash(`system-${Date.now()}-${Math.random()}`, 12);
+  await prisma.user.upsert({
+    where: { id: SYSTEM_USER_ID },
+    update: {
+      isActive: true,
+      platformRole: "super_admin",
+    },
+    create: {
+      id: SYSTEM_USER_ID,
+      email: "system@nexuscrm.internal",
+      name: "Sistema",
+      password: systemPassword,
+      platformRole: "super_admin",
+      isSuperAdmin: true,
+      isActive: true,
+    },
+  });
+  console.log(`System user garantido (id=${SYSTEM_USER_ID})`);
+
   const user = await prisma.user.upsert({
     where: { email },
     update: {
