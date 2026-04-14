@@ -5,22 +5,18 @@ const withNextIntl = createNextIntlPlugin("./src/i18n.ts");
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  // @nexusai360/* packages usam peerDependencies React 19 — resolução padrão do Next.
-  // transpilePackages quebra (createContext undefined); serverExternalPackages quebra
-  // (useContext null, dual React). Deixar Next decidir.
   transpilePackages: ["@nexusai360/types"],
   serverExternalPackages: ["bcryptjs"],
-  webpack: (config) => {
-    // Garante React único resolvendo app -> node_modules/react sempre.
-    config.resolve = config.resolve ?? {};
-    config.resolve.alias = {
-      ...(config.resolve.alias ?? {}),
-      react: require.resolve("react"),
-      "react-dom": require.resolve("react-dom"),
-      "react/jsx-runtime": require.resolve("react/jsx-runtime"),
-      "react/jsx-dev-runtime": require.resolve("react/jsx-dev-runtime"),
-    };
-    return config;
+  // Next 16 usa turbopack por padrão em `next build`. webpack config é IGNORADO.
+  // Alias força instância única de react/react-dom (fix dual-React — log prod:
+  // "Cannot read properties of null (reading 'useContext')").
+  turbopack: {
+    resolveAlias: {
+      react: "./node_modules/react",
+      "react-dom": "./node_modules/react-dom",
+      "react/jsx-runtime": "./node_modules/react/jsx-runtime.js",
+      "react/jsx-dev-runtime": "./node_modules/react/jsx-dev-runtime.js",
+    },
   },
 };
 
