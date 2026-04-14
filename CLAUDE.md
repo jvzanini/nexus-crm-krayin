@@ -1,5 +1,7 @@
 # Nexus CRM
 
+> ⚡ **AO ABRIR PROJETO EM NOVO TERMINAL / NOVA SESSÃO:** primeira leitura obrigatória é **[`docs/HANDOFF.md`](docs/HANDOFF.md)**. Ele explica o estado atual da produção, migrations pendentes, secrets a configurar, e onde continuar. Só depois siga esta CLAUDE.md.
+
 ## Projeto
 Gestão de leads, contatos, oportunidades e pipeline de vendas com automação
 
