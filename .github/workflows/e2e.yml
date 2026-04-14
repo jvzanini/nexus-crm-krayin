@@ -59,7 +59,7 @@ jobs:
         run: npx prisma generate
 
       - name: Prisma db push (schema sync — Prisma 7 sem url no datasource)
-        run: npx prisma db push --accept-data-loss --skip-generate
+        run: npx prisma db push --accept-data-loss --url "$DATABASE_URL"
 
       - name: Seed base
         run: npm run prisma:seed
