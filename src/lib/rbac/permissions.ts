@@ -21,6 +21,10 @@ export const PERMISSIONS = [
   "opportunities:create",
   "opportunities:edit",
   "opportunities:delete",
+  "products:view",
+  "products:create",
+  "products:edit",
+  "products:delete",
   "companies:view",
   "companies:manage",
   "users:view",
@@ -46,7 +50,7 @@ export type Role =
  * Expande `<módulo>:manage` para todas as ações CRUD do módulo + a própria manage.
  */
 function allOf(
-  mod: "leads" | "contacts" | "opportunities",
+  mod: "leads" | "contacts" | "opportunities" | "products",
 ): Permission[] {
   return [
     `${mod}:view`,
@@ -63,6 +67,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     ...allOf("leads"),
     ...allOf("contacts"),
     ...allOf("opportunities"),
+    ...allOf("products"),
     "companies:view",
     "companies:manage",
     "users:view",
@@ -78,6 +83,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     ...allOf("leads"),
     ...allOf("contacts"),
     ...allOf("opportunities"),
+    ...allOf("products"),
     "companies:view",
     "users:view",
     "settings:view",
@@ -94,12 +100,14 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "opportunities:view",
     "opportunities:create",
     "opportunities:edit",
+    "products:view",
   ],
 
   viewer: [
     "leads:view",
     "contacts:view",
     "opportunities:view",
+    "products:view",
     "companies:view",
     "settings:view",
   ],
