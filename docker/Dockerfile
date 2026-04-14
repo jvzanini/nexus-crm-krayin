@@ -1,12 +1,18 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+ARG NPM_TOKEN
+COPY package.json package-lock.json .npmrc ./
+RUN printf "//npm.pkg.github.com/:_authToken=%s\n" "${NPM_TOKEN}" >> .npmrc \
+    && npm ci --omit=dev \
+    && rm -f .npmrc
 
 FROM node:20-alpine AS builder
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+ARG NPM_TOKEN
+COPY package.json package-lock.json .npmrc ./
+RUN printf "//npm.pkg.github.com/:_authToken=%s\n" "${NPM_TOKEN}" >> .npmrc \
+    && npm ci \
+    && rm -f .npmrc
 COPY . .
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 ENV REDIS_URL="redis://dummy:6379"

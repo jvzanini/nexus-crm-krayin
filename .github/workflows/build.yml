@@ -17,7 +17,11 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          registry-url: https://npm.pkg.github.com
+          scope: '@nexusai360'
       - run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: npx prisma generate
       - run: npm test --if-present
 
@@ -51,6 +55,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NPM_TOKEN=${{ secrets.GITHUB_TOKEN }}
 
   deploy:
     needs: build
