@@ -12,17 +12,23 @@ import {
   overrideFlagSchema,
   canManageFlags,
 } from "@nexusai360/settings-ui/server-helpers";
-import { getCurrentUser } from "@/lib/auth";
+import { requirePermission, PermissionDeniedError } from "@/lib/rbac";
 import { flagsAdapter } from "@/lib/adapters/settings";
 import { logger } from "@/lib/logger";
 
 async function requireFlagsManage() {
-  const user = await getCurrentUser();
-  if (!user) return { error: "unauthenticated" as const, user: null };
-  if (!canManageFlags(user.platformRole as PlatformRole)) {
-    return { error: "forbidden" as const, user: null };
+  try {
+    const user = await requirePermission("flags:manage");
+    if (!canManageFlags(user.platformRole as PlatformRole)) {
+      return { error: "forbidden" as const, user: null };
+    }
+    return { error: null, user };
+  } catch (err) {
+    if (err instanceof PermissionDeniedError) {
+      return { error: "forbidden" as const, user: null };
+    }
+    throw err;
   }
-  return { error: null, user };
 }
 
 export async function setFlagAction(
