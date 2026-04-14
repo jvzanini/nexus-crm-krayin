@@ -61,10 +61,7 @@ jobs:
       - name: Prisma db push (schema sync — Prisma 7 sem url no datasource)
         run: npx prisma db push --accept-data-loss --url "$DATABASE_URL"
 
-      - name: Seed base
-        run: npm run prisma:seed
-
-      - name: Seed E2E
+      - name: Seed E2E (inclui companies + 3 roles; pula seed base pois testes E2E não usam system user)
         run: npm run test:e2e:seed
 
       - name: Install Playwright browsers
