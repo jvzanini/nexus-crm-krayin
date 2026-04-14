@@ -246,3 +246,6 @@ Preenchida durante cada fase. Status: `parity` | `partial` | `dropped` | `pendin
 | Ops | Sentry + OTel SDK | 1c | parity | instrumentation.ts + sentry.{server,client,edge}.config.ts + withSentryConfig; DSN opcional (no-op sem env) |
 | CRM | Products + ProductPrice (multi-moeda) | 3 | parity | migration + 10-currency allowlist + Server Actions CRUD+prices + UI /products + i18n + seed 6×2 cat/company |
 | Security | RBAC products:view/create/edit/delete | 3 | parity | matriz atualizada em src/lib/rbac/permissions.ts |
+| CRM | Activities timeline (5 types) | 6 | parity | model polimórfico (lead/contact/opportunity), CRUD + reminders + files |
+| Infra | FileStorageDriver (local) | 6 | parity | interface + LocalDiskDriver; S3Driver em Fase 12 |
+| Infra | BullMQ activity-reminders + worker | 6 | parity | queue + processor + boot reenqueue de pendings |
