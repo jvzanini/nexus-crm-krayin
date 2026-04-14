@@ -1,7 +1,9 @@
 {
   "list": {
     "title": "Automation workflows",
-    "subtitle.count": "{count, plural, =0 {No workflows} one {# workflow registered} other {# workflows registered}}",
+    "subtitle": {
+      "count": "{count, plural, =0 {No workflows} one {# workflow registered} other {# workflows registered}}"
+    },
     "empty": "No workflow configured yet",
     "columns": {
       "name": "Name",
@@ -22,13 +24,21 @@
     "paused": "Paused"
   },
   "editor": {
-    "create.title": "New workflow",
-    "edit.title": "Edit workflow",
-    "field.name": "Name",
-    "field.description": "Description",
-    "section.trigger": "Trigger (when)",
-    "section.conditions": "Conditions (if)",
-    "section.actions": "Actions (then)",
+    "create": {
+      "title": "New workflow"
+    },
+    "edit": {
+      "title": "Edit workflow"
+    },
+    "field": {
+      "name": "Name",
+      "description": "Description"
+    },
+    "section": {
+      "trigger": "Trigger (when)",
+      "conditions": "Conditions (if)",
+      "actions": "Actions (then)"
+    },
     "addCondition": "Add condition",
     "addAction": "Add action",
     "removeItem": "Remove",

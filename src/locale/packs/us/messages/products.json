@@ -1,7 +1,9 @@
 {
   "list": {
     "title": "Products",
-    "subtitle.count": "{count, plural, =0 {No products} one {# product registered} other {# products registered}}",
+    "subtitle": {
+      "count": "{count, plural, =0 {No products} one {# product registered} other {# products registered}}"
+    },
     "empty": "No products registered yet",
     "filter": {
       "category": "Category",
@@ -13,8 +15,12 @@
     }
   },
   "form": {
-    "create.title": "New product",
-    "edit.title": "Edit product",
+    "create": {
+      "title": "New product"
+    },
+    "edit": {
+      "title": "Edit product"
+    },
     "sku": "SKU",
     "name": "Name",
     "description": "Description",

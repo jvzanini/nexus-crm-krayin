@@ -21,6 +21,17 @@ const nextConfig: NextConfig = {
     "@opentelemetry/instrumentation-http",
     "@opentelemetry/instrumentation-pg",
   ],
+  // Next 16 usa turbopack por padrão em `next build`. webpack config é IGNORADO.
+  // Alias força instância única de react/react-dom (fix dual-React — log prod:
+  // "Cannot read properties of null (reading 'useContext')").
+  turbopack: {
+    resolveAlias: {
+      react: "./node_modules/react",
+      "react-dom": "./node_modules/react-dom",
+      "react/jsx-runtime": "./node_modules/react/jsx-runtime.js",
+      "react/jsx-dev-runtime": "./node_modules/react/jsx-dev-runtime.js",
+    },
+  },
 };
 
 // Sentry wrapper desativado temporariamente — suspeito de causar HTTP 500 em SSR
