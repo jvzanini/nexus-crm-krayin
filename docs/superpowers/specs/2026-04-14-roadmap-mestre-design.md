@@ -264,3 +264,6 @@ Preenchida durante cada fase. Status: `parity` | `partial` | `dropped` | `pendin
 | Marketing | Unsubscribe HMAC endpoint /api/unsubscribe/[token] | 9 | parity | HMAC SHA-256 stateless TTL 90d; grava consent_logs source=campaign_unsubscribe |
 | Marketing | Queue marketing-send + worker | 9 | partial | queue isolada de email transacional; send via stub aguardando Fase 7c |
 | Marketing | UI /marketing/{segments,campaigns} | 9 | parity | list + editor + preview (segments); list + editor + detail + stats (campaigns) |
+| LGPD | DSAR export endpoint | 12.0 | parity | JSON stream subject + activities + emails + consent_logs + audit_logs |
+| LGPD | DSAR consent revoke endpoint | 12.0 | parity | recordConsent source=dsar + audit log |
+| LGPD | DSAR erase (anonimização) endpoint | 12.0 | parity | [DSAR ERASED] marker + PII limpa; FK + consent_logs preservados |

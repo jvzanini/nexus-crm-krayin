@@ -112,15 +112,46 @@ Admin deve re-consentir ativamente cada registro legacy via tela de edição (ge
 
 ---
 
-## 6. DSAR (Data Subject Access Requests) — Fase 12
+## 6. DSAR (Data Subject Access Requests) — Fase 12.0 ✅ entregue
 
-Os endpoints abaixo **serão** entregues na Fase 12. Contrato antecipado aqui para que o design respeite:
+Endpoints REST para exercício dos direitos LGPD art. 18 (acesso, anonimização, oposição ao tratamento). Protegidos com `dsar:execute` — apenas `admin` e `super_admin`. Todas as ações geram registro em `audit_logs`.
 
-| Endpoint | Objetivo |
-|----------|---------|
-| `GET  /api/v1/subjects/:type/:id/consent/history` | Retorna todos os logs (acesso art. 18, II/III). |
-| `POST /api/v1/subjects/:type/:id/consent/revoke`  | Equivale a `recordConsent(granted=false)` com `source='dsar'`. |
-| `POST /api/v1/subjects/:type/:id/erase`           | Anonimiza PII do subject + marca logs com `reason='erased_by_dsar'`. |
+### 6.1. Export (art. 18, I/II — acesso e confirmação)
+
+```
+GET /api/v1/subjects/:type/:id/export
+```
+
+Retorna JSON com todos os dados do subject (lead/contact/opportunity): campos + activities + emails + consent_logs + audit_logs relacionados. Response com `Content-Disposition: attachment`.
+
+```sh
+curl -H "Cookie: ..." \
+  "https://crm2.nexusai360.com/api/v1/subjects/lead/UUID/export" \
+  -o lead-export.json
+```
+
+### 6.2. Revogação de consent (art. 18, IX — oposição ao tratamento)
+
+```
+POST /api/v1/subjects/:type/:id/consent/revoke
+Content-Type: application/json
+{"reason": "titular solicitou via e-mail em 2026-04-15"}
+```
+
+Equivale a `recordConsent(granted=false, source='dsar')` para marketing e tracking. Não anonimiza dados — apenas cessa o tratamento.
+
+### 6.3. Erase / Anonimização (art. 18, IV — eliminação)
+
+```
+POST /api/v1/subjects/:type/:id/erase
+Content-Type: application/json
+{"reason": "titular solicitou exclusão conforme LGPD"}
+```
+
+Anonimiza PII do subject dentro de uma transação:
+- Lead/Contact: `name = "[DSAR ERASED]"`, `email = "erased-<ts>-<rand>@anon.local"`, `phone = null`, `notes = null`, `description = null`, IP masks = null.
+- Activities do subject: `description = null`, `location = null`.
+- **Preserva:** IDs (integridade FK), `consent_logs` (evidência de compliance — adiciona 2 novos logs com `source='dsar'`, `reason='erased_by_dsar:...'`).
 
 ---
 
