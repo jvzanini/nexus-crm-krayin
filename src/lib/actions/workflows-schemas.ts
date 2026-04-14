@@ -10,9 +10,7 @@ import { z } from "zod";
 
 export const conditionSchema = z.object({
   field: z.string().min(1, "Campo obrigatório").max(100, "Campo deve ter no máximo 100 caracteres"),
-  op: z.enum(["eq", "neq", "in", "gt", "lt", "contains"], {
-    errorMap: () => ({ message: "Operador inválido" }),
-  }),
+  op: z.enum(["eq", "neq", "in", "gt", "lt", "contains"], { message: "Operador inválido" }),
   value: z.unknown(),
 });
 
@@ -21,9 +19,7 @@ export const conditionSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const actionSpecSchema = z.object({
-  type: z.enum(["update-field", "create-task", "assign-user", "send-email"], {
-    errorMap: () => ({ message: "Tipo de ação inválido" }),
-  }),
+  type: z.enum(["update-field", "create-task", "assign-user", "send-email"], { message: "Tipo de ação inválido" }),
   params: z.record(z.string(), z.unknown()),
 });
 
@@ -37,9 +33,7 @@ export const createWorkflowSchema = z.object({
     .min(1, "Nome obrigatório")
     .max(200, "Nome deve ter no máximo 200 caracteres"),
   description: z.string().max(1000, "Descrição deve ter no máximo 1000 caracteres").optional(),
-  trigger: z.enum(["lead_created", "contact_created", "activity_completed"], {
-    errorMap: () => ({ message: "Trigger inválido" }),
-  }),
+  trigger: z.enum(["lead_created", "contact_created", "activity_completed"], { message: "Trigger inválido" }),
   conditions: z
     .array(conditionSchema)
     .max(20, "Máximo de 20 condições permitidas"),
@@ -72,9 +66,7 @@ export const updateWorkflowSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const setWorkflowStatusSchema = z.object({
-  status: z.enum(["draft", "active", "paused"], {
-    errorMap: () => ({ message: "Status inválido" }),
-  }),
+  status: z.enum(["draft", "active", "paused"], { message: "Status inválido" }),
 });
 
 // Exportação dos schemas para uso em testes
