@@ -14,8 +14,20 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { PageHeader, Button } from "@nexusai360/design-system";
-import { LayoutGrid, Table as TableIcon } from "lucide-react";
+import {
+  PageHeader,
+  Button,
+  DropdownMenuRoot,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@nexusai360/design-system";
+import {
+  LayoutGrid,
+  Table as TableIcon,
+  ChevronDown,
+  MoreVertical,
+} from "lucide-react";
 import { toast } from "sonner";
 import { updateOpportunity } from "@/lib/actions/opportunities";
 import {
@@ -55,6 +67,15 @@ const itemVariants = {
     y: 0,
     transition: { duration: 0.3, ease: "easeOut" as const },
   },
+};
+
+const STAGE_DOT_COLOR: Record<OpportunityStage, string> = {
+  prospecting: "bg-zinc-500",
+  qualification: "bg-blue-500",
+  proposal: "bg-amber-500",
+  negotiation: "bg-violet-500",
+  closed_won: "bg-emerald-500",
+  closed_lost: "bg-red-500",
 };
 
 const STAGE_COLOR_CLASSES: Record<string, string> = {
@@ -208,12 +229,76 @@ function KanbanColumn({
   );
 }
 
+function MobileCard({
+  opp,
+  canEdit,
+  onMove,
+}: {
+  opp: OpportunityCard;
+  canEdit: boolean;
+  onMove: (stage: OpportunityStage) => void;
+}) {
+  return (
+    <div className="border-border border bg-card/50 rounded-xl p-3 flex items-start justify-between gap-2">
+      <Link
+        href={`/opportunities/${opp.id}/activities`}
+        className="flex-1 min-w-0"
+      >
+        <p className="text-sm font-medium text-foreground truncate">
+          {opp.title}
+        </p>
+        <p className="text-xs text-muted-foreground truncate">
+          {opp.contact?.name ?? "sem contato"}
+        </p>
+        <p className="text-sm font-semibold text-violet-500 mt-1">
+          {formatCurrency(opp.value, opp.currency)}
+        </p>
+      </Link>
+      {canEdit && (
+        <DropdownMenuRoot>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11 shrink-0 cursor-pointer"
+                aria-label="Mover oportunidade"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            }
+          />
+          <DropdownMenuContent>
+            {STAGE_ORDER.filter((s) => s !== opp.stage).map((s) => (
+              <DropdownMenuItem key={s} onClick={() => onMove(s)}>
+                Mover para {STAGE_LABELS[s]}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenuRoot>
+      )}
+    </div>
+  );
+}
+
 export function PipelineContent({
   opportunities: initial,
   canEdit,
 }: PipelineContentProps) {
   const [opportunities, setOpportunities] =
     useState<OpportunityCard[]>(initial);
+  const [openStages, setOpenStages] = useState<Set<OpportunityStage>>(
+    () => new Set<OpportunityStage>(["prospecting"])
+  );
+
+  const toggleStage = (stage: OpportunityStage) => {
+    setOpenStages((prev) => {
+      const next = new Set(prev);
+      if (next.has(stage)) next.delete(stage);
+      else next.add(stage);
+      return next;
+    });
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -276,6 +361,31 @@ export function PipelineContent({
     }
   }
 
+  async function handleMoveMobile(id: string, newStage: OpportunityStage) {
+    const current = opportunities.find((o) => o.id === id);
+    if (!current || current.stage === newStage) return;
+    const previousStage = current.stage;
+
+    // otimista
+    setOpportunities((prev) =>
+      prev.map((o) => (o.id === id ? { ...o, stage: newStage } : o))
+    );
+
+    try {
+      const result = await updateOpportunity(id, { stage: newStage });
+      if (!result.success) throw new Error(result.error || "fail");
+      toast.success(`Movido para ${STAGE_LABELS[newStage]}`);
+    } catch {
+      // revert
+      setOpportunities((prev) =>
+        prev.map((o) =>
+          o.id === id ? { ...o, stage: previousStage } : o
+        )
+      );
+      toast.error("Erro ao mover oportunidade");
+    }
+  }
+
   return (
     <motion.div
       variants={containerVariants}
@@ -308,7 +418,7 @@ export function PipelineContent({
         </PageHeader.Root>
       </motion.div>
 
-      <motion.div variants={itemVariants}>
+      <motion.div variants={itemVariants} className="hidden md:block">
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div className="flex gap-4 overflow-x-auto pb-4">
             {STAGE_ORDER.map((stage) => (
@@ -321,6 +431,69 @@ export function PipelineContent({
             ))}
           </div>
         </DndContext>
+      </motion.div>
+
+      <motion.div variants={itemVariants} className="md:hidden space-y-2">
+        {STAGE_ORDER.map((stage) => {
+          const items = byStage[stage] ?? [];
+          const isOpen = openStages.has(stage);
+          return (
+            <div
+              key={stage}
+              className="border-border border rounded-xl overflow-hidden"
+            >
+              <button
+                type="button"
+                onClick={() => toggleStage(stage)}
+                className="w-full flex items-center justify-between p-4 bg-card/50 hover:bg-card/70 transition-colors cursor-pointer min-h-[56px]"
+                aria-expanded={isOpen}
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`w-2 h-2 rounded-full ${STAGE_DOT_COLOR[stage]}`}
+                    aria-hidden
+                  />
+                  <span className="text-sm font-semibold text-foreground">
+                    {STAGE_LABELS[stage]}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {items.length} {items.length === 1 ? "item" : "itens"}
+                  </span>
+                </div>
+                <ChevronDown
+                  className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${
+                    isOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              {isOpen && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.15 }}
+                  className="p-3 space-y-2 bg-card/20"
+                >
+                  {items.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Nenhuma oportunidade neste stage
+                    </p>
+                  ) : (
+                    items.map((opp) => (
+                      <MobileCard
+                        key={opp.id}
+                        opp={opp}
+                        canEdit={canEdit}
+                        onMove={(newStage) =>
+                          handleMoveMobile(opp.id, newStage)
+                        }
+                      />
+                    ))
+                  )}
+                </motion.div>
+              )}
+            </div>
+          );
+        })}
       </motion.div>
     </motion.div>
   );
