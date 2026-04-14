@@ -5,7 +5,7 @@ const setFlagMock = vi.fn();
 const overrideFlagMock = vi.fn();
 const clearOverrideMock = vi.fn();
 
-vi.mock("@/lib/flags", () => ({
+vi.mock("@/lib/flags/index", () => ({
   listFlags: (...a: unknown[]) => listFlagsMock(...a),
   setFlag: (...a: unknown[]) => setFlagMock(...a),
   overrideFlag: (...a: unknown[]) => overrideFlagMock(...a),

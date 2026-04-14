@@ -9,7 +9,7 @@ import {
   setFlag,
   overrideFlag,
   clearOverride,
-} from "@/lib/flags";
+} from "@/lib/flags/index";
 
 export class PrismaFlagsAdapter implements FlagsAdapter {
   async list(): Promise<Flag[]> {
