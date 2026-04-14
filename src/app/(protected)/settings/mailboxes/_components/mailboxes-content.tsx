@@ -34,6 +34,7 @@ import {
   TooltipProvider,
   TooltipRoot,
   TooltipTrigger,
+  PageHeader,
 } from "@nexusai360/design-system";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
@@ -147,81 +148,83 @@ export function MailboxesContent({
     <TooltipProvider>
       <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
         {/* Header */}
-        <motion.div variants={itemVariants} className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600/10 border border-violet-500/20">
-              <Mail className="h-5 w-5 text-violet-400" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">{t("list.title")}</h1>
-              <p className="text-sm text-muted-foreground">
-                {loading
-                  ? t("list.loading")
-                  : t("list.subtitle.count", { count: mailboxes.length })}
-              </p>
-            </div>
-          </div>
+        <motion.div variants={itemVariants}>
+          <PageHeader.Root>
+            <PageHeader.Row>
+              <PageHeader.Icon icon={Mail} color="blue" />
+              <PageHeader.Heading>
+                <PageHeader.Title>{t("list.title")}</PageHeader.Title>
+                <PageHeader.Description>
+                  {loading
+                    ? t("list.loading")
+                    : t("list.subtitle.count", { count: mailboxes.length })}
+                </PageHeader.Description>
+              </PageHeader.Heading>
+            </PageHeader.Row>
 
-          {canConnect && (
-            <DropdownMenuRoot>
-              <DropdownMenuTrigger render={
-                <Button className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200">
-                  <Plus className="h-4 w-4" />
-                  {t("action.connect")}
-                </Button>
-              } />
-              <DropdownMenuContent align="end" className="w-48">
-                {/* Gmail */}
-                {googleConfigured ? (
-                  <DropdownMenuItem render={
-                    <a href="/api/oauth/gmail/authorize" className="flex items-center gap-2 w-full">
-                      <Mail className="h-4 w-4 text-red-400" />
-                      {t("action.connectGmail")}
-                    </a>
+            {canConnect && (
+              <PageHeader.Actions>
+                <DropdownMenuRoot>
+                  <DropdownMenuTrigger render={
+                    <Button className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200">
+                      <Plus className="h-4 w-4" />
+                      {t("action.connect")}
+                    </Button>
                   } />
-                ) : (
-                  <TooltipRoot>
-                    <TooltipTrigger render={
-                      <DropdownMenuItem disabled className="flex items-center gap-2 cursor-not-allowed opacity-50">
-                        <Mail className="h-4 w-4 text-red-400" />
-                        {t("action.connectGmail")}
-                      </DropdownMenuItem>
-                    } />
-                    <TooltipContent>{t("tooltip.gmailNotConfigured")}</TooltipContent>
-                  </TooltipRoot>
-                )}
+                  <DropdownMenuContent align="end" className="w-48">
+                    {/* Gmail */}
+                    {googleConfigured ? (
+                      <DropdownMenuItem render={
+                        <a href="/api/oauth/gmail/authorize" className="flex items-center gap-2 w-full">
+                          <Mail className="h-4 w-4 text-red-400" />
+                          {t("action.connectGmail")}
+                        </a>
+                      } />
+                    ) : (
+                      <TooltipRoot>
+                        <TooltipTrigger render={
+                          <DropdownMenuItem disabled className="flex items-center gap-2 cursor-not-allowed opacity-50">
+                            <Mail className="h-4 w-4 text-red-400" />
+                            {t("action.connectGmail")}
+                          </DropdownMenuItem>
+                        } />
+                        <TooltipContent>{t("tooltip.gmailNotConfigured")}</TooltipContent>
+                      </TooltipRoot>
+                    )}
 
-                {/* Outlook */}
-                {outlookConfigured ? (
-                  <DropdownMenuItem render={
-                    <a href="/api/oauth/outlook/authorize" className="flex items-center gap-2 w-full">
-                      <Mail className="h-4 w-4 text-blue-400" />
-                      {t("action.connectOutlook")}
-                    </a>
-                  } />
-                ) : (
-                  <TooltipRoot>
-                    <TooltipTrigger render={
-                      <DropdownMenuItem disabled className="flex items-center gap-2 cursor-not-allowed opacity-50">
-                        <Mail className="h-4 w-4 text-blue-400" />
-                        {t("action.connectOutlook")}
-                      </DropdownMenuItem>
-                    } />
-                    <TooltipContent>{t("tooltip.outlookNotConfigured")}</TooltipContent>
-                  </TooltipRoot>
-                )}
+                    {/* Outlook */}
+                    {outlookConfigured ? (
+                      <DropdownMenuItem render={
+                        <a href="/api/oauth/outlook/authorize" className="flex items-center gap-2 w-full">
+                          <Mail className="h-4 w-4 text-blue-400" />
+                          {t("action.connectOutlook")}
+                        </a>
+                      } />
+                    ) : (
+                      <TooltipRoot>
+                        <TooltipTrigger render={
+                          <DropdownMenuItem disabled className="flex items-center gap-2 cursor-not-allowed opacity-50">
+                            <Mail className="h-4 w-4 text-blue-400" />
+                            {t("action.connectOutlook")}
+                          </DropdownMenuItem>
+                        } />
+                        <TooltipContent>{t("tooltip.outlookNotConfigured")}</TooltipContent>
+                      </TooltipRoot>
+                    )}
 
-                {/* IMAP/SMTP */}
-                <DropdownMenuItem
-                  onClick={() => setImapOpen(true)}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <AtSign className="h-4 w-4 text-muted-foreground" />
-                  {t("action.connectImap")}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenuRoot>
-          )}
+                    {/* IMAP/SMTP */}
+                    <DropdownMenuItem
+                      onClick={() => setImapOpen(true)}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <AtSign className="h-4 w-4 text-muted-foreground" />
+                      {t("action.connectImap")}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenuRoot>
+              </PageHeader.Actions>
+            )}
+          </PageHeader.Root>
         </motion.div>
 
         {/* Tabela */}
