@@ -8,6 +8,9 @@ import { NotificationBell } from "@/components/layout/notification-bell";
 import { DashboardFilters } from "./dashboard-filters";
 import { StatsCards } from "./stats-cards";
 import { RecentActivity } from "./recent-activity";
+import { FunnelCard } from "./cards/funnel-card";
+import { PipelineValueCard } from "./cards/pipeline-value-card";
+import { TopOpportunitiesCard } from "./cards/top-opportunities-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@nexusai360/design-system";
 import {
   LineChart,
@@ -218,6 +221,15 @@ export function DashboardContent({ userName }: DashboardContentProps) {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      </motion.div>
+
+      {/* Funnel + Pipeline + Top Opps */}
+      <motion.div variants={itemVariants}>
+        <div className="grid gap-6 md:grid-cols-3">
+          <FunnelCard data={data.funnel} />
+          <PipelineValueCard data={data.pipelineByStage} />
+          <TopOpportunitiesCard data={data.topOpportunities} />
+        </div>
       </motion.div>
 
       {/* Recent Activity */}
