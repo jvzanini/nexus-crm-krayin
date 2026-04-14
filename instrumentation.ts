@@ -23,6 +23,16 @@ export async function register() {
       console.warn("[instrumentation] configureRateLimit falhou:", err);
     }
 
+    // Company adapter (multi-tenant): registra PrismaCompanyAdapter no pacote
+    // para que getCompanyAdapter()/wrappers possam acessar Prisma do CRM.
+    try {
+      const { configureCompanies } = await import("@nexusai360/multi-tenant");
+      const { companyAdapter } = await import("@/lib/multi-tenant/adapter");
+      configureCompanies(companyAdapter);
+    } catch (err) {
+      console.warn("[instrumentation] configureCompanies falhou:", err);
+    }
+
     if (process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
       const { NodeSDK } = await import("@opentelemetry/sdk-node");
       const { OTLPTraceExporter } = await import(
