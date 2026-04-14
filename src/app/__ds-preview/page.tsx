@@ -110,7 +110,7 @@ export default function DsPreviewPage() {
           <IconTile icon={Package} color="blue" size="md" />
           <IconTile icon={Settings} color="emerald" size="md" />
           <IconTile icon={AlertTriangle} color="amber" size="md" />
-          <IconTile icon={Inbox} color="rose" size="md" />
+          <IconTile icon={Inbox} color="red" size="md" />
         </Row>
       </Section>
 
