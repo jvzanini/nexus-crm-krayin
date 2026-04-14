@@ -54,5 +54,35 @@ export async function GET() {
     return renderToStaticMarkup(el);
   });
 
+  await probe("render_ds_button", async () => {
+    const { Button } = await import("@nexusai360/design-system");
+    const el = React.createElement(Button as React.FC<{ children: React.ReactNode }>, { children: "X" });
+    return renderToStaticMarkup(el);
+  });
+
+  await probe("render_ds_input", async () => {
+    const { Input } = await import("@nexusai360/design-system");
+    const el = React.createElement(Input as React.FC<{ placeholder: string }>, { placeholder: "x" });
+    return renderToStaticMarkup(el);
+  });
+
+  await probe("render_ds_label", async () => {
+    const { Label } = await import("@nexusai360/design-system");
+    const el = React.createElement(Label as React.FC<{ children: React.ReactNode }>, { children: "x" });
+    return renderToStaticMarkup(el);
+  });
+
+  await probe("render_framer_motion_div", async () => {
+    const { motion } = await import("framer-motion");
+    const el = React.createElement(motion.div as unknown as React.FC<{ children: React.ReactNode }>, { children: "ok" });
+    return renderToStaticMarkup(el);
+  });
+
+  await probe("render_login_content", async () => {
+    const { LoginContent } = await import("@/components/login/login-content");
+    const el = React.createElement(LoginContent as React.FC);
+    return renderToStaticMarkup(el);
+  });
+
   return NextResponse.json(results, { status: 200 });
 }
