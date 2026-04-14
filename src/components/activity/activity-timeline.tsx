@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import {
   Table,
@@ -75,34 +76,29 @@ const itemVariants = {
 
 const TYPE_CONFIG: Record<
   ActivityType,
-  { label: string; Icon: React.ElementType; color: string; bg: string }
+  { Icon: React.ElementType; color: string; bg: string }
 > = {
   call: {
-    label: "Ligação",
     Icon: Phone,
     color: "text-blue-400",
     bg: "bg-blue-500/10 border-blue-500/20",
   },
   meeting: {
-    label: "Reunião",
     Icon: Video,
     color: "text-purple-400",
     bg: "bg-purple-500/10 border-purple-500/20",
   },
   task: {
-    label: "Tarefa",
     Icon: CheckSquare,
     color: "text-amber-400",
     bg: "bg-amber-500/10 border-amber-500/20",
   },
   note: {
-    label: "Nota",
     Icon: FileText,
     color: "text-emerald-400",
     bg: "bg-emerald-500/10 border-emerald-500/20",
   },
   file: {
-    label: "Arquivo",
     Icon: Paperclip,
     color: "text-rose-400",
     bg: "bg-rose-500/10 border-rose-500/20",
@@ -114,20 +110,20 @@ const TYPE_CONFIG: Record<
 // ---------------------------------------------------------------------------
 
 function StatusBadge({ status }: { status: ActivityItem["status"] }) {
-  // TODO T7: extract to i18n key activities.status.*
+  const t = useTranslations("activities");
   const configs = {
     pending: {
-      label: "Pendente",
+      label: t("status.pending"),
       className:
         "bg-amber-500/15 text-amber-400 border-amber-500/30",
     },
     completed: {
-      label: "Concluída",
+      label: t("status.completed"),
       className:
         "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
     },
     canceled: {
-      label: "Cancelada",
+      label: t("status.canceled"),
       className: "bg-rose-500/15 text-rose-400 border-rose-500/30",
     },
   };
@@ -190,6 +186,7 @@ export function ActivityTimeline({
   canDelete,
   canComplete,
 }: ActivityTimelineProps) {
+  const t = useTranslations("activities");
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -218,7 +215,7 @@ export function ActivityTimeline({
     if (result.success && result.data) {
       setActivities(result.data);
     } else {
-      toast.error(result.error ?? "Erro ao carregar atividades");
+      toast.error(result.error ?? t("list.empty"));
     }
     setLoading(false);
   }
@@ -249,10 +246,10 @@ export function ActivityTimeline({
     startCompleting(async () => {
       const result = await completeActivity(activity.id);
       if (result.success) {
-        toast.success("Atividade concluída");
+        toast.success(t("action.complete"));
         await load();
       } else {
-        toast.error(result.error ?? "Erro ao concluir atividade");
+        toast.error(result.error ?? t("action.complete"));
       }
     });
   }
@@ -261,10 +258,10 @@ export function ActivityTimeline({
     startCanceling(async () => {
       const result = await cancelActivity(activity.id);
       if (result.success) {
-        toast.success("Atividade cancelada");
+        toast.success(t("action.cancel"));
         await load();
       } else {
-        toast.error(result.error ?? "Erro ao cancelar atividade");
+        toast.error(result.error ?? t("action.cancel"));
       }
     });
   }
@@ -279,12 +276,12 @@ export function ActivityTimeline({
     startDeleting(async () => {
       const result = await deleteActivity(deletingActivity.id);
       if (result.success) {
-        toast.success("Atividade excluída");
+        toast.success(t("action.delete"));
         setDeleteDialogOpen(false);
         setDeletingActivity(null);
         await load();
       } else {
-        toast.error(result.error ?? "Erro ao excluir atividade");
+        toast.error(result.error ?? t("action.delete"));
       }
     });
   }
@@ -319,12 +316,11 @@ export function ActivityTimeline({
             <Clock className="h-5 w-5 text-violet-400" />
           </div>
           <div>
-            {/* TODO T7: extract to i18n key activities.timeline.title */}
-            <h2 className="text-xl font-bold text-foreground">Atividades</h2>
+              <h2 className="text-xl font-bold text-foreground">{t("timeline.title")}</h2>
             <p className="text-sm text-muted-foreground">
               {loading
-                ? "Carregando..."
-                : `${activities.length} atividade${activities.length !== 1 ? "s" : ""}`}
+                ? "..."
+                : t("list.subtitle.count", { count: activities.length })}
             </p>
           </div>
         </div>
@@ -336,19 +332,18 @@ export function ActivityTimeline({
               className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
             >
               <Plus className="h-4 w-4" />
-              {/* TODO T7: extract to i18n key activities.action.new */}
-              Nova atividade
+              {t("timeline.newActivity")}
             </Button>
 
             {typePickerOpen && (
               <div className="absolute right-0 top-full mt-2 z-50 rounded-xl border border-border bg-card shadow-lg overflow-hidden min-w-[160px]">
-                {TYPES.map((t) => {
-                  const { Icon, label, color, bg } = TYPE_CONFIG[t];
+                {TYPES.map((actType) => {
+                  const { Icon, color, bg } = TYPE_CONFIG[actType];
                   return (
                     <button
-                      key={t}
+                      key={actType}
                       type="button"
-                      onClick={() => openCreate(t)}
+                      onClick={() => openCreate(actType)}
                       className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors cursor-pointer"
                     >
                       <div
@@ -356,7 +351,7 @@ export function ActivityTimeline({
                       >
                         <Icon className={`h-3.5 w-3.5 ${color}`} />
                       </div>
-                      {label}
+                      {t(`form.type.${actType}`)}
                     </button>
                   );
                 })}
@@ -378,16 +373,14 @@ export function ActivityTimeline({
         ) : activities.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Clock className="h-12 w-12 mb-3 text-muted-foreground/60" />
-            {/* TODO T7: extract to i18n key activities.timeline.empty */}
-            <p className="text-sm">Sem atividades registradas ainda.</p>
+            <p className="text-sm">{t("list.empty")}</p>
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
-                {/* TODO T7: extract to i18n key activities.timeline.columns.* */}
                 <TableHead className="text-muted-foreground">Tipo</TableHead>
-                <TableHead className="text-muted-foreground">Título</TableHead>
+                <TableHead className="text-muted-foreground">{t("form.fields.title")}</TableHead>
                 <TableHead className="text-muted-foreground hidden md:table-cell">Data</TableHead>
                 <TableHead className="text-muted-foreground text-center">Status</TableHead>
                 {(canEdit || canDelete || canComplete) && (
@@ -397,7 +390,7 @@ export function ActivityTimeline({
             </TableHeader>
             <TableBody>
               {activities.map((activity, index) => {
-                const { Icon, label, color, bg } = TYPE_CONFIG[activity.type];
+                const { Icon, color, bg } = TYPE_CONFIG[activity.type];
                 const isPending = activity.status === "pending";
                 return (
                   <motion.tr
@@ -419,7 +412,7 @@ export function ActivityTimeline({
                           <Icon className={`h-3.5 w-3.5 ${color}`} />
                         </div>
                         <span className="text-xs text-muted-foreground hidden sm:inline">
-                          {label}
+                          {t(`form.type.${activity.type}`)}
                         </span>
                       </div>
                     </TableCell>
@@ -445,7 +438,7 @@ export function ActivityTimeline({
                               type="button"
                               onClick={() => handleComplete(activity)}
                               disabled={completing}
-                              title="Concluir"
+                              title={t("action.complete")}
                               className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer transition-all duration-200 disabled:opacity-50"
                             >
                               <Check className="h-4 w-4" />
@@ -456,7 +449,7 @@ export function ActivityTimeline({
                               <button
                                 type="button"
                                 onClick={() => openEdit(activity)}
-                                title="Editar"
+                                title={t("action.edit")}
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer transition-all duration-200"
                               >
                                 <Pencil className="h-4 w-4" />
@@ -465,7 +458,7 @@ export function ActivityTimeline({
                                 type="button"
                                 onClick={() => handleCancel(activity)}
                                 disabled={canceling}
-                                title="Cancelar"
+                                title={t("action.cancel")}
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-amber-400 hover:bg-amber-500/10 cursor-pointer transition-all duration-200 disabled:opacity-50"
                               >
                                 <X className="h-4 w-4" />
@@ -476,7 +469,7 @@ export function ActivityTimeline({
                             <button
                               type="button"
                               onClick={() => openDeleteDialog(activity)}
-                              title="Excluir"
+                              title={t("action.delete")}
                               className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 cursor-pointer transition-all duration-200"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -513,15 +506,12 @@ export function ActivityTimeline({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-foreground">
               <AlertTriangle className="h-5 w-5 text-red-400" />
-              {/* TODO T7: extract to i18n key activities.action.delete.title */}
-              Excluir atividade
+              {t("action.delete")}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              Tem certeza que deseja excluir permanentemente{" "}
-              <strong className="text-foreground">
-                &quot;{deletingActivity?.title}&quot;
-              </strong>
-              ? Esta ação é irreversível e removerá todos os arquivos associados.
+              {deletingActivity?.title
+                ? t("action.confirmDelete", { title: deletingActivity.title })
+                : t("action.delete")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -529,7 +519,7 @@ export function ActivityTimeline({
               disabled={deleting}
               className="border-border text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer transition-all duration-200"
             >
-              Cancelar
+              {t("action.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
@@ -537,7 +527,7 @@ export function ActivityTimeline({
               className="bg-red-600 text-white hover:bg-red-700 cursor-pointer transition-all duration-200"
             >
               {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Excluir permanentemente
+              {t("action.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

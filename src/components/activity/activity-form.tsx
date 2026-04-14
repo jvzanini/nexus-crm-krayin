@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogContent,
@@ -40,17 +41,6 @@ interface ActivityFormProps {
   onOpenChange: (o: boolean) => void;
 }
 
-// ---------------------------------------------------------------------------
-// Labels por type
-// ---------------------------------------------------------------------------
-
-const TYPE_LABELS: Record<ActivityType, string> = {
-  call: "Ligação",
-  meeting: "Reunião",
-  task: "Tarefa",
-  note: "Nota",
-  file: "Arquivo",
-};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -99,6 +89,7 @@ export function ActivityForm({
   open,
   onOpenChange,
 }: ActivityFormProps) {
+  const t = useTranslations("activities");
   // --- Campos compartilhados ---
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -185,7 +176,7 @@ export function ActivityForm({
 
   function handleSubmit() {
     if (!title.trim()) {
-      toast.error("Título é obrigatório");
+      toast.error(`${t("form.fields.title")} é obrigatório`);
       return;
     }
 
@@ -228,7 +219,7 @@ export function ActivityForm({
             toast.success("Atividade e arquivo criados com sucesso");
           }
         } else {
-          toast.success(`${TYPE_LABELS[type]} criada com sucesso`);
+          toast.success(`${t(`form.type.${type}`)} criada com sucesso`);
         }
       } else {
         if (!initial) return;
@@ -237,7 +228,7 @@ export function ActivityForm({
           toast.error(result.error ?? "Erro ao atualizar atividade");
           return;
         }
-        toast.success(`${TYPE_LABELS[type]} atualizada com sucesso`);
+        toast.success(`${t(`form.type.${type}`)} atualizada com sucesso`);
       }
 
       onSaved();
@@ -261,12 +252,12 @@ export function ActivityForm({
         {/* Título — sempre */}
         <div>
           <label className={labelClass}>
-            Título *
+            {t("form.fields.title")} *
           </label>
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder={`Título da ${TYPE_LABELS[type].toLowerCase()}`}
+            placeholder={`${t("form.fields.title")} — ${t(`form.type.${type}`)}`}
             className={inputClass}
             disabled={saving}
           />
@@ -277,7 +268,7 @@ export function ActivityForm({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>
-                Data e hora
+                {t("form.fields.scheduledAt")}
               </label>
               <Input
                 type="datetime-local"
@@ -289,7 +280,7 @@ export function ActivityForm({
             </div>
             <div>
               <label className={labelClass}>
-                Duração (min)
+                {t("form.fields.durationMin")}
               </label>
               <Input
                 type="number"
@@ -309,9 +300,8 @@ export function ActivityForm({
           <>
             <div>
               <label className={labelClass}>
-                Fuso horário
+                {t("form.fields.timezone")}
               </label>
-              {/* TODO T7: extract to i18n key activities.form.meeting.timezone */}
               <Input
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
@@ -322,9 +312,8 @@ export function ActivityForm({
             </div>
             <div>
               <label className={labelClass}>
-                Local / URL
+                {t("form.fields.location")}
               </label>
-              {/* TODO T7: extract to i18n key activities.form.meeting.location */}
               <Input
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
@@ -341,9 +330,8 @@ export function ActivityForm({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>
-                Prazo
+                {t("form.fields.dueAt")}
               </label>
-              {/* TODO T7: extract to i18n key activities.form.task.dueAt */}
               <Input
                 type="datetime-local"
                 value={dueAt}
@@ -354,9 +342,8 @@ export function ActivityForm({
             </div>
             <div>
               <label className={labelClass}>
-                Lembrete (opcional)
+                {t("form.fields.reminderAt")}
               </label>
-              {/* TODO T7: extract to i18n key activities.form.task.reminderAt */}
               <Input
                 type="datetime-local"
                 value={reminderAt}
@@ -372,9 +359,8 @@ export function ActivityForm({
         {(type === "call" || type === "meeting" || type === "task" || type === "note") && (
           <div>
             <label className={labelClass}>
-              {type === "note" ? "Conteúdo" : "Observações"}
+              {t("form.fields.description")}
             </label>
-            {/* TODO T7: extract to i18n key activities.form.description */}
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -390,9 +376,8 @@ export function ActivityForm({
         {type === "file" && (
           <div>
             <label className={labelClass}>
-              Arquivo
+              {t("form.type.file")}
             </label>
-            {/* TODO T7: extract to i18n key activities.form.file.upload */}
             <div className="rounded-lg border border-dashed border-border p-4 text-center">
               <input
                 type="file"
@@ -412,9 +397,8 @@ export function ActivityForm({
         {/* Responsável — todos os tipos */}
         <div>
           <label className={labelClass}>
-            Responsável
+            {t("form.fields.assignedTo")}
           </label>
-          {/* TODO T7: extract to i18n key activities.form.assignedTo */}
           <select
             value={assignedTo}
             onChange={(e) => setAssignedTo(e.target.value)}
@@ -438,22 +422,22 @@ export function ActivityForm({
   // ---------------------------------------------------------------------------
 
   const isCreate = mode === "create";
+  const typeLabel = t(`form.type.${type}`);
   const dialogTitle = isCreate
-    ? `Nova ${TYPE_LABELS[type].toLowerCase()}`
-    : `Editar ${TYPE_LABELS[type].toLowerCase()}`;
+    ? t("form.create.title", { type: typeLabel })
+    : t("form.edit.title", { type: typeLabel });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg overflow-visible">
         <DialogHeader>
           <DialogTitle>
-            {/* TODO T7: extract to i18n key activities.form.title */}
             {dialogTitle}
           </DialogTitle>
           <DialogDescription>
             {isCreate
-              ? `Registre uma nova ${TYPE_LABELS[type].toLowerCase()}`
-              : `Atualize os dados da ${TYPE_LABELS[type].toLowerCase()}`}
+              ? `${t("action.create")} — ${typeLabel}`
+              : `${t("action.save")} — ${typeLabel}`}
           </DialogDescription>
         </DialogHeader>
 
@@ -466,8 +450,7 @@ export function ActivityForm({
             className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            {/* TODO T7: extract to i18n key activities.form.submit */}
-            {isCreate ? `Criar ${TYPE_LABELS[type].toLowerCase()}` : "Salvar alterações"}
+            {isCreate ? t("action.create") : t("action.save")}
           </Button>
         </DialogFooter>
       </DialogContent>

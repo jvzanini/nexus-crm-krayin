@@ -1,0 +1,59 @@
+{
+  "list": {
+    "title": "Atividades",
+    "subtitle.count": "{count, plural, =0 {Sem atividades} one {# atividade registrada} other {# atividades registradas}}",
+    "empty": "Sem atividades registradas ainda",
+    "filter": {
+      "all": "Todas",
+      "pending": "Pendentes",
+      "completed": "Concluídas",
+      "canceled": "Canceladas",
+      "dueWithinDays": "Vencimento em (dias)"
+    }
+  },
+  "timeline": {
+    "title": "Linha do tempo",
+    "newActivity": "Nova atividade"
+  },
+  "form": {
+    "create.title": "Nova {type}",
+    "edit.title": "Editar {type}",
+    "type": {
+      "call": "Ligação",
+      "meeting": "Reunião",
+      "task": "Tarefa",
+      "note": "Nota",
+      "file": "Arquivo"
+    },
+    "fields": {
+      "title": "Título",
+      "description": "Descrição",
+      "scheduledAt": "Agendado para",
+      "timezone": "Fuso horário",
+      "durationMin": "Duração (min)",
+      "location": "Local ou URL",
+      "dueAt": "Vencimento",
+      "reminderAt": "Lembrete em",
+      "assignedTo": "Responsável",
+      "subjectType": "Tipo de assunto",
+      "subjectId": "ID do assunto"
+    }
+  },
+  "action": {
+    "complete": "Concluir",
+    "cancel": "Cancelar",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "save": "Salvar",
+    "create": "Criar",
+    "confirmDelete": "Excluir permanentemente \"{title}\"?"
+  },
+  "status": {
+    "pending": "Pendente",
+    "completed": "Concluída",
+    "canceled": "Cancelada"
+  },
+  "reminder": {
+    "title": "Lembrete"
+  }
+}

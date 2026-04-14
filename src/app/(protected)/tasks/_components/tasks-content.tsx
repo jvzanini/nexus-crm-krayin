@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import {
   Table,
@@ -74,32 +75,28 @@ const itemVariants = {
 // Filtros de status
 // ---------------------------------------------------------------------------
 
-const STATUS_FILTERS = [
-  { value: "all", label: "Todos" },
-  { value: "pending", label: "Pendentes" },
-  { value: "completed", label: "Concluídas" },
-  { value: "canceled", label: "Canceladas" },
-] as const;
+// STATUS_FILTERS labels são traduzidos no render via useTranslations
+const STATUS_FILTER_VALUES = ["all", "pending", "completed", "canceled"] as const;
 
-type StatusFilter = (typeof STATUS_FILTERS)[number]["value"];
+type StatusFilter = (typeof STATUS_FILTER_VALUES)[number];
 
 // ---------------------------------------------------------------------------
 // Badge de status
 // ---------------------------------------------------------------------------
 
 function StatusBadge({ status }: { status: ActivityItem["status"] }) {
-  // TODO T7: extract to i18n key activities.status.*
+  const t = useTranslations("activities");
   const configs = {
     pending: {
-      label: "Pendente",
+      label: t("status.pending"),
       className: "bg-amber-500/15 text-amber-400 border-amber-500/30",
     },
     completed: {
-      label: "Concluída",
+      label: t("status.completed"),
       className: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
     },
     canceled: {
-      label: "Cancelada",
+      label: t("status.canceled"),
       className: "bg-rose-500/15 text-rose-400 border-rose-500/30",
     },
   };
@@ -186,6 +183,7 @@ function TaskFormDialog({
   mode,
   onSaved,
 }: TaskFormDialogProps) {
+  const t = useTranslations("activities");
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [dueAt, setDueAt] = useState(toDatetimeLocal(initial?.dueAt));
@@ -221,11 +219,11 @@ function TaskFormDialog({
 
   function handleSubmit() {
     if (!title.trim()) {
-      toast.error("Título é obrigatório");
+      toast.error(`${t("form.fields.title")} é obrigatório`);
       return;
     }
     if (mode === "create" && !subjectId.trim()) {
-      toast.error("ID do assunto é obrigatório (lead, contato ou oportunidade)");
+      toast.error(`${t("form.fields.subjectId")} é obrigatório`);
       return;
     }
 
@@ -241,10 +239,10 @@ function TaskFormDialog({
           reminderAt: toISOWithOffset(reminderAt),
         });
         if (!result.success) {
-          toast.error(result.error ?? "Erro ao criar tarefa");
+          toast.error(result.error ?? t("action.create"));
           return;
         }
-        toast.success("Tarefa criada com sucesso");
+        toast.success(t("action.create"));
       } else {
         if (!initial) return;
         const result = await updateActivity(initial.id, {
@@ -254,10 +252,10 @@ function TaskFormDialog({
           reminderAt: toISOWithOffset(reminderAt),
         });
         if (!result.success) {
-          toast.error(result.error ?? "Erro ao atualizar tarefa");
+          toast.error(result.error ?? t("action.save"));
           return;
         }
-        toast.success("Tarefa atualizada com sucesso");
+        toast.success(t("action.save"));
       }
       onSaved();
       onOpenChange(false);
@@ -269,22 +267,23 @@ function TaskFormDialog({
       <DialogContent className="sm:max-w-lg overflow-visible">
         <DialogHeader>
           <DialogTitle>
-            {/* TODO T7: extract to i18n key activities.form.task.title */}
-            {mode === "create" ? "Nova tarefa" : "Editar tarefa"}
+            {mode === "create"
+              ? t("form.create.title", { type: t("form.type.task") })
+              : t("form.edit.title", { type: t("form.type.task") })}
           </DialogTitle>
           <DialogDescription>
-            {mode === "create" ? "Crie uma nova tarefa" : "Atualize os dados da tarefa"}
+            {mode === "create" ? t("action.create") : t("action.save")} — {t("form.type.task")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Título */}
           <div>
-            <label className={labelClass}>Título *</label>
+            <label className={labelClass}>{t("form.fields.title")} *</label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Título da tarefa"
+              placeholder={t("form.fields.title")}
               className={inputClass}
               disabled={saving}
             />
@@ -294,8 +293,7 @@ function TaskFormDialog({
           {mode === "create" && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelClass}>Tipo de assunto *</label>
-                {/* TODO T7: extract to i18n key activities.form.task.subjectType */}
+                <label className={labelClass}>{t("form.fields.subjectType")} *</label>
                 <select
                   value={subjectType}
                   onChange={(e) =>
@@ -310,8 +308,7 @@ function TaskFormDialog({
                 </select>
               </div>
               <div>
-                <label className={labelClass}>ID do assunto *</label>
-                {/* TODO T7: extract to i18n key activities.form.task.subjectId */}
+                <label className={labelClass}>{t("form.fields.subjectId")} *</label>
                 <Input
                   value={subjectId}
                   onChange={(e) => setSubjectId(e.target.value)}
@@ -326,8 +323,7 @@ function TaskFormDialog({
           {/* Prazo + Lembrete */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClass}>Prazo</label>
-              {/* TODO T7: extract to i18n key activities.form.task.dueAt */}
+              <label className={labelClass}>{t("form.fields.dueAt")}</label>
               <Input
                 type="datetime-local"
                 value={dueAt}
@@ -337,8 +333,7 @@ function TaskFormDialog({
               />
             </div>
             <div>
-              <label className={labelClass}>Lembrete (opcional)</label>
-              {/* TODO T7: extract to i18n key activities.form.task.reminderAt */}
+              <label className={labelClass}>{t("form.fields.reminderAt")}</label>
               <Input
                 type="datetime-local"
                 value={reminderAt}
@@ -351,7 +346,7 @@ function TaskFormDialog({
 
           {/* Descrição */}
           <div>
-            <label className={labelClass}>Descrição</label>
+            <label className={labelClass}>{t("form.fields.description")}</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -370,7 +365,7 @@ function TaskFormDialog({
             className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            {mode === "create" ? "Criar tarefa" : "Salvar alterações"}
+            {mode === "create" ? t("action.create") : t("action.save")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -388,6 +383,7 @@ export function TasksContent({
   canDelete,
   canComplete,
 }: TasksContentProps) {
+  const t = useTranslations("activities");
   const [tasks, setTasks] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -426,7 +422,7 @@ export function TasksContent({
     if (result.success && result.data) {
       setTasks(result.data);
     } else {
-      toast.error(result.error ?? "Erro ao carregar tarefas");
+      toast.error(result.error ?? t("list.empty"));
     }
     setLoading(false);
   }
@@ -454,10 +450,10 @@ export function TasksContent({
     startCompleting(async () => {
       const result = await completeActivity(task.id);
       if (result.success) {
-        toast.success("Tarefa concluída");
+        toast.success(t("action.complete"));
         await load();
       } else {
-        toast.error(result.error ?? "Erro ao concluir tarefa");
+        toast.error(result.error ?? t("action.complete"));
       }
     });
   }
@@ -466,10 +462,10 @@ export function TasksContent({
     startCanceling(async () => {
       const result = await cancelActivity(task.id);
       if (result.success) {
-        toast.success("Tarefa cancelada");
+        toast.success(t("action.cancel"));
         await load();
       } else {
-        toast.error(result.error ?? "Erro ao cancelar tarefa");
+        toast.error(result.error ?? t("action.cancel"));
       }
     });
   }
@@ -484,12 +480,12 @@ export function TasksContent({
     startDeleting(async () => {
       const result = await deleteActivity(deletingTask.id);
       if (result.success) {
-        toast.success("Tarefa excluída");
+        toast.success(t("action.delete"));
         setDeleteDialogOpen(false);
         setDeletingTask(null);
         await load();
       } else {
-        toast.error(result.error ?? "Erro ao excluir tarefa");
+        toast.error(result.error ?? t("action.delete"));
       }
     });
   }
@@ -515,12 +511,11 @@ export function TasksContent({
             <CheckSquare className="h-5 w-5 text-violet-400" />
           </div>
           <div>
-            {/* TODO T7: extract to i18n key activities.list.title */}
-            <h1 className="text-xl font-bold text-foreground">Minhas Tarefas</h1>
+            <h1 className="text-xl font-bold text-foreground">{t("list.title")}</h1>
             <p className="text-sm text-muted-foreground">
               {loading
-                ? "Carregando..."
-                : `${tasks.length} tarefa${tasks.length !== 1 ? "s" : ""}`}
+                ? "..."
+                : t("list.subtitle.count", { count: tasks.length })}
             </p>
           </div>
         </div>
@@ -530,8 +525,7 @@ export function TasksContent({
             className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
           >
             <Plus className="h-4 w-4" />
-            {/* TODO T7: extract to i18n key activities.action.newTask */}
-            Nova tarefa
+            {t("timeline.newActivity")}
           </Button>
         )}
       </motion.div>
@@ -540,17 +534,20 @@ export function TasksContent({
       <motion.div variants={itemVariants} className="space-y-3">
         {/* Pills de status */}
         <div className="flex gap-2 flex-wrap">
-          {STATUS_FILTERS.map((s) => (
+          {STATUS_FILTER_VALUES.map((val) => (
             <button
-              key={s.value}
-              onClick={() => setStatusFilter(s.value)}
+              key={val}
+              onClick={() => setStatusFilter(val)}
               className={`px-3 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${
-                statusFilter === s.value
+                statusFilter === val
                   ? "bg-violet-500/10 text-violet-400 border-violet-500/30"
                   : "border-border text-muted-foreground hover:border-muted-foreground/30"
               }`}
             >
-              {s.label}
+              {val === "all" ? t("list.filter.all")
+                : val === "pending" ? t("list.filter.pending")
+                : val === "completed" ? t("list.filter.completed")
+                : t("list.filter.canceled")}
             </button>
           ))}
         </div>
@@ -558,8 +555,7 @@ export function TasksContent({
         {/* Filtro por dias */}
         <div className="flex items-center gap-2">
           <label className="text-sm text-muted-foreground shrink-0">
-            {/* TODO T7: extract to i18n key activities.list.dueWithin */}
-            Vence nos próximos:
+            {t("list.filter.dueWithinDays")}:
           </label>
           <Input
             type="number"
@@ -594,16 +590,14 @@ export function TasksContent({
         ) : tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <CheckSquare className="h-12 w-12 mb-3 text-muted-foreground/60" />
-            {/* TODO T7: extract to i18n key activities.list.empty */}
-            <p className="text-sm">Nenhuma tarefa encontrada</p>
+            <p className="text-sm">{t("list.empty")}</p>
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
-                {/* TODO T7: extract to i18n key activities.list.columns.* */}
-                <TableHead className="text-muted-foreground">Título</TableHead>
-                <TableHead className="text-muted-foreground hidden md:table-cell">Prazo</TableHead>
+                <TableHead className="text-muted-foreground">{t("form.fields.title")}</TableHead>
+                <TableHead className="text-muted-foreground hidden md:table-cell">{t("form.fields.dueAt")}</TableHead>
                 <TableHead className="text-muted-foreground text-center">Status</TableHead>
                 {(canEdit || canDelete || canComplete) && (
                   <TableHead className="text-muted-foreground text-center">Ações</TableHead>
@@ -649,7 +643,7 @@ export function TasksContent({
                               type="button"
                               onClick={() => handleComplete(task)}
                               disabled={completing}
-                              title="Concluir tarefa"
+                              title={t("action.complete")}
                               className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer transition-all duration-200 disabled:opacity-50"
                             >
                               <Check className="h-4 w-4" />
@@ -660,7 +654,7 @@ export function TasksContent({
                               <button
                                 type="button"
                                 onClick={() => openEdit(task)}
-                                title="Editar tarefa"
+                                title={t("action.edit")}
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer transition-all duration-200"
                               >
                                 <Pencil className="h-4 w-4" />
@@ -669,7 +663,7 @@ export function TasksContent({
                                 type="button"
                                 onClick={() => handleCancel(task)}
                                 disabled={canceling}
-                                title="Cancelar tarefa"
+                                title={t("action.cancel")}
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-amber-400 hover:bg-amber-500/10 cursor-pointer transition-all duration-200 disabled:opacity-50"
                               >
                                 <X className="h-4 w-4" />
@@ -680,7 +674,7 @@ export function TasksContent({
                             <button
                               type="button"
                               onClick={() => openDeleteDialog(task)}
-                              title="Excluir tarefa"
+                              title={t("action.delete")}
                               className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 cursor-pointer transition-all duration-200"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -714,14 +708,12 @@ export function TasksContent({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-foreground">
               <AlertTriangle className="h-5 w-5 text-red-400" />
-              Excluir tarefa
+              {t("action.delete")}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              Tem certeza que deseja excluir permanentemente a tarefa{" "}
-              <strong className="text-foreground">
-                &quot;{deletingTask?.title}&quot;
-              </strong>
-              ? Esta ação é irreversível.
+              {deletingTask?.title
+                ? t("action.confirmDelete", { title: deletingTask.title })
+                : t("action.delete")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -729,7 +721,7 @@ export function TasksContent({
               disabled={deleting}
               className="border-border text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer transition-all duration-200"
             >
-              Cancelar
+              {t("action.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
@@ -737,7 +729,7 @@ export function TasksContent({
               className="bg-red-600 text-white hover:bg-red-700 cursor-pointer transition-all duration-200"
             >
               {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Excluir permanentemente
+              {t("action.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
