@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { requirePermission, PermissionDeniedError as RbacPermissionDeniedError } from "@/lib/rbac";
 import {
   createCompanySchema,
   updateCompanySchema,
@@ -55,8 +55,15 @@ const COMPANY_SELECT = {
 } as const;
 
 export async function getCompanies(): Promise<ActionResult<CompanyItem[]>> {
-  const user = await getCurrentUser();
-  if (!user) return { success: false, error: "Não autorizado" };
+  let user;
+  try {
+    user = await requirePermission("companies:view");
+  } catch (err) {
+    if (err instanceof RbacPermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
+  }
 
   const companies = await prisma.company.findMany({
     orderBy: { name: "asc" },
@@ -70,8 +77,14 @@ export async function getCompanies(): Promise<ActionResult<CompanyItem[]>> {
 }
 
 export async function getCompany(id: string) {
-  const user = await getCurrentUser();
-  if (!user) return { success: false, error: "Não autorizado" };
+  try {
+    await requirePermission("companies:view");
+  } catch (err) {
+    if (err instanceof RbacPermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
+  }
 
   const company = await prisma.company.findUnique({
     where: { id },
@@ -89,8 +102,15 @@ export async function getCompany(id: string) {
 export async function createCompany(
   input: unknown
 ): Promise<ActionResult<CompanyItem>> {
-  const user = await getCurrentUser();
-  if (!user) return { success: false, error: "Não autorizado" };
+  let user;
+  try {
+    user = await requirePermission("companies:manage");
+  } catch (err) {
+    if (err instanceof RbacPermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
+  }
 
   try {
     assertCanCreateCompany(user as any);
@@ -122,8 +142,15 @@ export async function updateCompany(
   id: string,
   input: unknown
 ): Promise<ActionResult<CompanyItem>> {
-  const user = await getCurrentUser();
-  if (!user) return { success: false, error: "Não autorizado" };
+  let user;
+  try {
+    user = await requirePermission("companies:manage");
+  } catch (err) {
+    if (err instanceof RbacPermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
+  }
 
   try {
     assertCanUpdateCompany(user as any);
@@ -154,8 +181,15 @@ export async function updateCompany(
 }
 
 export async function deleteCompany(id: string): Promise<ActionResult<void>> {
-  const user = await getCurrentUser();
-  if (!user) return { success: false, error: "Não autorizado" };
+  let user;
+  try {
+    user = await requirePermission("companies:manage");
+  } catch (err) {
+    if (err instanceof RbacPermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
+  }
 
   try {
     assertCanDeleteCompany(user as any);
@@ -180,10 +214,13 @@ export async function toggleCompanyActive(
 }
 
 export async function addMember(companyId: string, userId: string, role: string) {
-  const user = await getCurrentUser();
-  if (!user) return { success: false, error: "Não autorizado" };
-  if (!["super_admin", "admin"].includes(user.platformRole)) {
-    return { success: false, error: "Permissão insuficiente" };
+  try {
+    await requirePermission("companies:manage");
+  } catch (err) {
+    if (err instanceof RbacPermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
   }
 
   const existing = await prisma.userCompanyMembership.findUnique({
@@ -205,10 +242,13 @@ export async function addMember(companyId: string, userId: string, role: string)
 }
 
 export async function removeMember(companyId: string, userId: string) {
-  const user = await getCurrentUser();
-  if (!user) return { success: false, error: "Não autorizado" };
-  if (!["super_admin", "admin"].includes(user.platformRole)) {
-    return { success: false, error: "Permissão insuficiente" };
+  try {
+    await requirePermission("companies:manage");
+  } catch (err) {
+    if (err instanceof RbacPermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
   }
 
   await prisma.userCompanyMembership.update({
