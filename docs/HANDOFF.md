@@ -2,27 +2,37 @@
 
 > **Novo terminal / nova sessão:** este é o ponto de entrada único. Leia do início ao fim e você saberá o estado atual, como prosseguir, e quais decisões já foram tomadas. Só depois veja `CLAUDE.md` (regras) e `memory/MEMORY.md` (índice de memories).
 
-**Atualizado:** 2026-04-14 **fim da sessão tarde** (múltiplas sessões paralelas).
-**Branch principal:** `main`.
-**Branch ativa no momento da troca:** `feat/tenant-scoping-crud` (com spec+plan da Frente 17 uncommitted — ver §10).
-**URL de produção:** https://crm2.nexusai360.com
+**Atualizado:** 2026-04-14 **noite** (sessão autônoma — fixes prod + Fases 12.4 e 12.5).
+**Branch principal:** `main` (tudo mergeado).
+**URL de produção:** https://crm2.nexusai360.com ✅ operacional.
 **Repositório:** https://github.com/jvzanini/nexus-crm-krayin
 
 ---
 
 ## 0. TL;DR — onde paramos (ler PRIMEIRO)
 
-**Produção:** `/api/health` 200 ✅ • `/login` **500** ❌ (regressão provável das Frentes 14b/15b). **OBRIGATÓRIO LEI #1 antes de qualquer commit de fix** (ver `CLAUDE.md` §1 — logs container via Portainer).
+**Produção:** `/api/health` 200 ✅ • `/api/ready` 200 ✅ • `/login` 200 ✅.
+Headers de segurança ativos (HSTS/CSP/XFO/XCTO/Referrer/Permissions).
 
-**Estado do trabalho em andamento:**
+**Tags deployed nesta sessão (2026-04-14 noite):**
 
-1. **Fase 12.2 E2E (meu, sessão principal)** — scaffold completo, 12 commits na main (plan + infra Playwright + 3 roles + cross-tenant smoke + CI workflow). **Tag `phase-12-2-deployed` ainda não aplicada** porque CI E2E falha por dual React em `next dev` (regressão de vendor packages). Ver §8.
+- `prod-stable-2026-04-14-late` — após fix dual React + lazy Resend + migrations
+- `phase-12-4-deployed` — security headers + npm audit/gitleaks CI + docs/ops/security.md
+- `phase-12-5-deployed` — runbook expandido com LEI #1, playbooks, DB procedures, onboarding
 
-2. **Frente 17 Tenant Scoping** (sessão paralela) — spec + plan escritos em `docs/superpowers/{specs,plans}/2026-04-14-tenant-scoping-crud-domains.md` **ainda uncommitted na branch `feat/tenant-scoping-crud`**. Aborda vuln cross-tenant pré-existente (Lead/Contact/Opportunity sem companyId). 7 tasks (T1..T7). Ver §10.
+**Fases 12.4 e 12.5 COMPLETAS.** Frente 17 (tenant scoping) também mergeada em main (`77e2918`).
 
-3. **Frentes 8/9/11/14b/15b** (sessão paralela) — vendor packages `@nexusai360/core`, `multi-tenant`, `api-keys`, `settings-ui`, `profile-ui` já adotados em main. Porém introduziram dual React em dev → bloqueia 12.2 E2E e possivelmente login 500.
+**Próximas opções actionable (sem blockers externos):**
 
-**Primeira ação ao retomar:** escolher entre Opção A/B/C em §10.3.
+| Opção | Descrição | Esforço |
+|---|---|---|
+| **A — CVE high fixes** | bump next 16.2.3, nodemailer 8, sentry 10 ou desligar, prisma 7 compat | M-L (breaking changes) |
+| **B — Migrar Server Actions restantes para requirePermission** | follow-up Fase 1c | M |
+| **C — Validar Fase 12.2 E2E no CI** | dual React em dev pode estar resolvido agora após 12.4; rodar E2E local primeiro | S-M |
+| **D — Sentry wiring real** | depende de secret `SENTRY_DSN` no Portainer | S se secret OK |
+| **E — Email OAuth real (Fase 7b/7c)** | depende de `GOOGLE_OAUTH_*` + `MS_OAUTH_*` secrets | M-L |
+
+Recomendação: **A** (security hardening) → **C** (E2E verde) → **B** (RBAC completo).
 
 ---
 
@@ -33,18 +43,21 @@
 
 ### 1.1. Tags de release aplicadas
 
-| Tag | Fase | Status | Tempo estimado do trabalho |
-|-----|------|--------|---|
-| `phase-1a-deployed` | 1a — DS core | ✅ parity | pré-sessão |
-| `phase-1b-deployed` | 1b — Consent LGPD | ✅ parity | sessão atual |
-| `phase-1c-deployed` | 1c — Ops platform | 🟡 partial | sessão atual |
-| `phase-3-deployed` | 3 — Products multi-moeda | ✅ parity | sessão atual |
-| `phase-6-deployed` | 6 — Activities + reminders | ✅ parity | sessão atual |
-| `phase-7a-deployed` | 7a — Email foundations | ✅ parity | sessão atual |
-| `phase-8-deployed` | 8 — Automation engine | ✅ parity (send-email stub) | sessão atual |
-| `phase-9-core-deployed` | 9.0 — Marketing core | ✅ parity (send stub) | sessão atual |
-| `phase-12-0-deployed` | 12.0 — DSAR LGPD | ✅ parity | sessão atual |
-| `phase-12-partial-deployed` | 12 (sub-fases 12.0/12.1/12.3/12.4/12.5) | 🟡 partial | sessão atual |
+| Tag | Fase | Status |
+|-----|------|--------|
+| `phase-1a-deployed` | 1a — DS core | ✅ parity |
+| `phase-1b-deployed` | 1b — Consent LGPD | ✅ parity |
+| `phase-1c-deployed` | 1c — Ops platform | 🟡 partial (Sentry wiring pendente) |
+| `phase-3-deployed` | 3 — Products multi-moeda | ✅ parity |
+| `phase-6-deployed` | 6 — Activities + reminders | ✅ parity |
+| `phase-7a-deployed` | 7a — Email foundations | ✅ parity |
+| `phase-8-deployed` | 8 — Automation engine | ✅ parity (send-email stub) |
+| `phase-9-core-deployed` | 9.0 — Marketing core | ✅ parity (send stub) |
+| `phase-12-0-deployed` | 12.0 — DSAR LGPD | ✅ parity |
+| `phase-12-partial-deployed` | 12 (sub-fases 12.0/12.1/12.3) | 🟡 partial |
+| **`phase-12-4-deployed`** | **12.4 — Security audit** | **✅ headers + CI scans + doc** |
+| **`phase-12-5-deployed`** | **12.5 — Runbook expansion** | **✅ LEI #1 + playbooks + onboarding** |
+| **`prod-stable-2026-04-14-late`** | **snapshot estável pós-fix** | **✅ referência para rollback** |
 
 ### 1.2. Commits recentes em `main` (últimos 10)
 
