@@ -214,7 +214,7 @@ export async function activateCampaignAction(
     }
 
     // Resolve contatos do segmento com consentMarketing=true
-    const segmentFilters = campaign.segment.filters as SegmentFilter[];
+    const segmentFilters = campaign.segment.filters as unknown as SegmentFilter[];
     const filterWhere = buildWhereFromFilters(segmentFilters);
     const contactWhere = {
       AND: [...filterWhere.AND, { consentMarketing: true }],
