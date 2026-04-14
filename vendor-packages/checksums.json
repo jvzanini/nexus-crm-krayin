@@ -1,7 +1,9 @@
 {
+  "nexusai360-audit-log-0.2.3.tgz": "sha256:a36bad14e1fbab1f9d240f6d76f2f352e85b0d875800094df716b2b8c16f4adc",
   "nexusai360-companies-ui-0.2.0.tgz": "sha256:85164f99cc8cdfa37d4fe91cf96b190b20252e291df24b57136f3a50176d494a",
   "nexusai360-core-0.2.1.tgz": "sha256:91f9ae31a909cbc273397a7d1ad353c824bb9830e8193580dcddc77ffadfd481",
   "nexusai360-design-system-0.3.0.tgz": "sha256:108f7e4f32ed66057a1ec30d0c334aa6f8a36b1672407aa880f49a33f523ae97",
+  "nexusai360-multi-tenant-0.2.1.tgz": "sha256:b0016d5e0f87c00a09f84f7a2b91ee02fba8099f4056a30e0440b6e23d9401de",
   "nexusai360-types-0.2.0.tgz": "sha256:7a38f257a179f79f1a648f8cbd7b8632272400c5d15d2f45bf980604962d598b",
   "nexusai360-users-ui-0.2.0.tgz": "sha256:9491eb6ba73a6cfc32c71f328d87a83d5d175cf4f359da94eb84d75d028c51d2"
 }

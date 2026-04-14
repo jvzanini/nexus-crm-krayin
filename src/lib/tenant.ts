@@ -1,43 +1,36 @@
-// Multi-tenant helpers
+// Multi-tenant helpers — wrapper delega ao @nexusai360/multi-tenant.
+// Bug fix incluso: hierarquia do pacote cobre super_admin (antes omitido no local).
 import { prisma } from "@/lib/prisma";
-import { CompanyRole } from "@/generated/prisma/client";
+import {
+  getCompanyAdapter,
+  getUserCompanyRole as getUserCompanyRolePure,
+  hasCompanyPermission,
+  type CompanyRole,
+} from "@nexusai360/multi-tenant";
 
-/**
- * Retorna o papel de um usuário em uma empresa específica, ou null se não membro.
- */
+export type { CompanyRole };
+
 export async function getUserCompanyRole(
   userId: string,
-  companyId: string
+  companyId: string,
 ): Promise<CompanyRole | null> {
-  const membership = await prisma.userCompanyMembership.findUnique({
-    where: { userId_companyId: { userId, companyId } },
-  });
-  if (!membership || !membership.isActive) return null;
-  return membership.role;
+  const memberships = await getCompanyAdapter().listMembershipsByUser(userId);
+  return getUserCompanyRolePure(userId, companyId, memberships);
 }
 
-/**
- * Verifica se o usuário tem pelo menos o role exigido na empresa.
- */
 export async function requireCompanyRole(
   userId: string,
   companyId: string,
-  minRole: CompanyRole
+  minRole: CompanyRole,
 ): Promise<boolean> {
-  const ROLE_HIERARCHY: Record<CompanyRole, number> = {
-    super_admin: 4,
-    company_admin: 3,
-    manager: 2,
-    viewer: 1,
-  };
-
   const role = await getUserCompanyRole(userId, companyId);
   if (!role) return false;
-  return ROLE_HIERARCHY[role] >= ROLE_HIERARCHY[minRole];
+  return hasCompanyPermission(role, minRole);
 }
 
 /**
- * Retorna todas as empresas ativas de um usuário.
+ * Mantém Prisma direto — adapter retorna MembershipRecord sem company embed.
+ * Refactor para builders do pacote fica para frente seguinte.
  */
 export async function getUserCompanies(userId: string) {
   return prisma.userCompanyMembership.findMany({

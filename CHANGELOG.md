@@ -1,5 +1,48 @@
 # Changelog
 
+## [2026-04-14] Frente 10 — adoção de @nexusai360/audit-log
+
+### Adicionado
+- Dependência `@nexusai360/audit-log@0.2.3` via vendor tarball (6 → 7 tarballs vendored).
+- `src/lib/audit-log/persist.ts` — callback Prisma com normalização `actorId || null`.
+- `instrumentation.ts` registra `configureAudit(auditPersist)` no boot Node.
+
+### Substituído
+- `src/lib/audit-log.ts` — wrapper async preserva API; internamente chama `logAudit` (sync) do pacote.
+
+### Compatibilidade
+- 4 callers (`app/api/v1/subjects/*`, `lib/actions/locale.ts`) não tocados — `await auditLog(input)` continua compilando (no-op instantâneo).
+- Erros de persist não propagam mais para o caller — vão para `logger.error("audit-log.create.failed")`.
+
+### Sem mudança
+- Schema Prisma `AuditLog`, queries de leads/contacts/opportunities, NextAuth.
+
+### Notas
+- Pacote `@nexusai360/audit-log` bumped 0.2.2 → 0.2.3 para corrigir `exports` do package.json apontar para os artefatos reais gerados pelo tsup (`dist/index.js` ESM + `dist/index.cjs` CJS, em vez do inexistente `dist/index.mjs`).
+
+## [2026-04-14] Frente 9 — adoção de @nexusai360/multi-tenant
+
+### Adicionado
+- Dependência `@nexusai360/multi-tenant@0.2.1` via vendor tarball (5 → 6 tarballs vendored).
+- `src/lib/multi-tenant/adapter.ts` — `PrismaCompanyAdapter` implementando `CompanyAdapter`.
+- `instrumentation.ts` registra adapter via `configureCompanies` no boot Node.
+
+### Substituído
+- `src/lib/tenant.ts` — wrapper de ~25 linhas que delega ao pacote.
+- `src/lib/constants/roles.ts` — `COMPANY_ROLE_HIERARCHY`/`COMPANY_ROLE_LABELS`/`COMPANY_ROLE_OPTIONS` agora vêm do pacote.
+- `src/lib/actions/company.ts` — `slugify` do pacote (função inline removida).
+
+### Bug fix
+- `COMPANY_ROLE_HIERARCHY.super_admin` agora retorna `4` (antes era `undefined` → comparações silenciosamente falhavam).
+
+### Compatibilidade
+- `CompanyRole` type idêntico (mesmos 4 valores).
+- `Company.locale`, `defaultTimezone`, `baseCurrency`, `localeChangedAt`, `localeChangedBy` continuam acessíveis via `prisma.company` direto (não estão no contract do adapter).
+- Operações de `delete` em `Company` continuam exigindo cascade manual (Notification, AuditLog, ApiKey, Product, UserCompanyMembership têm `onDelete: Restrict`).
+
+### Sem mudança
+- Schema Prisma, NextAuth config, UI/sidebar, queries de leads/contacts/opportunities — frentes futuras.
+
 ## [2026-04-14] Frente 8 — adoção de @nexusai360/core
 
 ### Adicionado

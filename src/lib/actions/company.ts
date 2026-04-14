@@ -11,19 +11,11 @@ import {
   PermissionDeniedError,
 } from "@nexusai360/companies-ui/server-helpers";
 import type { CompanyItem } from "@nexusai360/companies-ui/server-helpers";
+import { slugify } from "@nexusai360/multi-tenant";
 
 type ActionResult<T = unknown> =
   | { success: true; data: T }
   | { success: false; error: string };
-
-function slugify(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 function toCompanyItem(
   c: {
