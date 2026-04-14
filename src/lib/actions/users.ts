@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { requirePermission, PermissionDeniedError as RbacPermissionDeniedError } from "@/lib/rbac";
 import { PLATFORM_ROLE_HIERARCHY } from "@/lib/constants/roles";
 import { hashPassword } from "@nexusai360/core";
 import { revalidatePath } from "next/cache";
@@ -78,8 +78,15 @@ const USER_SELECT = {
 } as const;
 
 export async function getUsers(): Promise<ActionResult<UserItem[]>> {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) return { success: false, error: "Não autenticado" };
+  let currentUser;
+  try {
+    currentUser = await requirePermission("users:view");
+  } catch (err) {
+    if (err instanceof RbacPermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
+  }
 
   let whereClause = {};
   if (!currentUser.isSuperAdmin) {
@@ -106,8 +113,15 @@ export async function getUsers(): Promise<ActionResult<UserItem[]>> {
 export async function createUser(
   input: unknown
 ): Promise<ActionResult<UserItem>> {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) return { success: false, error: "Não autenticado" };
+  let currentUser;
+  try {
+    currentUser = await requirePermission("users:manage");
+  } catch (err) {
+    if (err instanceof RbacPermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
+  }
 
   try {
     assertCanCreateUser(currentUser as any);
@@ -180,8 +194,15 @@ export async function updateUser(
   userId: string,
   input: unknown
 ): Promise<ActionResult<UserItem>> {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) return { success: false, error: "Não autenticado" };
+  let currentUser;
+  try {
+    currentUser = await requirePermission("users:manage");
+  } catch (err) {
+    if (err instanceof RbacPermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
+  }
 
   const parsed = updateUserSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: "Dados inválidos" };
@@ -232,8 +253,15 @@ export async function updateUser(
 }
 
 export async function deleteUser(userId: string): Promise<ActionResult<void>> {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) return { success: false, error: "Não autenticado" };
+  let currentUser;
+  try {
+    currentUser = await requirePermission("users:manage");
+  } catch (err) {
+    if (err instanceof RbacPermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
+  }
 
   try {
     assertCanDeleteUser(currentUser as any, {
