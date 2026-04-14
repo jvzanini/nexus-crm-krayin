@@ -5,19 +5,23 @@ const withNextIntl = createNextIntlPlugin("./src/i18n.ts");
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  // NÃO incluir @nexusai360/design-system em transpilePackages.
-  // Turbopack re-bundle resolve React incorretamente e quebra createContext em SSR
-  // (erro "s.createContext is not a function" — diagnosticado via /api/debug/layout).
-  // DS já vem pré-compilado (dual cjs/esm + peerDeps) — deve ser consumido direto.
-  transpilePackages: [
-    "@nexusai360/types",
-  ],
-  serverExternalPackages: [
-    "bcryptjs",
-    "@nexusai360/design-system",
-    "@nexusai360/users-ui",
-    "@nexusai360/companies-ui",
-  ],
+  // @nexusai360/* packages usam peerDependencies React 19 — resolução padrão do Next.
+  // transpilePackages quebra (createContext undefined); serverExternalPackages quebra
+  // (useContext null, dual React). Deixar Next decidir.
+  transpilePackages: ["@nexusai360/types"],
+  serverExternalPackages: ["bcryptjs"],
+  webpack: (config) => {
+    // Garante React único resolvendo app -> node_modules/react sempre.
+    config.resolve = config.resolve ?? {};
+    config.resolve.alias = {
+      ...(config.resolve.alias ?? {}),
+      react: require.resolve("react"),
+      "react-dom": require.resolve("react-dom"),
+      "react/jsx-runtime": require.resolve("react/jsx-runtime"),
+      "react/jsx-dev-runtime": require.resolve("react/jsx-dev-runtime"),
+    };
+    return config;
+  },
 };
 
 // Sentry wrapper desativado temporariamente — suspeito de causar HTTP 500 em SSR
