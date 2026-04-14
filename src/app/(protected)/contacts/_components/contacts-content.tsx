@@ -46,6 +46,7 @@ import {
   deleteContact,
 } from "@/lib/actions/contacts";
 import type { ContactItem } from "@/lib/actions/contacts";
+import { ConsentFieldset, type ConsentValue } from "@/components/consent/consent-fieldset";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -91,6 +92,10 @@ export function ContactsContent() {
   const [createPhone, setCreatePhone] = useState("");
   const [createOrganization, setCreateOrganization] = useState("");
   const [createTitle, setCreateTitle] = useState("");
+  const [createConsent, setCreateConsent] = useState<ConsentValue>({
+    marketing: false,
+    tracking: false,
+  });
   const [saving, startSaving] = useTransition();
 
   // Edit dialog
@@ -102,6 +107,10 @@ export function ContactsContent() {
   const [editPhone, setEditPhone] = useState("");
   const [editOrganization, setEditOrganization] = useState("");
   const [editTitle, setEditTitle] = useState("");
+  const [editConsent, setEditConsent] = useState<ConsentValue>({
+    marketing: false,
+    tracking: false,
+  });
 
   // Delete dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -129,6 +138,7 @@ export function ContactsContent() {
     setCreatePhone("");
     setCreateOrganization("");
     setCreateTitle("");
+    setCreateConsent({ marketing: false, tracking: false });
     setCreateOpen(true);
   }
 
@@ -140,6 +150,10 @@ export function ContactsContent() {
     setEditPhone(contact.phone || "");
     setEditOrganization(contact.organization || "");
     setEditTitle(contact.title || "");
+    setEditConsent({
+      marketing: Boolean(contact.consentMarketing),
+      tracking: Boolean(contact.consentTracking),
+    });
     setEditOpen(true);
   }
 
@@ -162,6 +176,7 @@ export function ContactsContent() {
         phone: createPhone.trim() || undefined,
         organization: createOrganization.trim() || undefined,
         title: createTitle.trim() || undefined,
+        consent: createConsent,
       });
 
       if (result.success) {
@@ -189,6 +204,7 @@ export function ContactsContent() {
         phone: editPhone.trim() || undefined,
         organization: editOrganization.trim() || undefined,
         title: editTitle.trim() || undefined,
+        consent: editConsent,
       });
 
       if (result.success) {
@@ -423,6 +439,7 @@ export function ContactsContent() {
                 className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
+            <ConsentFieldset value={createConsent} onChange={setCreateConsent} disabled={saving} />
           </div>
           <DialogFooter>
             <Button
@@ -520,6 +537,7 @@ export function ContactsContent() {
                 className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
+            <ConsentFieldset value={editConsent} onChange={setEditConsent} disabled={saving} />
           </div>
           <DialogFooter>
             <Button

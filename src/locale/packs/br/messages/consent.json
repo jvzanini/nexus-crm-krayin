@@ -1,0 +1,13 @@
+{
+  "legend": "Consentimentos (LGPD)",
+  "marketing": {
+    "label": "Aceito receber comunicações de marketing",
+    "hint": "E-mails sobre novidades, campanhas e ofertas. Você pode cancelar a qualquer momento."
+  },
+  "tracking": {
+    "label": "Aceito o acompanhamento de abertura e cliques",
+    "hint": "Usamos pixels e links rastreados para medir engajamento e personalizar envios."
+  },
+  "disclosure": "Tratamos seus dados conforme a Lei Geral de Proteção de Dados.",
+  "policyLink": "Leia nossa Política de Privacidade"
+}

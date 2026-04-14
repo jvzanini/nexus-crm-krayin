@@ -1,0 +1,13 @@
+{
+  "legend": "Consents (LGPD)",
+  "marketing": {
+    "label": "I accept receiving marketing communications",
+    "hint": "Emails about news, campaigns, and offers. You can unsubscribe anytime."
+  },
+  "tracking": {
+    "label": "I accept open and click tracking",
+    "hint": "We use pixels and tracked links to measure engagement and personalize sends."
+  },
+  "disclosure": "We process your data in accordance with Brazil's LGPD.",
+  "policyLink": "Read our Privacy Policy"
+}

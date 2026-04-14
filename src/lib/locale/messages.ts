@@ -7,31 +7,35 @@ import type { LocaleCode } from "@/locale/types";
 export async function loadMessages(locale: LocaleCode) {
   switch (locale) {
     case "pt-BR": {
-      const [common, auth, validation, address] = await Promise.all([
+      const [common, auth, validation, address, consent] = await Promise.all([
         import("@/locale/packs/br/messages/common.json"),
         import("@/locale/packs/br/messages/auth.json"),
         import("@/locale/packs/br/messages/validation.json"),
         import("@/locale/packs/br/messages/address.json"),
+        import("@/locale/packs/br/messages/consent.json"),
       ]);
       return {
         common: common.default,
         auth: auth.default,
         validation: validation.default,
         address: address.default,
+        consent: consent.default,
       };
     }
     case "en-US": {
-      const [common, auth, validation, address] = await Promise.all([
+      const [common, auth, validation, address, consent] = await Promise.all([
         import("@/locale/packs/us/messages/common.json"),
         import("@/locale/packs/us/messages/auth.json"),
         import("@/locale/packs/us/messages/validation.json"),
         import("@/locale/packs/us/messages/address.json"),
+        import("@/locale/packs/us/messages/consent.json"),
       ]);
       return {
         common: common.default,
         auth: auth.default,
         validation: validation.default,
         address: address.default,
+        consent: consent.default,
       };
     }
     default:

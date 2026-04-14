@@ -3,6 +3,9 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
+import { recordConsent, maskIp } from "@/lib/consent";
+import { z } from "zod";
 
 export interface ContactItem {
   id: string;
@@ -16,6 +19,8 @@ export interface ContactItem {
   avatarUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
+  consentMarketing: boolean;
+  consentTracking: boolean;
 }
 
 type ActionResult<T = unknown> = {
@@ -23,6 +28,41 @@ type ActionResult<T = unknown> = {
   data?: T;
   error?: string;
 };
+
+const consentSchema = z.object({
+  marketing: z.boolean(),
+  tracking: z.boolean(),
+});
+
+const contactFieldsSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  email: z.string().email().nullish(),
+  phone: z.string().nullish(),
+  organization: z.string().nullish(),
+  title: z.string().nullish(),
+  notes: z.string().nullish(),
+  avatarUrl: z.string().nullish(),
+});
+
+const createContactSchema = z.object({
+  fields: contactFieldsSchema,
+  consent: consentSchema,
+});
+
+const updateContactSchema = z.object({
+  fields: contactFieldsSchema.partial(),
+  consent: consentSchema.optional(),
+});
+
+async function resolveRequestContext() {
+  const h = await headers();
+  const xff = h.get("x-forwarded-for") ?? "";
+  const ipRaw = xff.split(",")[0]?.trim() ?? "";
+  const ipMask = maskIp(ipRaw);
+  const ua = (h.get("user-agent") ?? "").slice(0, 200) || null;
+  return { ipMask, ua };
+}
 
 export async function getContacts(): Promise<ActionResult<ContactItem[]>> {
   const user = await getCurrentUser();
@@ -38,27 +78,66 @@ export async function getContacts(): Promise<ActionResult<ContactItem[]>> {
 export async function createContact(data: {
   firstName: string;
   lastName: string;
-  email?: string;
-  phone?: string;
-  organization?: string;
-  title?: string;
-  notes?: string;
-  avatarUrl?: string;
+  email?: string | null;
+  phone?: string | null;
+  organization?: string | null;
+  title?: string | null;
+  notes?: string | null;
+  avatarUrl?: string | null;
+  consent: { marketing: boolean; tracking: boolean };
 }): Promise<ActionResult<{ id: string }>> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autenticado" };
 
-  const contact = await prisma.contact.create({
-    data: {
+  const parsed = createContactSchema.safeParse({
+    fields: {
       firstName: data.firstName,
       lastName: data.lastName,
-      email: data.email ?? null,
-      phone: data.phone ?? null,
-      organization: data.organization ?? null,
-      title: data.title ?? null,
-      notes: data.notes ?? null,
-      avatarUrl: data.avatarUrl ?? null,
+      email: data.email,
+      phone: data.phone,
+      organization: data.organization,
+      title: data.title,
+      notes: data.notes,
+      avatarUrl: data.avatarUrl,
     },
+    consent: data.consent,
+  });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
+  }
+
+  const { ipMask, ua } = await resolveRequestContext();
+
+  const contact = await prisma.$transaction(async (tx) => {
+    const now = new Date();
+    const created = await tx.contact.create({
+      data: {
+        firstName: parsed.data.fields.firstName,
+        lastName: parsed.data.fields.lastName,
+        email: parsed.data.fields.email ?? null,
+        phone: parsed.data.fields.phone ?? null,
+        organization: parsed.data.fields.organization ?? null,
+        title: parsed.data.fields.title ?? null,
+        notes: parsed.data.fields.notes ?? null,
+        avatarUrl: parsed.data.fields.avatarUrl ?? null,
+        consentMarketing: parsed.data.consent.marketing,
+        consentMarketingAt: parsed.data.consent.marketing ? now : null,
+        consentMarketingIpMask: parsed.data.consent.marketing ? ipMask : null,
+        consentTracking: parsed.data.consent.tracking,
+        consentTrackingAt: parsed.data.consent.tracking ? now : null,
+        consentTrackingIpMask: parsed.data.consent.tracking ? ipMask : null,
+      },
+    });
+    await recordConsent(tx, {
+      subjectType: "contact",
+      subjectId: created.id,
+      consent: parsed.data.consent,
+      source: "contact_form",
+      ipMask,
+      userAgent: ua,
+      grantedBy: user.id,
+    });
+    return created;
   });
 
   revalidatePath("/contacts");
@@ -70,30 +149,64 @@ export async function updateContact(
   data: {
     firstName?: string;
     lastName?: string;
-    email?: string;
-    phone?: string;
-    organization?: string;
-    title?: string;
-    notes?: string;
-    avatarUrl?: string;
+    email?: string | null;
+    phone?: string | null;
+    organization?: string | null;
+    title?: string | null;
+    notes?: string | null;
+    avatarUrl?: string | null;
+    consent?: { marketing: boolean; tracking: boolean };
   }
 ): Promise<ActionResult> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autenticado" };
 
-  const updateData: Record<string, unknown> = {};
-  if (data.firstName !== undefined) updateData.firstName = data.firstName;
-  if (data.lastName !== undefined) updateData.lastName = data.lastName;
-  if (data.email !== undefined) updateData.email = data.email;
-  if (data.phone !== undefined) updateData.phone = data.phone;
-  if (data.organization !== undefined) updateData.organization = data.organization;
-  if (data.title !== undefined) updateData.title = data.title;
-  if (data.notes !== undefined) updateData.notes = data.notes;
-  if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl;
+  const parsed = updateContactSchema.safeParse({
+    fields: {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      organization: data.organization,
+      title: data.title,
+      notes: data.notes,
+      avatarUrl: data.avatarUrl,
+    },
+    consent: data.consent,
+  });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
+  }
 
-  await prisma.contact.update({
-    where: { id },
-    data: updateData,
+  const { ipMask, ua } = await resolveRequestContext();
+
+  await prisma.$transaction(async (tx) => {
+    const patch: Record<string, unknown> = {};
+    const f = parsed.data.fields;
+    if (f.firstName !== undefined) patch.firstName = f.firstName;
+    if (f.lastName !== undefined) patch.lastName = f.lastName;
+    if (f.email !== undefined) patch.email = f.email ?? null;
+    if (f.phone !== undefined) patch.phone = f.phone ?? null;
+    if (f.organization !== undefined) patch.organization = f.organization ?? null;
+    if (f.title !== undefined) patch.title = f.title ?? null;
+    if (f.notes !== undefined) patch.notes = f.notes ?? null;
+    if (f.avatarUrl !== undefined) patch.avatarUrl = f.avatarUrl ?? null;
+
+    if (Object.keys(patch).length > 0) {
+      await tx.contact.update({ where: { id }, data: patch });
+    }
+
+    if (parsed.data.consent) {
+      await recordConsent(tx, {
+        subjectType: "contact",
+        subjectId: id,
+        consent: parsed.data.consent,
+        source: "admin_edit",
+        ipMask,
+        userAgent: ua,
+        grantedBy: user.id,
+      });
+    }
   });
 
   revalidatePath("/contacts");

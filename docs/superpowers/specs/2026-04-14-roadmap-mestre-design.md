@@ -233,3 +233,7 @@ Preenchida durante cada fase. Status: `parity` | `partial` | `dropped` | `pendin
 | UI | /__ds-preview smoke (3vp×2temas) | 1a | parity | Playwright spec + axe; baselines via workflow_dispatch |
 | Infra | GitHub Packages publish pipeline | 1a | parity | tag v<ver>-<pkg> → publish.yml |
 | Infra | Docker CRM build + deploy Portainer | 1a | parity | node:20-slim; rollout automático quando Portainer alcançável |
+| UI | Telas migradas para DS (10 rotas) | 1b | parity | Fase 1b.0 — imports swap (auth, dashboard, leads, contacts, opportunities, profile, users, companies, settings) |
+| Compliance | Consent LGPD Leads/Contacts | 1b | parity | migration + lib recordConsent + forms + consent_logs + backfill + docs/lgpd.md |
+| Quality | ESLint rule no-direct-consent-write | 1b | parity | rule local em `eslint-rules/`, wired em `eslint.config.mjs`, teste RuleTester |
+| Quality | i18n parity check (br × us) | 1b | parity | `scripts/check-i18n-parity.ts`; pacotes locale-específicos (address, common) pulados por design |

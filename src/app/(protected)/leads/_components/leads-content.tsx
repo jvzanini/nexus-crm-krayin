@@ -46,6 +46,7 @@ import {
   deleteLead,
 } from "@/lib/actions/leads";
 import type { LeadItem } from "@/lib/actions/leads";
+import { ConsentFieldset, type ConsentValue } from "@/components/consent/consent-fieldset";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -107,6 +108,10 @@ export function LeadsContent() {
   const [createPhone, setCreatePhone] = useState("");
   const [createCompany, setCreateCompany] = useState("");
   const [createSource, setCreateSource] = useState("");
+  const [createConsent, setCreateConsent] = useState<ConsentValue>({
+    marketing: false,
+    tracking: false,
+  });
   const [saving, startSaving] = useTransition();
 
   // Edit dialog
@@ -118,6 +123,10 @@ export function LeadsContent() {
   const [editCompany, setEditCompany] = useState("");
   const [editSource, setEditSource] = useState("");
   const [editStatus, setEditStatus] = useState("new");
+  const [editConsent, setEditConsent] = useState<ConsentValue>({
+    marketing: false,
+    tracking: false,
+  });
 
   // Delete dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -147,6 +156,7 @@ export function LeadsContent() {
     setCreatePhone("");
     setCreateCompany("");
     setCreateSource("");
+    setCreateConsent({ marketing: false, tracking: false });
     setCreateOpen(true);
   }
 
@@ -158,6 +168,10 @@ export function LeadsContent() {
     setEditCompany(lead.company || "");
     setEditSource(lead.source || "");
     setEditStatus(lead.status);
+    setEditConsent({
+      marketing: Boolean(lead.consentMarketing),
+      tracking: Boolean(lead.consentTracking),
+    });
     setEditOpen(true);
   }
 
@@ -179,6 +193,7 @@ export function LeadsContent() {
         phone: createPhone.trim() || undefined,
         company: createCompany.trim() || undefined,
         source: createSource.trim() || undefined,
+        consent: createConsent,
       });
 
       if (result.success) {
@@ -206,6 +221,7 @@ export function LeadsContent() {
         company: editCompany.trim() || undefined,
         source: editSource.trim() || undefined,
         status: editStatus,
+        consent: editConsent,
       });
 
       if (result.success) {
@@ -450,6 +466,7 @@ export function LeadsContent() {
                 className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
+            <ConsentFieldset value={createConsent} onChange={setCreateConsent} disabled={saving} />
           </div>
           <DialogFooter>
             <Button
@@ -552,6 +569,7 @@ export function LeadsContent() {
                 ))}
               </select>
             </div>
+            <ConsentFieldset value={editConsent} onChange={setEditConsent} disabled={saving} />
           </div>
           <DialogFooter>
             <Button

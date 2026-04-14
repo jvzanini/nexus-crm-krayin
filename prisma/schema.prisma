@@ -340,6 +340,13 @@ model Lead {
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
 
+  consentMarketing       Boolean   @default(false) @map("consent_marketing")
+  consentMarketingAt     DateTime? @map("consent_marketing_at")
+  consentMarketingIpMask String?   @map("consent_marketing_ip_mask")
+  consentTracking        Boolean   @default(false) @map("consent_tracking")
+  consentTrackingAt      DateTime? @map("consent_tracking_at")
+  consentTrackingIpMask  String?   @map("consent_tracking_ip_mask")
+
   @@index([status, createdAt(sort: Desc)], name: "idx_lead_status_created")
   @@index([assignedTo], name: "idx_lead_assigned")
   @@map("leads")
@@ -357,6 +364,13 @@ model Contact {
   avatarUrl    String?  @map("avatar_url")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
+
+  consentMarketing       Boolean   @default(false) @map("consent_marketing")
+  consentMarketingAt     DateTime? @map("consent_marketing_at")
+  consentMarketingIpMask String?   @map("consent_marketing_ip_mask")
+  consentTracking        Boolean   @default(false) @map("consent_tracking")
+  consentTrackingAt      DateTime? @map("consent_tracking_at")
+  consentTrackingIpMask  String?   @map("consent_tracking_ip_mask")
 
   opportunities Opportunity[]
 
@@ -383,4 +397,25 @@ model Opportunity {
   @@index([stage, createdAt(sort: Desc)], name: "idx_opp_stage_created")
   @@index([assignedTo], name: "idx_opp_assigned")
   @@map("opportunities")
+}
+
+// ============================================================
+// CONSENT LGPD — trilha de auditoria imutável
+// ============================================================
+
+model ConsentLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  subjectType String   @map("subject_type")
+  subjectId   String   @map("subject_id") @db.Uuid
+  consentKey  String   @map("consent_key")
+  granted     Boolean
+  grantedBy   String?  @map("granted_by") @db.Uuid
+  grantedAt   DateTime @default(now()) @map("granted_at")
+  ipMask      String?  @map("ip_mask")
+  userAgent   String?  @map("user_agent") @db.VarChar(200)
+  source      String
+  reason      String?  @db.VarChar(500)
+
+  @@index([subjectType, subjectId, consentKey, grantedAt(sort: Desc)], name: "idx_consent_log_subject_key_time")
+  @@map("consent_logs")
 }
