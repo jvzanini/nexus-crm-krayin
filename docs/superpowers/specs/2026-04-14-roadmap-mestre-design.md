@@ -249,3 +249,6 @@ Preenchida durante cada fase. Status: `parity` | `partial` | `dropped` | `pendin
 | CRM | Activities timeline (5 types) | 6 | parity | model polimórfico (lead/contact/opportunity), CRUD + reminders + files |
 | Infra | FileStorageDriver (local) | 6 | parity | interface + LocalDiskDriver; S3Driver em Fase 12 |
 | Infra | BullMQ activity-reminders + worker | 6 | parity | queue + processor + boot reenqueue de pendings |
+| Email | Mailbox + EmailMessage schema | 7a | parity | MailboxProvider (gmail/outlook/imap_smtp) + threading via messageId per-tenant unique |
+| Security | Crypto AES-256-GCM helper | 7a | parity | `src/lib/crypto/aes-gcm.ts` scrypt-derived; tokens OAuth/IMAP encrypt antes do DB |
+| Security | RBAC email:view/connect/send/manage | 7a | parity | admin all, manager sem connect, seller view+send, viewer view |
