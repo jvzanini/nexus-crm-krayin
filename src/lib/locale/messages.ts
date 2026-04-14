@@ -7,7 +7,7 @@ import type { LocaleCode } from "@/locale/types";
 export async function loadMessages(locale: LocaleCode) {
   switch (locale) {
     case "pt-BR": {
-      const [common, auth, validation, address, consent, products, activities, mailboxes, automation] = await Promise.all([
+      const [common, auth, validation, address, consent, products, activities, mailboxes, automation, marketing] = await Promise.all([
         import("@/locale/packs/br/messages/common.json"),
         import("@/locale/packs/br/messages/auth.json"),
         import("@/locale/packs/br/messages/validation.json"),
@@ -17,6 +17,7 @@ export async function loadMessages(locale: LocaleCode) {
         import("@/locale/packs/br/messages/activities.json"),
         import("@/locale/packs/br/messages/mailboxes.json"),
         import("@/locale/packs/br/messages/automation.json"),
+        import("@/locale/packs/br/messages/marketing.json"),
       ]);
       return {
         common: common.default,
@@ -28,10 +29,11 @@ export async function loadMessages(locale: LocaleCode) {
         activities: activities.default,
         mailboxes: mailboxes.default,
         automation: automation.default,
+        marketing: marketing.default,
       };
     }
     case "en-US": {
-      const [common, auth, validation, address, consent, products, activities, mailboxes, automation] = await Promise.all([
+      const [common, auth, validation, address, consent, products, activities, mailboxes, automation, marketing] = await Promise.all([
         import("@/locale/packs/us/messages/common.json"),
         import("@/locale/packs/us/messages/auth.json"),
         import("@/locale/packs/us/messages/validation.json"),
@@ -41,6 +43,7 @@ export async function loadMessages(locale: LocaleCode) {
         import("@/locale/packs/us/messages/activities.json"),
         import("@/locale/packs/us/messages/mailboxes.json"),
         import("@/locale/packs/us/messages/automation.json"),
+        import("@/locale/packs/us/messages/marketing.json"),
       ]);
       return {
         common: common.default,
@@ -52,6 +55,7 @@ export async function loadMessages(locale: LocaleCode) {
         activities: activities.default,
         mailboxes: mailboxes.default,
         automation: automation.default,
+        marketing: marketing.default,
       };
     }
     default:

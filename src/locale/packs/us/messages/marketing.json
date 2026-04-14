@@ -1,0 +1,110 @@
+{
+  "segments": {
+    "list": {
+      "title": "Marketing segments",
+      "subtitle.count": "{count, plural, =0 {No segments} one {# segment registered} other {# segments registered}}",
+      "empty": "No segment registered yet",
+      "columns": {
+        "name": "Name",
+        "updatedAt": "Updated at",
+        "actions": "Actions"
+      }
+    },
+    "form": {
+      "create.title": "New segment",
+      "edit.title": "Edit segment",
+      "field.name": "Name",
+      "field.description": "Description",
+      "section.filters": "Filters",
+      "addFilter": "Add filter",
+      "preview": "Preview",
+      "preview.count": "{count} contacts match",
+      "preview.sample": "Sample"
+    },
+    "op": {
+      "eq": "Equals",
+      "neq": "Not equals",
+      "in": "In",
+      "gt": "Greater than",
+      "lt": "Less than",
+      "contains": "Contains"
+    },
+    "fields": {
+      "email": "Email",
+      "organization": "Organization",
+      "title": "Title",
+      "createdAt": "Created at",
+      "consentMarketing": "Accepts marketing",
+      "consentTracking": "Accepts tracking"
+    }
+  },
+  "campaigns": {
+    "list": {
+      "title": "Campaigns",
+      "subtitle.count": "{count, plural, =0 {No campaigns} one {# campaign registered} other {# campaigns registered}}",
+      "empty": "No campaign registered yet",
+      "columns": {
+        "name": "Name",
+        "status": "Status",
+        "scheduledAt": "Scheduled at",
+        "stats": "Stats",
+        "actions": "Actions"
+      }
+    },
+    "form": {
+      "create.title": "New campaign",
+      "edit.title": "Edit campaign",
+      "field.name": "Internal name",
+      "field.subject": "Email subject",
+      "field.bodyHtml": "HTML body",
+      "field.mailboxId": "Sender mailbox",
+      "field.segmentId": "Segment",
+      "field.scheduledAt": "Schedule for (optional)",
+      "field.batchSize": "Batch size (per minute)"
+    },
+    "stats": {
+      "title": "Stats",
+      "total": "Total"
+    }
+  },
+  "status": {
+    "draft": "Draft",
+    "scheduled": "Scheduled",
+    "sending": "Sending",
+    "sent": "Sent",
+    "paused": "Paused",
+    "canceled": "Canceled",
+    "failed": "Failed"
+  },
+  "recipientStatus": {
+    "pending": "Pending",
+    "sent": "Sent",
+    "failed": "Failed",
+    "skipped_consent": "Skipped (consent)",
+    "skipped_quota": "Skipped (quota)",
+    "bounced": "Bounced",
+    "complained": "Complained",
+    "unsubscribed": "Unsubscribed"
+  },
+  "action": {
+    "new": "New campaign",
+    "save": "Save draft",
+    "activate": "Activate",
+    "pause": "Pause",
+    "resume": "Resume",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "newSegment": "New segment",
+    "editSegment": "Edit segment",
+    "deleteSegment": "Delete segment",
+    "confirmDelete": "Permanently delete \"{name}\"?",
+    "confirmDeleteSegment": "Delete segment \"{name}\"? Cannot delete if active campaigns reference it."
+  },
+  "unsubscribe": {
+    "page.success.title": "Subscription canceled successfully",
+    "page.success.body": "You will no longer receive marketing emails from this sender.",
+    "page.invalid.title": "Invalid or expired link",
+    "page.error.title": "Error processing unsubscription"
+  }
+}

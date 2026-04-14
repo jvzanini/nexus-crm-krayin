@@ -1,0 +1,110 @@
+{
+  "segments": {
+    "list": {
+      "title": "Segmentos de marketing",
+      "subtitle.count": "{count, plural, =0 {Nenhum segmento} one {# segmento cadastrado} other {# segmentos cadastrados}}",
+      "empty": "Nenhum segmento cadastrado ainda",
+      "columns": {
+        "name": "Nome",
+        "updatedAt": "Atualizado em",
+        "actions": "Ações"
+      }
+    },
+    "form": {
+      "create.title": "Novo segmento",
+      "edit.title": "Editar segmento",
+      "field.name": "Nome",
+      "field.description": "Descrição",
+      "section.filters": "Filtros",
+      "addFilter": "Adicionar filtro",
+      "preview": "Prévia",
+      "preview.count": "{count} contatos correspondem",
+      "preview.sample": "Amostra"
+    },
+    "op": {
+      "eq": "Igual a",
+      "neq": "Diferente de",
+      "in": "Em",
+      "gt": "Maior que",
+      "lt": "Menor que",
+      "contains": "Contém"
+    },
+    "fields": {
+      "email": "E-mail",
+      "organization": "Organização",
+      "title": "Cargo",
+      "createdAt": "Criado em",
+      "consentMarketing": "Aceita marketing",
+      "consentTracking": "Aceita tracking"
+    }
+  },
+  "campaigns": {
+    "list": {
+      "title": "Campanhas",
+      "subtitle.count": "{count, plural, =0 {Nenhuma campanha} one {# campanha cadastrada} other {# campanhas cadastradas}}",
+      "empty": "Nenhuma campanha cadastrada ainda",
+      "columns": {
+        "name": "Nome",
+        "status": "Status",
+        "scheduledAt": "Agendada para",
+        "stats": "Estatísticas",
+        "actions": "Ações"
+      }
+    },
+    "form": {
+      "create.title": "Nova campanha",
+      "edit.title": "Editar campanha",
+      "field.name": "Nome interno",
+      "field.subject": "Assunto do e-mail",
+      "field.bodyHtml": "Corpo HTML",
+      "field.mailboxId": "Caixa remetente",
+      "field.segmentId": "Segmento",
+      "field.scheduledAt": "Agendar para (opcional)",
+      "field.batchSize": "Tamanho do lote (por minuto)"
+    },
+    "stats": {
+      "title": "Estatísticas",
+      "total": "Total"
+    }
+  },
+  "status": {
+    "draft": "Rascunho",
+    "scheduled": "Agendada",
+    "sending": "Enviando",
+    "sent": "Enviada",
+    "paused": "Pausada",
+    "canceled": "Cancelada",
+    "failed": "Falhou"
+  },
+  "recipientStatus": {
+    "pending": "Pendente",
+    "sent": "Enviado",
+    "failed": "Falhou",
+    "skipped_consent": "Pulado (consent)",
+    "skipped_quota": "Pulado (cota)",
+    "bounced": "Devolvido",
+    "complained": "Reclamação",
+    "unsubscribed": "Cancelou inscrição"
+  },
+  "action": {
+    "new": "Nova campanha",
+    "save": "Salvar rascunho",
+    "activate": "Ativar",
+    "pause": "Pausar",
+    "resume": "Retomar",
+    "cancel": "Cancelar",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "newSegment": "Novo segmento",
+    "editSegment": "Editar segmento",
+    "deleteSegment": "Excluir segmento",
+    "confirmDelete": "Excluir permanentemente \"{name}\"?",
+    "confirmDeleteSegment": "Excluir segmento \"{name}\"? Não é possível excluir se há campanhas ativas usando."
+  },
+  "unsubscribe": {
+    "page.success.title": "Inscrição cancelada com sucesso",
+    "page.success.body": "Você não receberá mais e-mails de marketing deste remetente.",
+    "page.invalid.title": "Link inválido ou expirado",
+    "page.error.title": "Erro ao processar desinscrição"
+  }
+}
