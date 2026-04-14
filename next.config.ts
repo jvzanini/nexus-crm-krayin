@@ -3,8 +3,35 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n.ts");
 
+// Content Security Policy — Fase 12.4. unsafe-inline/eval ainda permitidos
+// porque Next 16 injeta inline chunks; aperto via nonce fica para follow-up.
+const CSP_VALUE = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self' data:",
+  "img-src 'self' data: blob: https:",
+  "connect-src 'self'",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "object-src 'none'",
+].join("; ");
+
+const SECURITY_HEADERS = [
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), browsing-topics=()" },
+  { key: "Content-Security-Policy", value: CSP_VALUE },
+];
+
 const nextConfig: NextConfig = {
   output: "standalone",
+  async headers() {
+    return [{ source: "/(.*)", headers: SECURITY_HEADERS }];
+  },
   // Vendor packages @nexusai360/* DEVEM estar em transpilePackages + turbopack
   // resolveAlias abaixo garante instância única de react/react-dom entre app e vendor.
   // Sem transpile, standalone copia vendor para node_modules e o require em runtime
