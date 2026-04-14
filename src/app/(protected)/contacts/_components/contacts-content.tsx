@@ -12,6 +12,7 @@ import {
 } from "@nexusai360/design-system";
 import { Button } from "@nexusai360/design-system";
 import { Input } from "@nexusai360/design-system";
+import { PageHeader } from "@nexusai360/design-system";
 import {
   Dialog,
   DialogContent,
@@ -243,30 +244,29 @@ export function ContactsContent() {
       className="space-y-6"
     >
       {/* Header */}
-      <motion.div
-        variants={itemVariants}
-        className="flex items-center justify-between"
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600/10 border border-emerald-600/20">
-            <Users className="h-5 w-5 text-emerald-500" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Contatos</h1>
-            <p className="text-sm text-muted-foreground">
-              {loading
-                ? "Carregando..."
-                : `${contacts.length} contato${contacts.length !== 1 ? "s" : ""} cadastrado${contacts.length !== 1 ? "s" : ""}`}
-            </p>
-          </div>
-        </div>
-        <Button
-          onClick={openCreate}
-          className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all duration-200"
-        >
-          <Plus className="h-4 w-4" />
-          Novo Contato
-        </Button>
+      <motion.div variants={itemVariants}>
+        <PageHeader.Root>
+          <PageHeader.Row>
+            <PageHeader.Icon icon={Users} color="emerald" />
+            <PageHeader.Heading>
+              <PageHeader.Title>Contatos</PageHeader.Title>
+              <PageHeader.Description>
+                {loading
+                  ? "Carregando..."
+                  : `${contacts.length} contato${contacts.length !== 1 ? "s" : ""} cadastrado${contacts.length !== 1 ? "s" : ""}`}
+              </PageHeader.Description>
+            </PageHeader.Heading>
+          </PageHeader.Row>
+          <PageHeader.Actions>
+            <Button
+              onClick={openCreate}
+              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all duration-200"
+            >
+              <Plus className="h-4 w-4" />
+              Novo Contato
+            </Button>
+          </PageHeader.Actions>
+        </PageHeader.Root>
       </motion.div>
 
       {/* Table */}
