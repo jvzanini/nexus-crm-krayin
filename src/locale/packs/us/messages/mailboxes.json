@@ -1,7 +1,9 @@
 {
   "list": {
     "title": "Mailboxes",
-    "subtitle.count": "{count, plural, =0 {No mailboxes connected} one {# mailbox connected} other {# mailboxes connected}}",
+    "subtitle": {
+      "count": "{count, plural, =0 {No mailboxes connected} one {# mailbox connected} other {# mailboxes connected}}"
+    },
     "empty": "No mailbox connected yet",
     "connected": "Connected mailboxes",
     "loading": "Loading...",
@@ -43,25 +45,33 @@
     "outlookNotConfigured": "Set MS_OAUTH_CLIENT_ID in env to enable"
   },
   "imap": {
-    "dialog.title": "Connect via IMAP / SMTP",
-    "dialog.description": "Use when OAuth is not available. Credentials are encrypted before persisting.",
-    "section.identity": "Identity",
-    "section.imap": "IMAP (receive)",
-    "section.smtp": "SMTP (send)",
-    "section.auth": "Authentication",
-    "field.emailAddress": "Email",
-    "field.displayName": "Display name",
-    "field.imapHost": "IMAP server",
-    "field.imapPort": "IMAP port",
-    "field.smtpHost": "SMTP server",
-    "field.smtpPort": "SMTP port",
-    "field.authUsername": "Username",
-    "field.authPassword": "Password",
-    "placeholder.emailAddress": "you@example.com",
-    "placeholder.displayName": "Optional",
-    "placeholder.imapHost": "imap.example.com",
-    "placeholder.smtpHost": "smtp.example.com",
-    "placeholder.authUsername": "username or email",
+    "dialog": {
+      "title": "Connect via IMAP / SMTP",
+      "description": "Use when OAuth is not available. Credentials are encrypted before persisting."
+    },
+    "section": {
+      "identity": "Identity",
+      "imap": "IMAP (receive)",
+      "smtp": "SMTP (send)",
+      "auth": "Authentication"
+    },
+    "field": {
+      "emailAddress": "Email",
+      "displayName": "Display name",
+      "imapHost": "IMAP server",
+      "imapPort": "IMAP port",
+      "smtpHost": "SMTP server",
+      "smtpPort": "SMTP port",
+      "authUsername": "Username",
+      "authPassword": "Password"
+    },
+    "placeholder": {
+      "emailAddress": "you@example.com",
+      "displayName": "Optional",
+      "imapHost": "imap.example.com",
+      "smtpHost": "smtp.example.com",
+      "authUsername": "username or email"
+    },
     "submit": "Connect",
     "cancel": "Cancel"
   }

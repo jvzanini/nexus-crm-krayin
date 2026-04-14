@@ -1,7 +1,9 @@
 {
   "list": {
     "title": "Atividades",
-    "subtitle.count": "{count, plural, =0 {Sem atividades} one {# atividade registrada} other {# atividades registradas}}",
+    "subtitle": {
+      "count": "{count, plural, =0 {Sem atividades} one {# atividade registrada} other {# atividades registradas}}"
+    },
     "empty": "Sem atividades registradas ainda",
     "filter": {
       "all": "Todas",
@@ -16,8 +18,12 @@
     "newActivity": "Nova atividade"
   },
   "form": {
-    "create.title": "Nova {type}",
-    "edit.title": "Editar {type}",
+    "create": {
+      "title": "Nova {type}"
+    },
+    "edit": {
+      "title": "Editar {type}"
+    },
     "type": {
       "call": "Ligação",
       "meeting": "Reunião",

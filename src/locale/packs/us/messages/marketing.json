@@ -2,7 +2,9 @@
   "segments": {
     "list": {
       "title": "Marketing segments",
-      "subtitle.count": "{count, plural, =0 {No segments} one {# segment registered} other {# segments registered}}",
+      "subtitle": {
+        "count": "{count, plural, =0 {No segments} one {# segment registered} other {# segments registered}}"
+      },
       "empty": "No segment registered yet",
       "columns": {
         "name": "Name",
@@ -11,15 +13,24 @@
       }
     },
     "form": {
-      "create.title": "New segment",
-      "edit.title": "Edit segment",
-      "field.name": "Name",
-      "field.description": "Description",
-      "section.filters": "Filters",
+      "create": {
+        "title": "New segment"
+      },
+      "edit": {
+        "title": "Edit segment"
+      },
+      "field": {
+        "name": "Name",
+        "description": "Description"
+      },
+      "section": {
+        "filters": "Filters"
+      },
       "addFilter": "Add filter",
-      "preview": "Preview",
-      "preview.count": "{count} contacts match",
-      "preview.sample": "Sample"
+      "preview": {
+        "count": "{count} contacts match",
+        "sample": "Sample"
+      }
     },
     "op": {
       "eq": "Equals",
@@ -41,7 +52,9 @@
   "campaigns": {
     "list": {
       "title": "Campaigns",
-      "subtitle.count": "{count, plural, =0 {No campaigns} one {# campaign registered} other {# campaigns registered}}",
+      "subtitle": {
+        "count": "{count, plural, =0 {No campaigns} one {# campaign registered} other {# campaigns registered}}"
+      },
       "empty": "No campaign registered yet",
       "columns": {
         "name": "Name",
@@ -52,15 +65,21 @@
       }
     },
     "form": {
-      "create.title": "New campaign",
-      "edit.title": "Edit campaign",
-      "field.name": "Internal name",
-      "field.subject": "Email subject",
-      "field.bodyHtml": "HTML body",
-      "field.mailboxId": "Sender mailbox",
-      "field.segmentId": "Segment",
-      "field.scheduledAt": "Schedule for (optional)",
-      "field.batchSize": "Batch size (per minute)"
+      "create": {
+        "title": "New campaign"
+      },
+      "edit": {
+        "title": "Edit campaign"
+      },
+      "field": {
+        "name": "Internal name",
+        "subject": "Email subject",
+        "bodyHtml": "HTML body",
+        "mailboxId": "Sender mailbox",
+        "segmentId": "Segment",
+        "scheduledAt": "Schedule for (optional)",
+        "batchSize": "Batch size (per minute)"
+      }
     },
     "stats": {
       "title": "Stats",
@@ -102,9 +121,17 @@
     "confirmDeleteSegment": "Delete segment \"{name}\"? Cannot delete if active campaigns reference it."
   },
   "unsubscribe": {
-    "page.success.title": "Subscription canceled successfully",
-    "page.success.body": "You will no longer receive marketing emails from this sender.",
-    "page.invalid.title": "Invalid or expired link",
-    "page.error.title": "Error processing unsubscription"
+    "page": {
+      "success": {
+        "title": "Subscription canceled successfully",
+        "body": "You will no longer receive marketing emails from this sender."
+      },
+      "invalid": {
+        "title": "Invalid or expired link"
+      },
+      "error": {
+        "title": "Error processing unsubscription"
+      }
+    }
   }
 }

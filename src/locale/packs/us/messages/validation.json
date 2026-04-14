@@ -1,10 +1,20 @@
 {
   "required": "Required field",
   "taxId": {
-    "personal": { "invalid": "Invalid SSN" },
-    "business": { "invalid": "Invalid EIN" }
+    "personal": {
+      "invalid": "Invalid SSN"
+    },
+    "business": {
+      "invalid": "Invalid EIN"
+    }
   },
-  "postalCode": { "invalid": "Invalid ZIP code" },
-  "phone": { "invalid": "Invalid phone number" },
-  "address": { "neighborhood_required": "Neighborhood is required" }
+  "postalCode": {
+    "invalid": "Invalid ZIP code"
+  },
+  "phone": {
+    "invalid": "Invalid phone number"
+  },
+  "address": {
+    "neighborhood_required": "Neighborhood is required"
+  }
 }

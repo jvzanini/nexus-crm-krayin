@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { SessionProvider } from "next-auth/react";
+import { ThemeProvider as DsThemeProvider } from "@nexusai360/design-system/theme-provider";
 
 type ThemePreference = "dark" | "light" | "system";
 type ResolvedTheme = "dark" | "light";
@@ -118,7 +119,9 @@ export function Providers({
 }) {
   return (
     <SessionProvider>
-      <ThemeProvider initialTheme={initialTheme}>{children}</ThemeProvider>
+      <ThemeProvider initialTheme={initialTheme}>
+        <DsThemeProvider initialTheme={initialTheme}>{children}</DsThemeProvider>
+      </ThemeProvider>
     </SessionProvider>
   );
 }

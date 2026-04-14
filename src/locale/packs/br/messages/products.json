@@ -1,7 +1,9 @@
 {
   "list": {
     "title": "Produtos",
-    "subtitle.count": "{count, plural, =0 {Nenhum produto} one {# produto cadastrado} other {# produtos cadastrados}}",
+    "subtitle": {
+      "count": "{count, plural, =0 {Nenhum produto} one {# produto cadastrado} other {# produtos cadastrados}}"
+    },
     "empty": "Nenhum produto cadastrado ainda",
     "filter": {
       "category": "Categoria",
@@ -13,8 +15,12 @@
     }
   },
   "form": {
-    "create.title": "Novo produto",
-    "edit.title": "Editar produto",
+    "create": {
+      "title": "Novo produto"
+    },
+    "edit": {
+      "title": "Editar produto"
+    },
     "sku": "SKU",
     "name": "Nome",
     "description": "Descrição",

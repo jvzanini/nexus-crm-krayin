@@ -267,3 +267,5 @@ Preenchida durante cada fase. Status: `parity` | `partial` | `dropped` | `pendin
 | LGPD | DSAR export endpoint | 12.0 | parity | JSON stream subject + activities + emails + consent_logs + audit_logs |
 | LGPD | DSAR consent revoke endpoint | 12.0 | parity | recordConsent source=dsar + audit log |
 | LGPD | DSAR erase (anonimização) endpoint | 12.0 | parity | [DSAR ERASED] marker + PII limpa; FK + consent_logs preservados |
+| Quality | E2E Playwright golden paths | 12.2 | parity | seed 2 tenants + 3 roles + storage state + admin/manager/viewer + cross-tenant smoke |
+| Ops | Portainer API token + LEI #1 debug | — | parity | logs container via API; ponto de entrada canônico em CLAUDE.md + memory |
