@@ -1,11 +1,13 @@
-import { redis } from "@/lib/redis";
+import {
+  checkRateLimit,
+  recordAttempt,
+  applyProgressiveLockout,
+  resetAttempts,
+  DEFAULT_LOCKOUT_TIERS,
+} from "@nexusai360/core";
 
-const WINDOW_SECONDS = 60;
-const LOCKOUT_TIERS = [
-  { maxAttempts: 5, lockoutSeconds: 900 },   // 5 tentativas → 15min
-  { maxAttempts: 10, lockoutSeconds: 3600 },  // 10 tentativas → 1h
-  { maxAttempts: 20, lockoutSeconds: 86400 }, // 20 tentativas → 24h
-];
+const WINDOW_MS = 60_000;
+const FIRST_TIER_MAX = DEFAULT_LOCKOUT_TIERS[0].maxAttempts; // 5
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -13,46 +15,44 @@ export interface RateLimitResult {
   retryAfterSeconds?: number;
 }
 
-function getKey(prefix: string, email: string, ip: string) {
-  return `${prefix}:${email}:${ip}`;
+function getKey(email: string, ip: string): string {
+  return `${email}:${ip}`;
 }
 
 export async function checkLoginRateLimit(
   email: string,
-  ip: string
+  ip: string,
 ): Promise<RateLimitResult> {
-  const lockoutKey = getKey("lockout", email, ip);
-  const countKey = getKey("attempts", email, ip);
-
-  // Verificar lockout ativo
-  const lockoutTtl = await redis.ttl(lockoutKey);
-  if (lockoutTtl > 0) {
-    return { allowed: false, remaining: 0, retryAfterSeconds: lockoutTtl };
+  const key = getKey(email, ip);
+  // 1. Verifica lockout ativo (sem incrementar)
+  const pre = await checkRateLimit(key, FIRST_TIER_MAX, WINDOW_MS);
+  if (!pre.allowed) {
+    return { allowed: false, remaining: 0, retryAfterSeconds: pre.retryAfter };
   }
-
-  // Contar tentativas na janela
-  const count = parseInt((await redis.get(countKey)) || "0", 10);
-
-  // Incrementar contador
-  const newCount = await redis.incr(countKey);
-  if (newCount === 1) {
-    await redis.expire(countKey, WINDOW_SECONDS);
+  // 2. Incrementa atomicamente (INCR + PEXPIRE)
+  const newCount = await recordAttempt(key, WINDOW_MS);
+  // 3. Aplica tier progressivo se threshold atingido
+  const lock = await applyProgressiveLockout(
+    key,
+    newCount,
+    DEFAULT_LOCKOUT_TIERS,
+  );
+  if (lock.tier) {
+    return {
+      allowed: false,
+      remaining: 0,
+      retryAfterSeconds: lock.tier.lockoutSeconds,
+    };
   }
-
-  // Verificar tiers de lockout
-  for (const tier of LOCKOUT_TIERS.slice().reverse()) {
-    if (newCount >= tier.maxAttempts) {
-      await redis.set(lockoutKey, "1", "EX", tier.lockoutSeconds);
-      return { allowed: false, remaining: 0, retryAfterSeconds: tier.lockoutSeconds };
-    }
-  }
-
-  const maxAllowed = LOCKOUT_TIERS[0].maxAttempts;
-  return { allowed: true, remaining: Math.max(0, maxAllowed - newCount) };
+  return {
+    allowed: true,
+    remaining: Math.max(0, FIRST_TIER_MAX - newCount),
+  };
 }
 
-export async function clearLoginRateLimit(email: string, ip: string): Promise<void> {
-  const lockoutKey = getKey("lockout", email, ip);
-  const countKey = getKey("attempts", email, ip);
-  await redis.del(lockoutKey, countKey);
+export async function clearLoginRateLimit(
+  email: string,
+  ip: string,
+): Promise<void> {
+  await resetAttempts(getKey(email, ip));
 }
