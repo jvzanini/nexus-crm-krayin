@@ -155,6 +155,9 @@ model Company {
   auditLogs           AuditLog[]
   apiKeys             ApiKey[]
   products            Product[]
+  leads               Lead[]
+  contacts            Contact[]
+  opportunities       Opportunity[]
 
   @@map("companies")
 }
@@ -331,6 +334,7 @@ enum OpportunityStage {
 
 model Lead {
   id          String     @id @default(uuid()) @db.Uuid
+  companyId   String     @map("company_id") @db.Uuid
   name        String
   email       String?
   phone       String?
@@ -349,16 +353,20 @@ model Lead {
   consentTrackingAt      DateTime? @map("consent_tracking_at")
   consentTrackingIpMask  String?   @map("consent_tracking_ip_mask")
 
+  companyRef Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
   @@index([status, createdAt(sort: Desc)], name: "idx_lead_status_created")
   @@index([assignedTo], name: "idx_lead_assigned")
+  @@index([companyId, createdAt(sort: Desc)], name: "idx_lead_company_created")
   @@map("leads")
 }
 
 model Contact {
   id           String   @id @default(uuid()) @db.Uuid
+  companyId    String   @map("company_id") @db.Uuid
   firstName    String   @map("first_name")
   lastName     String   @map("last_name")
-  email        String?  @unique
+  email        String?
   phone        String?
   organization String?
   title        String?
@@ -375,13 +383,17 @@ model Contact {
   consentTrackingIpMask  String?   @map("consent_tracking_ip_mask")
 
   opportunities Opportunity[]
+  companyRef    Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
 
+  @@unique([companyId, email], name: "uq_contact_email_per_company")
   @@index([email], name: "idx_contact_email")
+  @@index([companyId, createdAt(sort: Desc)], name: "idx_contact_company_created")
   @@map("contacts")
 }
 
 model Opportunity {
   id          String           @id @default(uuid()) @db.Uuid
+  companyId   String           @map("company_id") @db.Uuid
   title       String
   contactId   String?          @map("contact_id") @db.Uuid
   stage       OpportunityStage @default(prospecting)
@@ -394,10 +406,12 @@ model Opportunity {
   createdAt   DateTime         @default(now()) @map("created_at")
   updatedAt   DateTime         @updatedAt @map("updated_at")
 
-  contact Contact? @relation(fields: [contactId], references: [id], onDelete: Restrict)
+  contact    Contact? @relation(fields: [contactId], references: [id], onDelete: Restrict)
+  companyRef Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
 
   @@index([stage, createdAt(sort: Desc)], name: "idx_opp_stage_created")
   @@index([assignedTo], name: "idx_opp_assigned")
+  @@index([companyId, createdAt(sort: Desc)], name: "idx_opp_company_created")
   @@map("opportunities")
 }
 

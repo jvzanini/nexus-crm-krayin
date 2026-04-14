@@ -8,6 +8,7 @@ import { recordConsent, maskIp } from "@/lib/consent";
 import { z } from "zod";
 import { dispatch } from "@/lib/automation/dispatcher";
 import { logger } from "@/lib/logger";
+import { requireActiveCompanyId, NoActiveCompanyError } from "@/lib/tenant-scope";
 
 export interface LeadItem {
   id: string;
@@ -72,20 +73,19 @@ export async function getLeads(): Promise<ActionResult<LeadItem[]>> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autenticado" };
 
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
+
   const leads = await prisma.lead.findMany({
+    where: { companyId },
     orderBy: { createdAt: "desc" },
   });
 
   return { success: true, data: leads };
-}
-
-async function resolveActiveCompanyId(userId: string): Promise<string | null> {
-  const membership = await prisma.userCompanyMembership.findFirst({
-    where: { userId, isActive: true },
-    select: { companyId: true },
-    orderBy: { createdAt: "asc" },
-  });
-  return membership?.companyId ?? null;
 }
 
 export async function createLead(data: {
@@ -101,6 +101,13 @@ export async function createLead(data: {
 }): Promise<ActionResult<{ id: string }>> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autenticado" };
+
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
 
   const parsed = createLeadSchema.safeParse({
     fields: {
@@ -125,6 +132,7 @@ export async function createLead(data: {
     const now = new Date();
     const created = await tx.lead.create({
       data: {
+        companyId,
         ...parsed.data.fields,
         email: parsed.data.fields.email ?? null,
         phone: parsed.data.fields.phone ?? null,
@@ -154,25 +162,22 @@ export async function createLead(data: {
 
   revalidatePath("/leads");
 
-  const companyId = await resolveActiveCompanyId(user.id);
-  if (companyId) {
-    await dispatch("lead_created", {
-      companyId,
-      payload: {
-        id: lead.id,
-        name: lead.name,
-        email: lead.email,
-        phone: lead.phone,
-        company: lead.company,
-        source: lead.source,
-        status: lead.status,
-        consentMarketing: lead.consentMarketing,
-        consentTracking: lead.consentTracking,
-      },
-    }).catch((err) =>
-      logger.warn({ err, leadId: lead.id }, "automation.dispatch.lead_created.failed")
-    );
-  }
+  await dispatch("lead_created", {
+    companyId,
+    payload: {
+      id: lead.id,
+      name: lead.name,
+      email: lead.email,
+      phone: lead.phone,
+      company: lead.company,
+      source: lead.source,
+      status: lead.status,
+      consentMarketing: lead.consentMarketing,
+      consentTracking: lead.consentTracking,
+    },
+  }).catch((err) =>
+    logger.warn({ err, leadId: lead.id }, "automation.dispatch.lead_created.failed")
+  );
 
   return { success: true, data: { id: lead.id } };
 }
@@ -194,6 +199,13 @@ export async function updateLead(
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autenticado" };
 
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
+
   const parsed = updateLeadSchema.safeParse({
     fields: {
       name: data.name,
@@ -213,7 +225,7 @@ export async function updateLead(
 
   const { ipMask, ua } = await resolveRequestContext();
 
-  await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const patch: Record<string, unknown> = {};
     const f = parsed.data.fields;
     if (f.name !== undefined) patch.name = f.name;
@@ -225,9 +237,17 @@ export async function updateLead(
     if (f.notes !== undefined) patch.notes = f.notes ?? null;
     if (f.assignedTo !== undefined) patch.assignedTo = f.assignedTo ?? null;
 
+    let count = 0;
     if (Object.keys(patch).length > 0) {
-      await tx.lead.update({ where: { id }, data: patch });
+      const r = await tx.lead.updateMany({ where: { id, companyId }, data: patch });
+      count = r.count;
+    } else {
+      // Se só há consent sem fields, confirma existência do lead no tenant.
+      const exists = await tx.lead.findFirst({ where: { id, companyId }, select: { id: true } });
+      count = exists ? 1 : 0;
     }
+
+    if (count === 0) return 0;
 
     if (parsed.data.consent) {
       await recordConsent(tx, {
@@ -240,7 +260,12 @@ export async function updateLead(
         grantedBy: user.id,
       });
     }
+    return count;
   });
+
+  if (result === 0) {
+    return { success: false, error: "Lead não encontrado" };
+  }
 
   revalidatePath("/leads");
   return { success: true };
@@ -250,8 +275,21 @@ export async function deleteLead(id: string): Promise<ActionResult> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "Não autenticado" };
 
-  await prisma.lead.delete({ where: { id } });
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
+
+  const r = await prisma.lead.deleteMany({ where: { id, companyId } });
+  if (r.count === 0) {
+    return { success: false, error: "Lead não encontrado" };
+  }
 
   revalidatePath("/leads");
   return { success: true };
 }
+
+// Re-export for tests
+export { NoActiveCompanyError };
