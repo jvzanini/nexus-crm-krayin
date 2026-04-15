@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Table,
@@ -42,7 +43,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  listMyTasks,
+  listTasks,
   completeActivity,
   cancelActivity,
   deleteActivity,
@@ -52,8 +53,14 @@ import {
   updateActivity,
 } from "@/lib/actions/activities";
 import type { ActivityItem } from "@/lib/actions/activities";
+import {
+  TasksFiltersSchema,
+  type TasksFilters,
+} from "@/lib/actions/activities-schemas";
 import { BulkActionBar } from "@/components/tables/bulk-action-bar";
+import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 
 // ---------------------------------------------------------------------------
 // Variants de animação (stagger 0.08 conforme padrão)
@@ -75,15 +82,6 @@ const itemVariants = {
     transition: { duration: 0.3, ease: "easeOut" as const },
   },
 };
-
-// ---------------------------------------------------------------------------
-// Filtros de status
-// ---------------------------------------------------------------------------
-
-// STATUS_FILTERS labels são traduzidos no render via useTranslations
-const STATUS_FILTER_VALUES = ["all", "pending", "completed", "canceled"] as const;
-
-type StatusFilter = (typeof STATUS_FILTER_VALUES)[number];
 
 // ---------------------------------------------------------------------------
 // Badge de status
@@ -141,6 +139,9 @@ interface TasksContentProps {
   canEdit: boolean;
   canDelete: boolean;
   canComplete: boolean;
+  initialFilters?: Record<string, string | undefined>;
+  assigneeOptions?: Array<{ id: string; name: string }>;
+  canViewAll?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -378,18 +379,32 @@ function TaskFormDialog({
 // Componente principal
 // ---------------------------------------------------------------------------
 
+function parseInitialFilters(
+  initial: Record<string, string | undefined>,
+): TasksFilters {
+  const parsed = TasksFiltersSchema.safeParse(initial);
+  return parsed.success ? parsed.data : {};
+}
+
 export function TasksContent({
   canCreate,
   canEdit,
   canDelete,
   canComplete,
+  initialFilters = {},
+  assigneeOptions = [],
+  canViewAll = false,
 }: TasksContentProps) {
+  const router = useRouter();
   const [tasks, setTasks] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // --- Filtros ---
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("pending");
-  const [dueWithinDays, setDueWithinDays] = useState<string>("");
+  // --- Filtros URL ---
+  const [filters, setFilters] = useState<TasksFilters>(() =>
+    parseInitialFilters(initialFilters),
+  );
+  const [qInput, setQInput] = useState<string>(filters.q ?? "");
+  const debouncedQ = useDebouncedValue(qInput, 300);
 
   // --- Form nova tarefa ---
   const [formOpen, setFormOpen] = useState(false);
@@ -461,17 +476,9 @@ export function TasksContent({
   // Carregar
   // ---------------------------------------------------------------------------
 
-  async function load() {
+  async function load(f: TasksFilters = filters) {
     setLoading(true);
-    const filter: { status?: ActivityItem["status"]; dueWithinDays?: number } = {};
-    if (statusFilter !== "all") {
-      filter.status = statusFilter as ActivityItem["status"];
-    }
-    if (dueWithinDays && !isNaN(Number(dueWithinDays))) {
-      filter.dueWithinDays = Number(dueWithinDays);
-    }
-
-    const result = await listMyTasks(filter);
+    const result = await listTasks(f);
     if (result.success && result.data) {
       setTasks(result.data);
     } else {
@@ -480,10 +487,109 @@ export function TasksContent({
     setLoading(false);
   }
 
+  // Sync URL + refetch sempre que filtros mudam (debouncedQ já incorporado).
   useEffect(() => {
-    load();
+    const next: TasksFilters = {
+      ...filters,
+      q: debouncedQ.trim() ? debouncedQ.trim() : undefined,
+    };
+    const qs = new URLSearchParams();
+    if (next.q) qs.set("q", next.q);
+    if (next.status) qs.set("status", next.status);
+    if (next.assigneeScope) qs.set("assigneeScope", next.assigneeScope);
+    if (next.dueWithinDays) qs.set("dueWithinDays", next.dueWithinDays);
+    const s = qs.toString();
+    router.replace(`/tasks${s ? "?" + s : ""}`);
+    load(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, dueWithinDays]);
+  }, [
+    debouncedQ,
+    filters.status,
+    filters.assigneeScope,
+    filters.dueWithinDays,
+  ]);
+
+  const hasActiveFilters = useMemo(
+    () =>
+      Boolean(
+        filters.status ||
+          filters.assigneeScope ||
+          filters.dueWithinDays ||
+          (debouncedQ && debouncedQ.trim().length > 0),
+      ),
+    [filters.status, filters.assigneeScope, filters.dueWithinDays, debouncedQ],
+  );
+
+  function updateFilter(key: string, value: string) {
+    setSelectedIds(new Set());
+    if (key === "q") {
+      setQInput(value);
+      return;
+    }
+    const norm = value === "" || value === "all" ? undefined : value;
+    setFilters((prev) => ({ ...prev, [key]: norm }));
+  }
+
+  function clearFilters() {
+    setQInput("");
+    setFilters({});
+    setSelectedIds(new Set());
+    router.replace("/tasks");
+  }
+
+  // Montagem da FilterBar
+  const assigneeOpts = useMemo(() => {
+    const base = [{ value: "me", label: "Minhas tarefas" }];
+    if (canViewAll) {
+      base.push({ value: "all", label: "Todas" });
+      for (const u of assigneeOptions) {
+        base.push({ value: u.id, label: u.name });
+      }
+    }
+    return base;
+  }, [canViewAll, assigneeOptions]);
+
+  const filterConfigs: FilterConfig[] = [
+    {
+      type: "input",
+      key: "q",
+      label: "Buscar",
+      value: qInput,
+      placeholder: "Título ou descrição",
+    },
+    {
+      type: "select",
+      key: "status",
+      label: "Status",
+      value: filters.status ?? "all",
+      options: [
+        { value: "all", label: "Todos" },
+        { value: "pending", label: "Pendente" },
+        { value: "completed", label: "Concluída" },
+        { value: "canceled", label: "Cancelada" },
+      ],
+    },
+    {
+      type: "select",
+      key: "assigneeScope",
+      label: "Responsável",
+      value: filters.assigneeScope ?? "me",
+      options: assigneeOpts,
+    },
+    {
+      type: "select",
+      key: "dueWithinDays",
+      label: "Vencimento",
+      value: filters.dueWithinDays ?? "all",
+      options: [
+        { value: "all", label: "Qualquer" },
+        { value: "overdue", label: "Atrasadas" },
+        { value: "today", label: "Hoje" },
+        { value: "7", label: "Próximos 7 dias" },
+        { value: "30", label: "Próximos 30 dias" },
+      ],
+    },
+  ];
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -547,6 +653,10 @@ export function TasksContent({
   // Render
   // ---------------------------------------------------------------------------
 
+  const emptyDescription = hasActiveFilters
+    ? "Nenhuma tarefa corresponde aos filtros aplicados."
+    : "Crie tarefas para não esquecer seus follow-ups.";
+
   return (
     <motion.div
       variants={containerVariants}
@@ -586,52 +696,14 @@ export function TasksContent({
         </PageHeader.Root>
       </motion.div>
 
-      {/* Filtros */}
-      <motion.div variants={itemVariants} className="space-y-3">
-        {/* Pills de status */}
-        <div className="flex gap-2 flex-wrap">
-          {STATUS_FILTER_VALUES.map((val) => (
-            <button
-              key={val}
-              onClick={() => setStatusFilter(val)}
-              className={`px-3 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${
-                statusFilter === val
-                  ? "bg-violet-500/10 text-violet-400 border-violet-500/30"
-                  : "border-border text-muted-foreground hover:border-muted-foreground/30"
-              }`}
-            >
-              {val === "all" ? "Todas"
-                : val === "pending" ? "Pendentes"
-                : val === "completed" ? "Concluídas"
-                : "Canceladas"}
-            </button>
-          ))}
-        </div>
-
-        {/* Filtro por dias */}
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-muted-foreground shrink-0">
-            Vencimento em (dias):
-          </label>
-          <Input
-            type="number"
-            value={dueWithinDays}
-            onChange={(e) => setDueWithinDays(e.target.value)}
-            placeholder="Ex: 7"
-            min={1}
-            className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground max-w-[80px]"
-          />
-          <span className="text-sm text-muted-foreground">dias</span>
-          {dueWithinDays && (
-            <button
-              type="button"
-              onClick={() => setDueWithinDays("")}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
+      {/* Filtros URL */}
+      <motion.div variants={itemVariants}>
+        <FilterBar
+          filters={filterConfigs}
+          onChange={updateFilter}
+          onClear={clearFilters}
+          hasActive={hasActiveFilters}
+        />
       </motion.div>
 
       {/* Bulk action bar */}
@@ -673,11 +745,9 @@ export function TasksContent({
         ) : tasks.length === 0 ? (
           <EmptyState.Root>
             <EmptyState.Icon icon={CheckSquare} color="emerald" />
-            <EmptyState.Title>Nenhuma tarefa pendente</EmptyState.Title>
-            <EmptyState.Description>
-              Crie tarefas para não esquecer seus follow-ups.
-            </EmptyState.Description>
-            {canCreate && (
+            <EmptyState.Title>Nenhuma tarefa encontrada</EmptyState.Title>
+            <EmptyState.Description>{emptyDescription}</EmptyState.Description>
+            {canCreate && !hasActiveFilters && (
               <EmptyState.Action>
                 <Button
                   onClick={openCreate}
@@ -819,7 +889,7 @@ export function TasksContent({
           onOpenChange={setFormOpen}
           initial={editingTask ?? undefined}
           mode={editingTask ? "edit" : "create"}
-          onSaved={load}
+          onSaved={() => load()}
         />
       )}
 

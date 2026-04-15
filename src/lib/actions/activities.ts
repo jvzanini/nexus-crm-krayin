@@ -9,7 +9,13 @@ import { getFileDriver, enforceMime, enforceSize } from "@/lib/files";
 import { scheduleReminder, cancelReminder } from "@/lib/worker/queues/activity-reminders";
 import type { ActivityType, ActivityStatus, ActivitySubjectType } from "@/generated/prisma/enums";
 import { randomUUID } from "crypto";
-import { createActivitySchema as _createSchema, updateActivitySchema as _updateSchema } from "./activities-schemas";
+import {
+  createActivitySchema as _createSchema,
+  updateActivitySchema as _updateSchema,
+  TasksFiltersSchema,
+} from "./activities-schemas";
+import { requireCompanyRole } from "@/lib/tenant";
+import { startOfDay, endOfDay, addDays } from "date-fns";
 
 // NOTA (Fase 6 fix build produção): "use server" aceita apenas exports de funções
 // async. Enums/schemas foram removidos dos re-exports runtime — consumidores
@@ -187,35 +193,79 @@ export async function listActivitiesForSubject(
   }
 }
 
-export async function listMyTasks(filter?: {
-  status?: ActivityStatus;
-  dueWithinDays?: number;
-}): Promise<ActionResult<ActivityItem[]>> {
+/**
+ * Lista tarefas com filtros URL (Fase 32).
+ *
+ * Filtros suportados via `TasksFiltersSchema`:
+ * - q: busca full-text em title/description (case-insensitive)
+ * - status: pending | completed | canceled
+ * - assigneeScope: "me" (default) | "all" (requer CompanyRole >= manager) | UUID de assignee específico
+ * - dueWithinDays: "overdue" | "today" | "7" | "30"
+ *
+ * Quando `assigneeScope=all` mas usuário NÃO é manager/admin, clampamos
+ * silenciosamente para "me" + log warn (degrade gracefully, sem 403).
+ */
+export async function listTasks(
+  raw?: unknown,
+): Promise<ActionResult<ActivityItem[]>> {
   try {
     const user = await requirePermission("activities:view");
     const companyId = await resolveActiveCompanyId(user.id);
     if (!companyId) return { success: false, error: "Nenhuma empresa ativa encontrada" };
 
-    const where: {
-      companyId: string;
-      assignedTo: string;
-      type: ActivityType;
-      status?: ActivityStatus;
-      dueAt?: { lte: Date };
-    } = {
+    const parsed = TasksFiltersSchema.safeParse(raw ?? {});
+    const filters = parsed.success ? parsed.data : {};
+
+    const where: Record<string, unknown> = {
       companyId,
-      assignedTo: user.id,
       type: "task" as ActivityType,
     };
 
-    if (filter?.status) {
-      where.status = filter.status;
+    // Resolver assigneeScope
+    const scope = filters.assigneeScope;
+    if (!scope || scope === "me") {
+      where.assignedTo = user.id;
+    } else if (scope === "all") {
+      const canSeeAll = await requireCompanyRole(user.id, companyId, "manager");
+      if (!canSeeAll) {
+        logger.warn(
+          { userId: user.id, companyId },
+          "assigneeScope=all clamped to me for non-manager",
+        );
+        where.assignedTo = user.id;
+      }
+      // Se canSeeAll: não setar assignedTo → todos da company
+    } else {
+      // UUID específico
+      where.assignedTo = scope;
     }
 
-    if (filter?.dueWithinDays !== undefined) {
-      const limit = new Date();
-      limit.setDate(limit.getDate() + filter.dueWithinDays);
-      where.dueAt = { lte: limit };
+    if (filters.status) {
+      where.status = filters.status;
+    }
+
+    if (filters.dueWithinDays) {
+      const now = new Date();
+      if (filters.dueWithinDays === "overdue") {
+        where.dueAt = { lt: now };
+        // overdue implica pending (senão atrasada+concluída polui)
+        if (!filters.status) {
+          where.status = "pending" as ActivityStatus;
+        }
+      } else if (filters.dueWithinDays === "today") {
+        where.dueAt = { gte: startOfDay(now), lte: endOfDay(now) };
+      } else {
+        // "7" | "30"
+        const days = Number(filters.dueWithinDays);
+        where.dueAt = { gte: now, lte: addDays(now, days) };
+      }
+    }
+
+    if (filters.q) {
+      where.OR = [
+        { title: { contains: filters.q, mode: "insensitive" } },
+        { description: { contains: filters.q, mode: "insensitive" } },
+      ];
     }
 
     const activities = await prisma.activity.findMany({
@@ -228,6 +278,26 @@ export async function listMyTasks(filter?: {
   } catch (err) {
     return handleError(err, "Erro ao listar tarefas");
   }
+}
+
+/**
+ * Wrapper de compatibilidade — mantém assinatura antiga usada em outros
+ * consumidores. Internamente delega para `listTasks` com assigneeScope="me".
+ */
+export async function listMyTasks(filter?: {
+  status?: ActivityStatus;
+  dueWithinDays?: number;
+}): Promise<ActionResult<ActivityItem[]>> {
+  const dueMap = (d?: number): "overdue" | "today" | "7" | "30" | undefined => {
+    if (d === undefined) return undefined;
+    if (d === 7 || d === 30) return String(d) as "7" | "30";
+    return undefined;
+  };
+  return listTasks({
+    status: filter?.status,
+    assigneeScope: "me",
+    dueWithinDays: dueMap(filter?.dueWithinDays),
+  });
 }
 
 export async function getActivity(id: string): Promise<ActionResult<ActivityItem | null>> {

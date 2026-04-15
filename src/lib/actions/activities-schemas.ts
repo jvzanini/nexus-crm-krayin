@@ -94,7 +94,23 @@ export const updateActivitySchema = z.object({
   assignedTo: z.string().uuid().nullish(),
 });
 
+// ---------------------------------------------------------------------------
+// TasksFiltersSchema — filtros URL da página /tasks (Fase 32)
+// ---------------------------------------------------------------------------
+
+export const TasksFiltersSchema = z.object({
+  q: z.string().trim().min(1).max(128).optional(),
+  status: z.enum(["pending", "completed", "canceled"]).optional(),
+  assigneeScope: z
+    .union([z.enum(["me", "all"]), z.string().uuid()])
+    .optional(),
+  dueWithinDays: z.enum(["overdue", "today", "7", "30"]).optional(),
+});
+
+export type TasksFilters = z.infer<typeof TasksFiltersSchema>;
+
 export const _schemas = {
   createActivity: createActivitySchema,
   updateActivity: updateActivitySchema,
+  tasksFilters: TasksFiltersSchema,
 };
