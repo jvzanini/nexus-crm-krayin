@@ -15,19 +15,23 @@
 `/opportunities/pipeline` 307 (rota deploy OK).
 Headers de segurança ativos (HSTS/CSP/XFO/XCTO/Referrer/Permissions).
 
-### ⚠️ ALERTA BILLING GitHub Actions (2026-04-14 22:40 UTC)
+### Repo agora PÚBLICO (resolvido billing GH Actions 2026-04-15)
 
-Últimos 2 builds (`docs(handoff)` e `feat(ui): pipeline kanban responsivo`)
-**falharam no job "deploy"** com mensagem:
-> "The job was not started because recent account payments have failed or
-> your spending limit needs to be increased."
+Para evitar custo dos GitHub Actions minutes em repo privado, o repositório
+foi tornado público. Vendor packages compilados em `vendor-packages/*.tgz`
+ficam expostos (decisão estratégica aceita).
 
-**Código está em `main`** (commits + tags aplicadas), mas prod ainda está
-no state do deploy anterior bem-sucedido (`f4eb57d` Fase 20 T2 EmptyStates).
-Fases 21 (mobile kanban) só entrarão em prod após resolver billing em
-github.com/settings/billing.
+**Security review pré-público (completo em 2026-04-15):**
 
-Testes E2E continuam rodando normalmente (job separado).
+- `gitleaks detect` em 306 commits → 0 leaks (após allowlist expandido em
+  `.gitleaks.toml` cobrindo placeholders CI conhecidos).
+- URLs Portainer admin sanitizadas em docs (substituídas por `$PORTAINER_URL`).
+- `.env.production`, `.env.local`, `.env.*` todos gitignored e não tracked.
+- Nenhuma senha, token, API key real commitada.
+- Secrets CI (PORTAINER_TOKEN, NPM_TOKEN, NEXTAUTH_SECRET) vêm só via
+  `secrets.*` do GitHub, nunca hardcoded.
+
+CI rodando com minutes ilimitados (benefício repos públicos).
 
 **Tags deployed nesta sessão (2026-04-14 noite → madrugada):**
 
