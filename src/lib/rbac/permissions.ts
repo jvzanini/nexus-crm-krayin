@@ -51,6 +51,11 @@ export const PERMISSIONS = [
   "dsar:execute",
   "custom-attributes:view",
   "custom-attributes:manage",
+  "data-transfer:import",
+  "data-transfer:import:rollback",
+  "data-transfer:export",
+  "data-transfer:history:read",
+  "data-transfer:history:all",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -108,6 +113,10 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "dsar:execute",
     "custom-attributes:view",
     "custom-attributes:manage",
+    "data-transfer:import",
+    "data-transfer:import:rollback",
+    "data-transfer:export",
+    "data-transfer:history:read",
   ],
 
   manager: [
@@ -129,6 +138,9 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "marketing:view",
     "marketing:send",
     "custom-attributes:view",
+    "data-transfer:import",
+    "data-transfer:export",
+    "data-transfer:history:read",
   ],
 
   seller: [
@@ -150,6 +162,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "email:send",
     "workflows:view",
     "marketing:view",
+    "data-transfer:export",
+    "data-transfer:history:read",
   ],
 
   viewer: [
@@ -164,6 +178,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "workflows:view",
     "marketing:view",
     "custom-attributes:view",
+    "data-transfer:export",
+    "data-transfer:history:read",
   ],
 };
 
