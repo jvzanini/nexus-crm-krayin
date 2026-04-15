@@ -69,6 +69,20 @@ export const setWorkflowStatusSchema = z.object({
   status: z.enum(["draft", "active", "paused"], { message: "Status inválido" }),
 });
 
+// ---------------------------------------------------------------------------
+// Filters schema (URL filters — Fase 32 Grupo E)
+// ---------------------------------------------------------------------------
+
+export const WorkflowsFiltersSchema = z.object({
+  q: z.string().trim().min(1).max(128).optional(),
+  status: z.enum(["draft", "active", "paused"]).optional(),
+  trigger: z
+    .enum(["lead_created", "contact_created", "activity_completed"])
+    .optional(),
+});
+
+export type WorkflowsFilters = z.infer<typeof WorkflowsFiltersSchema>;
+
 // Exportação dos schemas para uso em testes
 export const _schemas = {
   createWorkflowSchema,

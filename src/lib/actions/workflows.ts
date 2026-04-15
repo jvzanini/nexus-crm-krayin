@@ -8,7 +8,9 @@ import {
   createWorkflowSchema,
   updateWorkflowSchema,
   setWorkflowStatusSchema,
+  WorkflowsFiltersSchema,
 } from "./workflows-schemas";
+import type { Prisma } from "@/generated/prisma/client";
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -101,14 +103,33 @@ function serializeWorkflow(w: {
 // Queries
 // ---------------------------------------------------------------------------
 
-export async function listWorkflowsAction(): Promise<ActionResult<WorkflowItem[]>> {
+export async function listWorkflowsAction(
+  raw?: unknown,
+): Promise<ActionResult<WorkflowItem[]>> {
   try {
     const user = await requirePermission("workflows:view");
     const companyId = await resolveActiveCompanyId(user.id);
     if (!companyId) return { success: false, error: "Nenhuma empresa ativa encontrada" };
 
+    const parsed = WorkflowsFiltersSchema.safeParse(raw ?? {});
+    const filters = parsed.success ? parsed.data : {};
+
+    const where: Prisma.WorkflowWhereInput = { companyId };
+
+    if (filters.status) {
+      where.status = filters.status;
+    }
+
+    if (filters.trigger) {
+      where.trigger = filters.trigger;
+    }
+
+    if (filters.q) {
+      where.name = { contains: filters.q, mode: "insensitive" };
+    }
+
     const workflows = await prisma.workflow.findMany({
-      where: { companyId },
+      where,
       orderBy: { createdAt: "desc" },
     });
 

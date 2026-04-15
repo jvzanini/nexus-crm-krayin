@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
+import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
+import { WorkflowsFiltersSchema, type WorkflowsFilters } from "@/lib/actions/workflows-schemas";
 import { motion } from "framer-motion";
 import {
   Table,
@@ -118,12 +121,38 @@ function TableSkeleton() {
 
 interface WorkflowsListContentProps {
   canManage: boolean;
+  initialFilters?: Record<string, string | undefined>;
 }
 
-export function WorkflowsListContent({ canManage }: WorkflowsListContentProps) {
+const STATUS_OPTIONS = [
+  { value: "all", label: "Todos" },
+  { value: "draft", label: "Rascunho" },
+  { value: "active", label: "Ativo" },
+  { value: "paused", label: "Pausado" },
+];
+
+const TRIGGER_OPTIONS = [
+  { value: "all", label: "Todos" },
+  { value: "lead_created", label: "Lead criado" },
+  { value: "contact_created", label: "Contato criado" },
+  { value: "activity_completed", label: "Atividade concluída" },
+];
+
+export function WorkflowsListContent({
+  canManage,
+  initialFilters = {},
+}: WorkflowsListContentProps) {
   const router = useRouter();
   const [workflows, setWorkflows] = useState<WorkflowItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // --- Filters (URL-based) ---
+  const [filters, setFilters] = useState<WorkflowsFilters>(() => {
+    const parsed = WorkflowsFiltersSchema.safeParse(initialFilters);
+    return parsed.success ? parsed.data : {};
+  });
+  const [qInput, setQInput] = useState<string>(initialFilters.q ?? "");
+  const debouncedQ = useDebouncedValue(qInput, 300);
 
   // --- Delete dialog ---
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -171,9 +200,9 @@ export function WorkflowsListContent({ canManage }: WorkflowsListContentProps) {
   // Carregamento
   // ---------------------------------------------------------------------------
 
-  async function loadWorkflows() {
+  async function loadWorkflows(f: WorkflowsFilters = filters) {
     setLoading(true);
-    const result = await listWorkflowsAction();
+    const result = await listWorkflowsAction(f);
     if (result.success && result.data) {
       setWorkflows(result.data);
     } else {
@@ -182,9 +211,74 @@ export function WorkflowsListContent({ canManage }: WorkflowsListContentProps) {
     setLoading(false);
   }
 
+  // Sync debounced q into filters
   useEffect(() => {
-    loadWorkflows();
-  }, []);
+    const trimmed = debouncedQ.trim();
+    setFilters((prev) => ({
+      ...prev,
+      q: trimmed === "" ? undefined : trimmed,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQ]);
+
+  // Load + URL sync whenever filters change
+  useEffect(() => {
+    const qs = new URLSearchParams();
+    if (filters.status) qs.set("status", filters.status);
+    if (filters.trigger) qs.set("trigger", filters.trigger);
+    if (filters.q) qs.set("q", filters.q);
+    const s = qs.toString();
+    router.replace(`/automation/workflows${s ? "?" + s : ""}`);
+    loadWorkflows(filters);
+    setSelectedIds(new Set());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.status, filters.trigger, filters.q]);
+
+  const hasActiveFilters = useMemo(
+    () => Boolean(filters.status || filters.trigger || filters.q),
+    [filters],
+  );
+
+  function updateFilter(key: string, value: string) {
+    if (key === "q") {
+      setQInput(value);
+      return;
+    }
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value === "" || value === "all" ? undefined : (value as never),
+    }));
+  }
+
+  function clearFilters() {
+    setFilters({});
+    setQInput("");
+    router.replace("/automation/workflows");
+  }
+
+  const filterConfigs: FilterConfig[] = [
+    {
+      type: "input",
+      key: "q",
+      label: "Buscar",
+      value: qInput,
+      placeholder: "Nome do workflow",
+    },
+    {
+      type: "select",
+      key: "status",
+      label: "Status",
+      value: filters.status ?? "all",
+      options: STATUS_OPTIONS,
+    },
+    {
+      type: "select",
+      key: "trigger",
+      label: "Disparo",
+      value: filters.trigger ?? "all",
+      options: TRIGGER_OPTIONS,
+    },
+  ];
 
   // ---------------------------------------------------------------------------
   // Toggle status
@@ -272,6 +366,16 @@ export function WorkflowsListContent({ canManage }: WorkflowsListContentProps) {
         </PageHeader.Root>
       </motion.div>
 
+      {/* Filtros */}
+      <motion.div variants={itemVariants}>
+        <FilterBar
+          filters={filterConfigs}
+          onChange={updateFilter}
+          onClear={clearFilters}
+          hasActive={hasActiveFilters}
+        />
+      </motion.div>
+
       {/* Bulk action bar */}
       {canManage && (
         <BulkActionBar
@@ -295,17 +399,33 @@ export function WorkflowsListContent({ canManage }: WorkflowsListContentProps) {
         ) : workflows.length === 0 ? (
           <EmptyState.Root>
             <EmptyState.Icon icon={Workflow} color="purple" />
-            <EmptyState.Title>Nenhuma automação criada</EmptyState.Title>
+            <EmptyState.Title>
+              {hasActiveFilters
+                ? "Nenhum workflow encontrado"
+                : "Nenhuma automação criada"}
+            </EmptyState.Title>
             <EmptyState.Description>
-              Automatize tarefas repetitivas criando workflows.
+              {hasActiveFilters
+                ? "Ajuste os filtros para ver mais resultados."
+                : "Automatize tarefas repetitivas criando workflows."}
             </EmptyState.Description>
-            {canManage && (
+            {canManage && !hasActiveFilters && (
               <EmptyState.Action>
                 <Button
                   onClick={() => router.push("/automation/workflows/new")}
                   className="bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
                 >
                   Novo workflow
+                </Button>
+              </EmptyState.Action>
+            )}
+            {hasActiveFilters && (
+              <EmptyState.Action>
+                <Button
+                  onClick={clearFilters}
+                  className="bg-transparent border border-border text-muted-foreground hover:bg-muted/50 cursor-pointer"
+                >
+                  Limpar filtros
                 </Button>
               </EmptyState.Action>
             )}
