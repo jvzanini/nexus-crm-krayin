@@ -32,6 +32,22 @@ type ActionResult<T = unknown> = {
   error?: string;
 };
 
+export interface LeadsFilters {
+  status?: string;
+  source?: string;
+  from?: string;
+  to?: string;
+  q?: string;
+}
+
+const VALID_LEAD_STATUS = [
+  "new",
+  "contacted",
+  "qualified",
+  "unqualified",
+  "converted",
+] as const;
+
 const consentSchema = z.object({
   marketing: z.boolean(),
   tracking: z.boolean(),
@@ -69,7 +85,9 @@ async function resolveRequestContext() {
   return { ipMask, ua };
 }
 
-export async function getLeads(): Promise<ActionResult<LeadItem[]>> {
+export async function getLeads(
+  filters?: LeadsFilters
+): Promise<ActionResult<LeadItem[]>> {
   try {
     await requirePermission("leads:view");
 
@@ -80,8 +98,37 @@ export async function getLeads(): Promise<ActionResult<LeadItem[]>> {
       return { success: false, error: "Empresa ativa não encontrada" };
     }
 
+    const where: Record<string, unknown> = { companyId };
+    if (
+      filters?.status &&
+      (VALID_LEAD_STATUS as readonly string[]).includes(filters.status)
+    ) {
+      where.status = filters.status;
+    }
+    if (filters?.source) {
+      where.source = { contains: filters.source, mode: "insensitive" };
+    }
+    if (filters?.from || filters?.to) {
+      const range: Record<string, Date> = {};
+      if (filters.from) {
+        const d = new Date(filters.from);
+        if (!isNaN(d.getTime())) range.gte = d;
+      }
+      if (filters.to) {
+        const d = new Date(filters.to);
+        if (!isNaN(d.getTime())) range.lte = d;
+      }
+      if (Object.keys(range).length > 0) where.createdAt = range;
+    }
+    if (filters?.q) {
+      where.OR = [
+        { name: { contains: filters.q, mode: "insensitive" } },
+        { email: { contains: filters.q, mode: "insensitive" } },
+      ];
+    }
+
     const leads = await prisma.lead.findMany({
-      where: { companyId },
+      where,
       orderBy: { createdAt: "desc" },
     });
 
@@ -92,6 +139,37 @@ export async function getLeads(): Promise<ActionResult<LeadItem[]>> {
     }
     throw err;
   }
+}
+
+export async function deleteLeadsBulk(
+  ids: string[]
+): Promise<ActionResult<{ deletedCount: number }>> {
+  try {
+    await requirePermission("leads:delete");
+  } catch (err) {
+    if (err instanceof PermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
+  }
+
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return { success: false, error: "Nenhum id fornecido" };
+  }
+
+  const r = await prisma.lead.deleteMany({
+    where: { id: { in: ids }, companyId },
+  });
+
+  revalidatePath("/leads");
+  return { success: true, data: { deletedCount: r.count } };
 }
 
 export async function createLead(data: {

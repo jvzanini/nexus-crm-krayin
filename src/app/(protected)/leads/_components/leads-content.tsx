@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Table,
@@ -46,9 +47,13 @@ import {
   createLead,
   updateLead,
   deleteLead,
+  deleteLeadsBulk,
 } from "@/lib/actions/leads";
-import type { LeadItem } from "@/lib/actions/leads";
+import type { LeadItem, LeadsFilters } from "@/lib/actions/leads";
 import { ConsentFieldset, type ConsentValue } from "@/components/consent/consent-fieldset";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
+import { BulkActionBar } from "@/components/tables/bulk-action-bar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -102,12 +107,28 @@ interface LeadsContentProps {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  initialFilters?: Record<string, string | undefined>;
 }
 
-export function LeadsContent({ canCreate, canEdit, canDelete }: LeadsContentProps) {
+export function LeadsContent({
+  canCreate,
+  canEdit,
+  canDelete,
+  initialFilters = {},
+}: LeadsContentProps) {
+  const router = useRouter();
   const [leads, setLeads] = useState<LeadItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<string>("all");
+  const [filters, setFilters] = useState<LeadsFilters>({
+    status: initialFilters.status,
+    source: initialFilters.source,
+    from: initialFilters.from,
+    to: initialFilters.to,
+    q: initialFilters.q,
+  });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [bulkDeleting, startBulkDeleting] = useTransition();
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
@@ -141,8 +162,8 @@ export function LeadsContent({ canCreate, canEdit, canDelete }: LeadsContentProp
   const [leadToDelete, setLeadToDelete] = useState<LeadItem | null>(null);
   const [deleting, startDeleting] = useTransition();
 
-  async function loadLeads() {
-    const result = await getLeads();
+  async function loadLeads(f: LeadsFilters = filters) {
+    const result = await getLeads(f);
     if (result.success && result.data) {
       setLeads(result.data);
     } else {
@@ -151,12 +172,107 @@ export function LeadsContent({ canCreate, canEdit, canDelete }: LeadsContentProp
     setLoading(false);
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    loadLeads();
-  }, []);
+    loadLeads(filters);
+  }, [filters.status, filters.source, filters.from, filters.to, filters.q]);
 
-  const filtered =
-    filter === "all" ? leads : leads.filter((l) => l.status === filter);
+  const hasActiveFilters = useMemo(
+    () => Object.values(filters).some((v) => v !== undefined && v !== ""),
+    [filters]
+  );
+
+  function updateFilter(key: string, value: string) {
+    const next: LeadsFilters = {
+      ...filters,
+      [key]: value === "" || value === "all" ? undefined : value,
+    };
+    setFilters(next);
+    setSelectedIds(new Set());
+    const qs = new URLSearchParams();
+    Object.entries(next).forEach(([k, v]) => {
+      if (v !== undefined && v !== "") qs.set(k, String(v));
+    });
+    const s = qs.toString();
+    router.replace(`/leads${s ? "?" + s : ""}`);
+  }
+
+  function clearFilters() {
+    setFilters({});
+    setSelectedIds(new Set());
+    router.replace("/leads");
+  }
+
+  const filterConfigs: FilterConfig[] = [
+    {
+      type: "select",
+      key: "status",
+      label: "Status",
+      value: filters.status ?? "all",
+      options: [
+        { value: "all", label: "Todos" },
+        ...STATUS_OPTIONS,
+      ],
+    },
+    {
+      type: "input",
+      key: "q",
+      label: "Buscar",
+      value: filters.q ?? "",
+      placeholder: "Nome ou email",
+    },
+    {
+      type: "input",
+      key: "source",
+      label: "Fonte",
+      value: filters.source ?? "",
+      placeholder: "Ex: Site",
+    },
+    {
+      type: "date",
+      key: "from",
+      label: "De",
+      value: filters.from ?? "",
+    },
+    {
+      type: "date",
+      key: "to",
+      label: "Até",
+      value: filters.to ?? "",
+    },
+  ];
+
+  function toggleRow(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    if (selectedIds.size === leads.length && leads.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(leads.map((l) => l.id)));
+    }
+  }
+
+  function confirmBulkDelete() {
+    const ids = Array.from(selectedIds);
+    startBulkDeleting(async () => {
+      const result = await deleteLeadsBulk(ids);
+      if (result.success && result.data) {
+        toast.success(`${result.data.deletedCount} excluído${result.data.deletedCount === 1 ? "" : "s"}`);
+        setLeads((prev) => prev.filter((l) => !selectedIds.has(l.id)));
+        setSelectedIds(new Set());
+      } else {
+        toast.error(result.error ?? "Erro ao excluir");
+      }
+      setBulkDeleteDialogOpen(false);
+    });
+  }
 
   function openCreate() {
     setCreateName("");
@@ -295,22 +411,26 @@ export function LeadsContent({ canCreate, canEdit, canDelete }: LeadsContentProp
         </PageHeader.Root>
       </motion.div>
 
-      {/* Status Filters */}
-      <motion.div variants={itemVariants} className="flex gap-2 flex-wrap">
-        {[{ value: "all", label: "Todos" }, ...STATUS_OPTIONS].map((s) => (
-          <button
-            key={s.value}
-            onClick={() => setFilter(s.value)}
-            className={`px-3 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${
-              filter === s.value
-                ? "bg-violet-500/10 text-violet-400 border-violet-500/30"
-                : "border-border text-muted-foreground hover:border-muted-foreground/30"
-            }`}
-          >
-            {s.label}
-          </button>
-        ))}
+      {/* Filter Bar */}
+      <motion.div variants={itemVariants}>
+        <FilterBar
+          filters={filterConfigs}
+          onChange={updateFilter}
+          onClear={clearFilters}
+          hasActive={hasActiveFilters}
+        />
       </motion.div>
+
+      {/* Bulk Action Bar */}
+      {canDelete && (
+        <BulkActionBar
+          count={selectedIds.size}
+          onCancel={() => setSelectedIds(new Set())}
+          onDelete={() => setBulkDeleteDialogOpen(true)}
+          entityLabel="lead"
+          entityPlural="leads"
+        />
+      )}
 
       {/* Table */}
       <motion.div
@@ -321,7 +441,7 @@ export function LeadsContent({ canCreate, canEdit, canDelete }: LeadsContentProp
           <div className="p-6">
             <TableSkeleton />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : leads.length === 0 ? (
           <EmptyState.Root>
             <EmptyState.Icon icon={Target} color="violet" />
             <EmptyState.Title>Nenhum lead ainda</EmptyState.Title>
@@ -343,6 +463,20 @@ export function LeadsContent({ canCreate, canEdit, canDelete }: LeadsContentProp
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
+                {canDelete && (
+                  <TableHead className="text-muted-foreground w-10">
+                    <Checkbox
+                      checked={
+                        leads.length > 0 && selectedIds.size === leads.length
+                      }
+                      indeterminate={
+                        selectedIds.size > 0 && selectedIds.size < leads.length
+                      }
+                      onCheckedChange={() => toggleAll()}
+                      aria-label="Selecionar todos"
+                    />
+                  </TableHead>
+                )}
                 <TableHead className="text-muted-foreground">Nome</TableHead>
                 <TableHead className="text-muted-foreground">Email</TableHead>
                 <TableHead className="text-muted-foreground">Telefone</TableHead>
@@ -355,7 +489,7 @@ export function LeadsContent({ canCreate, canEdit, canDelete }: LeadsContentProp
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((lead, index) => {
+              {leads.map((lead, index) => {
                 const statusConfig = STATUS_CONFIG[lead.status] || STATUS_CONFIG.new;
                 return (
                   <motion.tr
@@ -369,6 +503,15 @@ export function LeadsContent({ canCreate, canEdit, canDelete }: LeadsContentProp
                     }}
                     className="border-border hover:bg-accent/30 transition-colors duration-200"
                   >
+                    {canDelete && (
+                      <TableCell className="w-10">
+                        <Checkbox
+                          checked={selectedIds.has(lead.id)}
+                          onCheckedChange={() => toggleRow(lead.id)}
+                          aria-label={`Selecionar ${lead.name}`}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell className="font-medium text-foreground">
                       {lead.name}
                     </TableCell>
@@ -613,6 +756,42 @@ export function LeadsContent({ canCreate, canEdit, canDelete }: LeadsContentProp
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog
+        open={bulkDeleteDialogOpen}
+        onOpenChange={setBulkDeleteDialogOpen}
+      >
+        <AlertDialogContent className="bg-card border border-border rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-foreground">
+              <AlertTriangle className="h-5 w-5 text-red-400" />
+              Excluir leads selecionados
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Tem certeza que deseja excluir{" "}
+              <strong className="text-foreground">{selectedIds.size}</strong>{" "}
+              lead{selectedIds.size === 1 ? "" : "s"}? Esta ação é irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={bulkDeleting}
+              className="border-border text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer transition-all duration-200"
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
+              disabled={bulkDeleting}
+              className="bg-red-600 text-white hover:bg-red-700 cursor-pointer transition-all duration-200"
+            >
+              {bulkDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Excluir {selectedIds.size}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
