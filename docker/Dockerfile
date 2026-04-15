@@ -23,7 +23,7 @@ ENV REDIS_URL="redis://dummy:6379"
 RUN npx prisma generate
 RUN npm run build
 # Queue pattern incluso — bundle do worker
-RUN npx esbuild src/lib/worker/index.ts --bundle --platform=node --outfile=worker-bundle.js --external:bullmq --external:ioredis
+RUN npx esbuild src/lib/worker/index.ts --bundle --platform=node --outfile=worker-bundle.js --external:bullmq --external:ioredis '--define:import.meta.url="file:///app/worker/index.js"'
 
 FROM node:20-slim AS runner
 WORKDIR /app
