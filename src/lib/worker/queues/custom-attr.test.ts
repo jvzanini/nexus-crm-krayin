@@ -69,6 +69,7 @@ describe("custom-attr queues", () => {
       key: "score",
       companyId: "co-1",
       defId: "def-3",
+      indexHandoff: false,
     });
     expect(id).toBe("purge:lead:score:co-1");
     const [, , opts] = mockAdd.mock.calls[0];

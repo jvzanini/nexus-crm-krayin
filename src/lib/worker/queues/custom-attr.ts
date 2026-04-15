@@ -31,6 +31,7 @@ export interface PurgeValuesPayload {
   key: string;
   companyId: string;
   defId: string;
+  indexHandoff: boolean;
 }
 
 export interface FinalizeDeletePayload {
