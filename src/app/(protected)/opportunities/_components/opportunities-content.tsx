@@ -50,6 +50,7 @@ import {
   updateOpportunity,
   deleteOpportunity,
   deleteOpportunitiesBulk,
+  updateOpportunitiesStageBulk,
 } from "@/lib/actions/opportunities";
 import type {
   OpportunityItem,
@@ -143,6 +144,28 @@ export function OpportunitiesContent({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleting, startBulkDeleting] = useTransition();
+
+  // Bulk edit stage
+  const [bulkStageDialogOpen, setBulkStageDialogOpen] = useState(false);
+  const [bulkStageValue, setBulkStageValue] = useState<string>("prospecting");
+  const [bulkUpdating, startBulkUpdating] = useTransition();
+
+  function confirmBulkStage() {
+    const ids = Array.from(selectedIds);
+    startBulkUpdating(async () => {
+      const result = await updateOpportunitiesStageBulk(ids, bulkStageValue);
+      if (result.success && result.data) {
+        toast.success(
+          `${result.data.updatedCount} oportunidade${result.data.updatedCount === 1 ? "" : "s"} atualizada${result.data.updatedCount === 1 ? "" : "s"}`,
+        );
+        await loadOpportunities();
+        setSelectedIds(new Set());
+      } else {
+        toast.error(result.error ?? "Erro ao atualizar stage");
+      }
+      setBulkStageDialogOpen(false);
+    });
+  }
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
@@ -441,6 +464,17 @@ export function OpportunitiesContent({
           onDelete={() => setBulkDeleteDialogOpen(true)}
           entityLabel="oportunidade"
           entityPlural="oportunidades"
+          editActions={
+            canEdit
+              ? [
+                  {
+                    key: "change-stage",
+                    label: "Mudar stage",
+                    onClick: () => setBulkStageDialogOpen(true),
+                  },
+                ]
+              : undefined
+          }
         />
       )}
 
@@ -782,6 +816,47 @@ export function OpportunitiesContent({
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               Salvar Altera\u00e7\u00f5es
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Change Stage */}
+      <Dialog open={bulkStageDialogOpen} onOpenChange={setBulkStageDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mudar stage em massa</DialogTitle>
+            <DialogDescription>
+              Aplicar novo stage a{" "}
+              <strong className="text-foreground">{selectedIds.size}</strong>{" "}
+              oportunidade{selectedIds.size === 1 ? "" : "s"} selecionada
+              {selectedIds.size === 1 ? "" : "s"}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground/80">
+              Novo stage
+            </label>
+            <select
+              value={bulkStageValue}
+              onChange={(e) => setBulkStageValue(e.target.value)}
+              className="flex h-9 w-full rounded-md border bg-muted/50 border-border px-3 py-1 text-sm text-foreground shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              {STAGE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={confirmBulkStage}
+              disabled={bulkUpdating}
+              className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
+            >
+              {bulkUpdating && <Loader2 className="h-4 w-4 animate-spin" />}
+              Aplicar a {selectedIds.size}
             </Button>
           </DialogFooter>
         </DialogContent>
