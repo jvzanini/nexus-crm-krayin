@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { userHasPermission } from "@/lib/rbac";
+import { requireActiveCompanyId } from "@/lib/tenant-scope";
+import { listCustomAttributes } from "@/lib/custom-attributes/list";
 import { LeadsContent } from "./_components/leads-content";
 
 export default async function LeadsPage({
@@ -16,12 +18,18 @@ export default async function LeadsPage({
   const canEdit = userHasPermission(user, "leads:edit");
   const canDelete = userHasPermission(user, "leads:delete");
 
+  const companyId = await requireActiveCompanyId().catch(() => null);
+  const customDefs = companyId
+    ? await listCustomAttributes(companyId, "lead")
+    : [];
+
   return (
     <LeadsContent
       canCreate={canCreate}
       canEdit={canEdit}
       canDelete={canDelete}
       initialFilters={params}
+      customDefs={customDefs}
     />
   );
 }

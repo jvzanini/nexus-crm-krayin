@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "../../generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { recordConsent, maskIp } from "@/lib/consent";
@@ -9,6 +10,18 @@ import { dispatch } from "@/lib/automation/dispatcher";
 import { logger } from "@/lib/logger";
 import { requireActiveCompanyId, NoActiveCompanyError } from "@/lib/tenant-scope";
 import { requirePermission, PermissionDeniedError } from "@/lib/rbac";
+import { listCustomAttributes } from "@/lib/custom-attributes/list";
+import { buildZodFromDefinitions } from "@/lib/custom-attributes/validator";
+import {
+  assertCustomBytes,
+  CustomAttrBytesExceededError,
+  CustomAttrReservedKeyError,
+} from "@/lib/custom-attributes/limits";
+import { parseP2002IndexName } from "@/lib/custom-attributes/p2002-parser";
+import {
+  buildPrismaWhereFromCustomFilters,
+  type CustomFilter,
+} from "@/lib/custom-attributes/query-builder";
 
 export interface LeadItem {
   id: string;
@@ -24,6 +37,7 @@ export interface LeadItem {
   updatedAt: Date;
   consentMarketing: boolean;
   consentTracking: boolean;
+  custom?: unknown;
 }
 
 type ActionResult<T = unknown> = {
@@ -38,6 +52,8 @@ export interface LeadsFilters {
   from?: string;
   to?: string;
   q?: string;
+  /** Filtros custom pré-parseados (cf[key][op]=value). */
+  custom?: CustomFilter[];
 }
 
 const VALID_LEAD_STATUS = [
@@ -75,6 +91,57 @@ const updateLeadSchema = z.object({
   fields: leadFieldsSchema.partial(),
   consent: consentSchema.optional(),
 });
+
+/**
+ * Valida `custom` contra definitions ativas do tenant/entity=lead.
+ * Retorna `{ ok: true, value }` ou `{ ok: false, error }` para ActionResult.
+ */
+async function validateLeadCustom(
+  companyId: string,
+  custom: Record<string, unknown> | undefined,
+): Promise<
+  | { ok: true; value: Record<string, unknown>; defs: Awaited<ReturnType<typeof listCustomAttributes>> }
+  | { ok: false; error: string }
+> {
+  const defs = await listCustomAttributes(companyId, "lead");
+  const payload = custom ?? {};
+  try {
+    const schema = buildZodFromDefinitions(defs);
+    const parsed = schema.safeParse(payload);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: parsed.error.issues[0]?.message ?? "Campos customizados inválidos",
+      };
+    }
+    assertCustomBytes(parsed.data);
+    return { ok: true, value: parsed.data, defs };
+  } catch (err) {
+    if (err instanceof CustomAttrReservedKeyError) {
+      return { ok: false, error: err.message };
+    }
+    if (err instanceof CustomAttrBytesExceededError) {
+      return { ok: false, error: err.message };
+    }
+    throw err;
+  }
+}
+
+/**
+ * Traduz erro Prisma P2002 em índice `idx_leads_custom_<key>_unique` para
+ * mensagem amigável "Valor duplicado em <label>".
+ * Retorna `null` se o erro não matcha o padrão.
+ */
+function translateP2002Lead(
+  err: unknown,
+  defs: Awaited<ReturnType<typeof listCustomAttributes>>,
+): string | null {
+  const parsed = parseP2002IndexName(err);
+  if (!parsed || parsed.entity !== "lead") return null;
+  const def = defs.find((d) => d.key === parsed.key);
+  const label = def?.label ?? parsed.key;
+  return `Valor duplicado em ${label}`;
+}
 
 async function resolveRequestContext() {
   const h = await headers();
@@ -125,6 +192,18 @@ export async function getLeads(
         { name: { contains: filters.q, mode: "insensitive" } },
         { email: { contains: filters.q, mode: "insensitive" } },
       ];
+    }
+    if (filters?.custom && filters.custom.length > 0) {
+      const defs = await listCustomAttributes(companyId, "lead");
+      try {
+        const customWhere = buildPrismaWhereFromCustomFilters(
+          filters.custom,
+          defs,
+        );
+        if (customWhere) where.custom = customWhere;
+      } catch {
+        // op inválido para o tipo → ignora silenciosamente (filter UI deve prevenir).
+      }
     }
 
     const leads = await prisma.lead.findMany({
@@ -308,6 +387,7 @@ export async function createLead(data: {
   notes?: string | null;
   assignedTo?: string | null;
   consent: { marketing: boolean; tracking: boolean };
+  custom?: Record<string, unknown>;
 }): Promise<ActionResult<{ id: string }>> {
   let user: Awaited<ReturnType<typeof requirePermission>>;
   try {
@@ -343,9 +423,16 @@ export async function createLead(data: {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
   }
 
+  const customValidation = await validateLeadCustom(companyId, data.custom);
+  if (!customValidation.ok) {
+    return { success: false, error: customValidation.error };
+  }
+
   const { ipMask, ua } = await resolveRequestContext();
 
-  const lead = await prisma.$transaction(async (tx) => {
+  let lead: Awaited<ReturnType<typeof prisma.lead.create>>;
+  try {
+    lead = await prisma.$transaction(async (tx) => {
     const now = new Date();
     const created = await tx.lead.create({
       data: {
@@ -357,6 +444,7 @@ export async function createLead(data: {
         source: parsed.data.fields.source ?? null,
         notes: parsed.data.fields.notes ?? null,
         assignedTo: parsed.data.fields.assignedTo ?? null,
+        custom: customValidation.value as Prisma.InputJsonValue,
         consentMarketing: parsed.data.consent.marketing,
         consentMarketingAt: parsed.data.consent.marketing ? now : null,
         consentMarketingIpMask: parsed.data.consent.marketing ? ipMask : null,
@@ -376,6 +464,11 @@ export async function createLead(data: {
     });
     return created;
   });
+  } catch (err) {
+    const dup = translateP2002Lead(err, customValidation.defs);
+    if (dup) return { success: false, error: dup };
+    throw err;
+  }
 
   revalidatePath("/leads");
 
@@ -411,6 +504,7 @@ export async function updateLead(
     notes?: string | null;
     assignedTo?: string | null;
     consent?: { marketing: boolean; tracking: boolean };
+    custom?: Record<string, unknown>;
   }
 ): Promise<ActionResult> {
   let user: Awaited<ReturnType<typeof requirePermission>>;
@@ -447,9 +541,22 @@ export async function updateLead(
     return { success: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
   }
 
+  const customValidation =
+    data.custom !== undefined
+      ? await validateLeadCustom(companyId, data.custom)
+      : null;
+  if (customValidation && !customValidation.ok) {
+    return { success: false, error: customValidation.error };
+  }
+  const defsForP2002 = customValidation?.ok
+    ? customValidation.defs
+    : await listCustomAttributes(companyId, "lead");
+
   const { ipMask, ua } = await resolveRequestContext();
 
-  const result = await prisma.$transaction(async (tx) => {
+  let result: number;
+  try {
+    result = await prisma.$transaction(async (tx) => {
     const patch: Record<string, unknown> = {};
     const f = parsed.data.fields;
     if (f.name !== undefined) patch.name = f.name;
@@ -460,6 +567,7 @@ export async function updateLead(
     if (f.status !== undefined) patch.status = f.status;
     if (f.notes !== undefined) patch.notes = f.notes ?? null;
     if (f.assignedTo !== undefined) patch.assignedTo = f.assignedTo ?? null;
+    if (customValidation?.ok) patch.custom = customValidation.value;
 
     let count = 0;
     if (Object.keys(patch).length > 0) {
@@ -486,6 +594,11 @@ export async function updateLead(
     }
     return count;
   });
+  } catch (err) {
+    const dup = translateP2002Lead(err, defsForP2002);
+    if (dup) return { success: false, error: dup };
+    throw err;
+  }
 
   if (result === 0) {
     return { success: false, error: "Lead não encontrado" };

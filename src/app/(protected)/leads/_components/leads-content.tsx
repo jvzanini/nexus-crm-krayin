@@ -57,6 +57,10 @@ import { ConsentFieldset, type ConsentValue } from "@/components/consent/consent
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
 import { BulkActionBar } from "@/components/tables/bulk-action-bar";
+import { CustomFieldsSection } from "@/components/custom-attributes/CustomFieldsSection";
+import { CustomColumnsRenderer } from "@/components/custom-attributes/CustomColumnsRenderer";
+import type { CustomAttribute } from "@/lib/custom-attributes/types";
+import { parseCustomFiltersFromSearchParams } from "@/lib/filters/custom-parser";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -111,6 +115,8 @@ interface LeadsContentProps {
   canEdit: boolean;
   canDelete: boolean;
   initialFilters?: Record<string, string | undefined>;
+  /** Definitions de custom attributes ativos para entity=lead. */
+  customDefs?: CustomAttribute[];
 }
 
 export function LeadsContent({
@@ -118,16 +124,26 @@ export function LeadsContent({
   canEdit,
   canDelete,
   initialFilters = {},
+  customDefs = [],
 }: LeadsContentProps) {
+  const [customValues, setCustomValues] = useState<Record<string, unknown>>({});
   const router = useRouter();
   const [leads, setLeads] = useState<LeadItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<LeadsFilters>({
-    status: initialFilters.status,
-    source: initialFilters.source,
-    from: initialFilters.from,
-    to: initialFilters.to,
-    q: initialFilters.q,
+  const [filters, setFilters] = useState<LeadsFilters>(() => {
+    const sp = new URLSearchParams();
+    for (const [k, v] of Object.entries(initialFilters)) {
+      if (typeof v === "string") sp.set(k, v);
+    }
+    const custom = parseCustomFiltersFromSearchParams(sp);
+    return {
+      status: initialFilters.status,
+      source: initialFilters.source,
+      from: initialFilters.from,
+      to: initialFilters.to,
+      q: initialFilters.q,
+      custom: custom.length > 0 ? custom : undefined,
+    };
   });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -375,11 +391,13 @@ export function LeadsContent({
         company: createCompany.trim() || undefined,
         source: createSource.trim() || undefined,
         consent: createConsent,
+        custom: customDefs.length > 0 ? customValues : undefined,
       });
 
       if (result.success) {
         toast.success("Lead criado com sucesso");
         setCreateOpen(false);
+        setCustomValues({});
         await loadLeads();
       } else {
         toast.error(result.error || "Erro ao criar lead");
@@ -556,6 +574,17 @@ export function LeadsContent({
                 <TableHead className="text-muted-foreground">Empresa</TableHead>
                 <TableHead className="text-muted-foreground text-center">Status</TableHead>
                 <TableHead className="text-muted-foreground text-center hidden sm:table-cell">Criado em</TableHead>
+                {customDefs
+                  .filter((d) => d.visibleInList)
+                  .map((d) => (
+                    <TableHead
+                      key={d.id}
+                      className="text-muted-foreground"
+                      data-custom-key={d.key}
+                    >
+                      {d.label}
+                    </TableHead>
+                  ))}
                 {(canEdit || canDelete) && (
                   <TableHead className="text-muted-foreground text-center">Ações</TableHead>
                 )}
@@ -609,6 +638,12 @@ export function LeadsContent({
                         locale: ptBR,
                       })}
                     </TableCell>
+                    <CustomColumnsRenderer
+                      defs={customDefs}
+                      customValues={
+                        (lead.custom as Record<string, unknown>) ?? {}
+                      }
+                    />
                     {(canEdit || canDelete) && (
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-1">
@@ -713,6 +748,14 @@ export function LeadsContent({
               />
             </div>
             <ConsentFieldset value={createConsent} onChange={setCreateConsent} disabled={saving} />
+            {customDefs.length > 0 ? (
+              <CustomFieldsSection
+                defs={customDefs}
+                values={customValues}
+                onChange={setCustomValues}
+                disabled={saving}
+              />
+            ) : null}
           </div>
           <DialogFooter>
             <Button
