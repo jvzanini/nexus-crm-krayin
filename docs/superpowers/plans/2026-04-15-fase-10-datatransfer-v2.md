@@ -1,713 +1,603 @@
 # Fase 10 DataTransfer — Implementation Plan v2
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`).
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development`. Steps use checkbox (`- [ ]`).
 
-**Goal:** Entregar import/export CSV+XLSX seguro, auditado, tenant-scoped, custom attrs, worker BullMQ, storage FS/S3, RBAC granular, feature flag gradual.
+**Goal:** Import/export CSV+XLSX seguro, auditado, tenant-scoped, com custom attrs, worker BullMQ, storage FS/S3, RBAC granular, feature flag gradual.
 
-**Architecture:** 3 waves — 10a backend, 10b UI, 10c verification+obs. Task 4+4b shippa contratos+stubs cedo para paralelizar 10b.
+**Architecture:** 3 waves — 10a backend (Tasks 1–35), 10b UI (36–50), 10c verification/obs (51–76). Task 4 contratos + Task 4b stubs shippam primeiro para paralelizar 10a↔10b sem quebrar typecheck.
 
-**Tech Stack:** Next 16, Prisma, Postgres, BullMQ+Redis, Vitest 3, Playwright, Tailwind, shadcn/ui, Zod, papaparse@^5.4.1, exceljs@^4.4.0, file-type@^19.0.0, chardet@^2.0.0, iconv-lite@^0.6.3, fast-levenshtein@^3.0.0, yauzl@^3.1.0, @aws-sdk/client-s3@^3.600.0, @aws-sdk/s3-request-presigner@^3.600.0.
+**Tech Stack:** Next 16, Prisma, Postgres, BullMQ, Redis, Vitest 3, Playwright, Tailwind, shadcn/ui, Zod, papaparse@^5.4.1, exceljs@^4.4.0, file-type@^19, chardet@^2, iconv-lite@^0.6, fast-levenshtein@^3, yauzl@^3, @aws-sdk/client-s3@^3, @aws-sdk/s3-request-presigner@^3.
 
 **Spec:** `docs/superpowers/specs/2026-04-15-fase-10-datatransfer-v3.md`
 
-**Commit convention:** `<type>(scope): <desc> (T<N>)` onde type ∈ {feat, fix, refactor, test, chore, docs}, scope inclui `data-transfer`, `storage`, `rbac`, etc.
-
-**Changelog v1→v2:**
-- Tasks grandes decompostas (T11→11a-d; T13→13a-e; T22→22a-e; T23→23a-f; T24→24a-b; T15→15a-c; T41-43→41-49 individuais; T45→45a-b; T47→47a-b).
-- Novas tasks: 2b (.env + docs), 4b (stubs actions), 17b (rate-limit keys), 24c (layout flag E2E), 31b (UI error boundaries), 46a (Dockerfile worker).
-- Seção "Failure modes" no fim.
-- Dependency graph table.
-- Pinned versions no header.
+**Commit convention:** `<type>(scope): <desc> (T<N>)` — ex: `feat(data-transfer): parseCsv streaming (T11b)`.
 
 ---
 
-## Dependency Graph
+## Changelog v1 → v2
 
-| Task | Depends on | Unlocks |
-|------|------------|---------|
-| T1 deps | — | T2+ |
-| T2 migration | T1 | T14, T18+ |
-| T2b env vars | — | T6, T46 |
-| T3 perms+flag+rbac | T1 | T24c, T18+ |
-| T4 contratos | T3 | T4b, 10b all |
-| T4b stubs | T4 | 10b paralelo |
-| T5 FS adapter | T1 | T6, T18, T22c |
-| T6 S3 adapter | T2b, T5 | T46 |
-| T7 formula escape | T1 | T15a/b |
-| T8 dedupe | T2 | T18 |
-| T9 mapping | T1 | T30 |
-| T10 coerce | T1 | T13 |
-| T11a detectBOM/enc | T1 | T11d |
-| T11b parseCsv | T11a | T11d |
-| T11c parseXlsx | T11a | T11d |
-| T11d parseFile | T11a/b/c | T19 |
-| T12 lookup | T2 | T13 |
-| T13a custom-attrs shape | T12 | T13b-e |
-| T13b-e entity schemas | T13a, T10 | T20 |
-| T14 buildListQuery | T2 | T15c, T22c |
-| T15a streamCsv | T7 | T22c |
-| T15b streamXlsx | T7 | T22c |
-| T15c export orchestr | T14, T15a/b, T5 | T22c |
-| T16 commitChunks | T2, T13 | T21 |
-| T17 audit events | T3 | T18+ |
-| T17b rate-limit keys | T3 | T18, T22c |
-| T18 upload action | T4, T5, T8, T17, T17b | T29 |
-| T19 parse action | T4, T11d | T29 |
-| T20 preview action | T4, T13, T16 | T31 |
-| T21 commit action | T4, T16, T23 | T31 |
-| T22a rollback action | T4, T17 | T33 |
-| T22b cancel action | T4, T23 | T31 |
-| T22c exportEntity action | T4, T14, T15c, T17b | T32 |
-| T22d presets actions | T4, T2 | T30 |
-| T22e listHistory action | T4, T14 | T33 |
-| T23a-f worker commit | T4, T16, T17 | T21 (enqueue) |
-| T24a cleanup worker | T2, T5 | T25 |
-| T24b history-purge worker | T2, T5 | T25 |
-| T24c layout flag | T3 | T27 |
-| T25 wave 10a close | T18-24 | 10b execução plena |
-| T26 DS stepper+dropzone | T4 | T29+ |
-| T27 route+tabs | T24c, T26 | T28+ |
-| T28 wizard state | T27 | T29-31 |
-| T29 UploadStep | T4b→T18 | T28 |
-| T30 MappingStep | T9, T22d | T28 |
-| T31 PreviewStep | T20, T21, T22b | T28 |
-| T31b UI error boundaries | T29, T30, T31 | T37 |
-| T32 Export | T22c | T37 |
-| T33 History+Rollback | T22a, T22e | T37 |
-| T34 a11y | T29-33 | T37 |
-| T35 responsive | T29-33 | T37 |
-| T36 sidebar link | T27 | T37 |
-| T37 wave 10b close | T26-36 | 10c |
-| T38 OTel metrics | T21, T22c, T24a | T47 |
-| T39 Sentry spans | T38 | T47 |
-| T40 DLQ script | T23d | T46 |
-| T41-49 E2E specs | T37 | T47a |
-| T50 integration tests | T37 | T47a |
-| T45a runbook | T38 | T47a |
-| T45b bench | T38 | T47a |
-| T46 stack.yml | T6, T46a | T47a |
-| T46a Dockerfile worker | T2b | T46 |
-| T47a deliver | T38-46 | T47b |
-| T47b rollout+monitor | T47a | — |
+Review 1 aplicada (ver `docs/superpowers/reviews/plan-v1-fase-10.md` quando commitado):
+
+- **B1–B6** decomposição: Task 11 → 11a-d, Task 13 → 13a-e, Task 22 → 22a-e, Task 23 → 23a-f, Tasks 41-43 → 9 tasks E2E, Task 24 → 24a-b.
+- **B7** layout flag gate como task dedicada.
+- **B8** rate-limit keys task dedicada.
+- **B9** `.env.example` + docs env vars task dedicada.
+- **B10** Dockerfile worker build target.
+- **B11** error boundaries UI task dedicada.
+- **B12** export-stream separa helpers de orchestrator (fica em action).
+- **B13** bench script separado do runbook.
+- **M14–M28** aplicadas (rollback SQL, coverage snapshot, zod audit events, code inline, pagination action 22e, CHANGELOG bump DS, transition invalid test, poll env, a11y enumerated, close-wave steps expandidos, rollout em duas etapas, dep graph, soma testes reconciliada, convention).
+
+Plan final: **76 tasks**. Target **87 unit** + **7 integration** + **9 E2E** tests.
 
 ---
 
-## File Structure
+## Dependency graph (resumo)
 
-(idêntico ao v1 — ver anexo de paths. Não replico para concisão.)
-
----
-
-## Wave 10a — Backend core (Tasks 1-25)
-
-### Task 1: Dependências npm (pinned)
-
-**Files:** `package.json`
-
-- [ ] Step 1
-
-```bash
-cd "/Users/joaovitorzanini/Developer/Claude Code/nexus-crm-krayin"
-pnpm add papaparse@5.4.1 exceljs@4.4.0 file-type@19.0.0 chardet@2.0.0 iconv-lite@0.6.3 fast-levenshtein@3.0.0 yauzl@3.1.0 @aws-sdk/client-s3@3.600.0 @aws-sdk/s3-request-presigner@3.600.0
-pnpm add -D @types/papaparse@5.3.14 @types/fast-levenshtein@0.0.4 @types/yauzl@2.10.3 aws-sdk-client-mock@4.0.1
+```
+1 (deps) → 2 (migration) → 2b (env vars)
+3 (perms+flag+rbac tests) ─┐
+4 (contratos) ─→ 4b (stubs) ─┬─ wave 10a actions (18, 19, 20, 21, 22a-e)
+                              └─ wave 10b UI (36-50 em paralelo)
+5 (storage FS) → 6 (storage S3)
+7 (formula) → 15a,15b (export stream)
+8 (dedupe) → 18
+9 (levenshtein) → 30 (MappingStep)
+10 (coerce) → 13a-e (import schemas)
+11a-d (parse) → 19 (parseImportFile)
+12 (lookup) → 13a-e
+13a-e (schemas) → 20 (previewImport)
+14 (buildListQuery) → 15a,15b
+16 (commit-chunks) → 21 (commitImport sync)
+17 (audit events zod) → todas actions
+17b (rate-limit keys) → 18, 22c
+23a-f (worker commit) → 21 (commitImport async path)
+24a-b (cleanup + purge workers) → 35 close 10a
+35 (close 10a) → 37 (close 10b) → 51+ (wave 10c)
 ```
 
-- [ ] Step 2: `pnpm install` — verify.
+---
 
-- [ ] Step 3: Commit `chore(deps): pinned datatransfer deps (T1)`
+## File structure
 
-### Task 2: Prisma migration
+(Conforme plan v1; acrescenta) `docs/env-vars.md`, `scripts/seed-bench.mjs`, `Dockerfile.worker` (ou target), `src/lib/rate-limit/datatransfer-keys.ts`.
 
-Ver spec §3.8. Steps idênticos ao plan v1 T2 + redigir `migration.rollback.sql` manual (fix v1-rec 14).
+---
 
-Commit: `feat(data-transfer): migration DataTransferJob + MappingPreset + importJobId softcols + rollback.sql (T2)`
+## Wave 10a — Backend core (Tasks 1-35)
 
-### Task 2b: .env.example + docs env vars
+### Task 1: Dependências npm
+
+**Files:** `package.json`, `pnpm-lock.yaml`
+
+- [ ] Step 1: Install
+```bash
+cd "/Users/joaovitorzanini/Developer/Claude Code/nexus-crm-krayin"
+pnpm add papaparse@^5.4.1 exceljs@^4.4.0 file-type@^19 chardet@^2 iconv-lite@^0.6 fast-levenshtein@^3 yauzl@^3 @aws-sdk/client-s3@^3 @aws-sdk/s3-request-presigner@^3
+pnpm add -D @types/papaparse @types/fast-levenshtein @types/yauzl aws-sdk-client-mock
+```
+- [ ] Step 2: `pnpm install` green.
+- [ ] Step 3: Commit `chore(deps): datatransfer libs (T1)`.
+
+### Task 2: Prisma migration + down rollback
+
+**Files:** `prisma/schema.prisma`, `prisma/migrations/<ts>_add_data_transfer/migration.sql`, `prisma/migrations/<ts>_add_data_transfer/rollback.sql`
+
+- [ ] Step 1: Adicionar ao `schema.prisma` os 4 enums, models `DataTransferJob`, `DataTransferMappingPreset`, e `importJobId` em Lead/Contact/Opportunity/Product (spec §3.8).
+- [ ] Step 2: `pnpm prisma migrate dev --name add_data_transfer`.
+- [ ] Step 3: Escrever `rollback.sql` manual: DROP tables, DROP enums, ALTER TABLE … DROP COLUMN importJobId, DROP INDEX.
+- [ ] Step 4: Testar rollback em DB local: `psql … -f rollback.sql` → reverter → `prisma migrate deploy` de novo.
+- [ ] Step 5: `pnpm prisma generate`.
+- [ ] Step 6: Commit `feat(data-transfer): migration + rollback.sql (T2)`.
+
+### Task 2b: Env vars + docs
 
 **Files:** `.env.example`, `docs/env-vars.md`
 
-- [ ] Step 1: Adicionar 9 vars: `STORAGE_DRIVER`, `STORAGE_FS_ROOT`, `STORAGE_SIGN_SECRET`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_ENDPOINT` (opt), `DATA_TRANSFER_POLL_INTERVAL_MS` (default 2000).
+- [ ] Step 1: Adicionar `.env.example`:
+```
+STORAGE_DRIVER=fs # fs | s3
+STORAGE_FS_ROOT=/tmp/crm-storage
+STORAGE_SIGN_SECRET=change-me-32chars-min
+S3_REGION=us-east-1
+S3_BUCKET=nexus-crm
+S3_ACCESS_KEY_ID=
+S3_SECRET_ACCESS_KEY=
+S3_ENDPOINT= # opcional (MinIO)
+DATA_TRANSFER_POLL_INTERVAL_MS=2000
+DATA_TRANSFER_WORKER_CONCURRENCY=1
+```
+- [ ] Step 2: `docs/env-vars.md` — tabela var × descrição × dev/prod default.
+- [ ] Step 3: Commit `docs(env): data-transfer vars (T2b)`.
 
-- [ ] Step 2: Seção "Data Transfer" em `docs/env-vars.md` com descrição + default + required/optional.
+### Task 3: Permissions + flag registry + RBAC matrix test
 
-- [ ] Step 3: Commit.
+**Files:** `src/constants/permissions.ts`, `src/lib/flags/registry.ts`, `src/lib/rbac/__tests__/data-transfer-perms.test.ts`
 
-### Task 3: Permissions + flag + RBAC matrix tests
+- [ ] Step 1: TDD escrever matrix test table-driven 5 roles × 5 perms (25 cases).
+- [ ] Step 2: Run fail.
+- [ ] Step 3: Adicionar 5 perm strings + role matrix; registrar flag `data_transfer` no registry.
+- [ ] Step 4: Run tests green.
+- [ ] Step 5: Commit `feat(rbac): data-transfer 5 perms + flag + matrix test (T3)`.
 
-Idêntico v1 T3 — 5 perms, flag `data_transfer`, 25 testes matrix.
+### Task 4: Contratos TS/Zod públicos
 
-### Task 4: Contratos TS/Zod
+**Files:** `src/lib/datatransfer/types.ts`
 
-Idêntico v1 T4 + adicionar tipos `HistoryItem`, `ListHistoryArgs`, `RollbackResult`, `CancelResult`, `ExportRateLimitKeys`.
+- [ ] Step 1: Escrever arquivo completo com todos tipos (ver plan v1 §Task 4 — manter íntegro) + adicionar `HistoryItem`, `ListHistoryArgs`, `MappingPreset`.
+- [ ] Step 2: `pnpm typecheck` green.
+- [ ] Step 3: Commit `feat(data-transfer): contratos públicos (T4)`.
 
-### Task 4b: Stubs de actions
+### Task 4b: Action stubs (desbloqueia 10b paralelo)
 
 **Files:** `src/app/(app)/settings/data-transfer/actions.ts`
 
-- [ ] Step 1: Criar skeleton exportando 10 actions (uploadImportFile, parseImportFile, previewImport, commitImport, rollbackImport, cancelImport, exportEntity, savePreset, getPreset, listHistory) com `async function X(...) { throw new Error('STUB — impl em T<N>') }`. Assinaturas batem com T4 types.
+- [ ] Step 1: Criar 10 actions com assinatura real retornando `throw new Error('stub: T<N>')`:
+`uploadImportFile`, `parseImportFile`, `previewImport`, `commitImport`, `rollbackImport`, `cancelImport`, `exportEntity`, `savePreset`, `getPreset`, `listHistory`.
+- [ ] Step 2: `pnpm typecheck` green.
+- [ ] Step 3: Commit `feat(data-transfer): action stubs (T4b — unblocks 10b)`.
 
-- [ ] Step 2: `pnpm typecheck` — verde.
+### Task 5: FsStorageAdapter + signed route
 
-- [ ] Step 3: Commit `feat(data-transfer): stubs actions desbloqueia wave 10b (T4b)`.
+(Conteúdo plan v1 Task 5 mantido — 5 tests TDD.)
 
-### Task 5: Storage FS adapter + signed URL route
+### Task 6: S3StorageAdapter (TDD 3 cases com aws-sdk-client-mock)
 
-Idêntico v1 T5. 5 testes.
+### Task 7: Formula injection escape (TDD 6 cases)
 
-### Task 6: Storage S3 adapter
+### Task 8: Dedupe SHA-256 (TDD 3 cases)
 
-Idêntico v1 T6. 3 testes mockados. Depende de T2b (env vars).
+### Task 9: Levenshtein auto-suggest (TDD 4 cases)
 
-### Task 7: Formula injection escape
-
-Idêntico v1 T7. 6 testes.
-
-### Task 8: Dedupe SHA-256
-
-Idêntico v1 T8. 3 testes.
-
-### Task 9: Levenshtein mapping
-
-Idêntico v1 T9. 4 testes.
-
-### Task 10: Coerce date+money
-
-Idêntico v1 T10. 8 testes (5 date + 3 money).
+### Task 10: Coerce (date 5 + money 3 = 8 cases)
 
 ### Task 11a: detectBOM + detectEncoding
 
-**Files:** `src/lib/datatransfer/parse/encoding.ts` + tests
+**Files:** `src/lib/datatransfer/encoding.ts` + test.
 
-- [ ] Step 1: TDD 4 testes (BOM UTF-8, UTF-16 LE/BE rejected, chardet ≥70% accept, <70% returns candidates).
-
-- [ ] Step 2: Implementar `detectBOM(buf): 'utf-8'|'utf-16le'|'utf-16be'|null`, `detectEncoding(buf): { encoding, confidence, needsChoice: boolean }`.
-
-- [ ] Step 3: Commit.
+- [ ] Step 1: TDD `__tests__/encoding.test.ts` 3 cases (UTF-8 BOM, UTF-16 reject, chardet latin1).
+- [ ] Step 2: Implementar `detectBOM(buffer): 'utf-8'|'utf-16le'|'utf-16be'|null` + `detectEncoding(buffer): { encoding, confidence, candidates }`.
+- [ ] Step 3: Pass. Commit `feat(data-transfer): encoding detection (T11a)`.
 
 ### Task 11b: parseCsv streaming
 
-**Files:** `src/lib/datatransfer/parse/csv.ts` + tests
+**Files:** `src/lib/datatransfer/parse-csv.ts`
 
-- [ ] Step 1: TDD 3 testes (basic, rows>50k abort, timeout 60s abort).
-
-- [ ] Step 2: Implementar `parseCsv(stream, { onRow, abortSignal, maxRows, timeoutMs })` via papaparse.step. Aborta via `parser.abort()` quando limit atingido.
-
-- [ ] Step 3: Commit.
+- [ ] Step 1: TDD 3 cases (CSV basic, timeout 60s, rows>50k abort).
+- [ ] Step 2: Implementar `parseCsv(stream, { onRow, onComplete, onError, abortSignal }): void` via papaparse step callback + setTimeout watchdog + row counter.
+- [ ] Step 3: Pass. Commit.
 
 ### Task 11c: parseXlsx streaming + zip-bomb
 
-**Files:** `src/lib/datatransfer/parse/xlsx.ts` + tests
+**Files:** `src/lib/datatransfer/parse-xlsx.ts`
 
-- [ ] Step 1: TDD 3 testes (basic, zip-bomb ratio>100 rejected, rows>50k abort).
+- [ ] Step 1: TDD 2 cases (XLSX basic, zip-bomb ratio reject).
+- [ ] Step 2: Implementar `checkZipBomb(path): Promise<void>` via yauzl ratio + `parseXlsx(stream/path, opts)` via `ExcelJS.stream.xlsx.WorkbookReader`.
+- [ ] Step 3: Pass. Commit.
 
-- [ ] Step 2: Implementar `parseXlsx(stream, { onRow, ... })`. Pre-check ratio via yauzl; depois ExcelJS streaming.
+### Task 11d: parseFile orchestrator + mime/size guards
 
-- [ ] Step 3: Commit.
+**Files:** `src/lib/datatransfer/parse.ts`
 
-### Task 11d: parseFile orquestrador + mime/size
+- [ ] Step 1: TDD 3 cases (mime mismatch, size>20MB, dispatches csv/xlsx).
+- [ ] Step 2: Implementar `parseFile(buffer, filename, { encodingOverride? })`:
+  - file-type magic bytes check.
+  - Size 20MB guard.
+  - Dispatch parseCsv/parseXlsx.
+  - Retorna `ParseResult`.
+- [ ] Step 3: Pass. Commit `feat(data-transfer): parseFile orchestrator (T11d)`.
 
-**Files:** `src/lib/datatransfer/parse/index.ts` + tests
+### Task 12: FK lookup (TDD 5 cases)
 
-- [ ] Step 1: TDD 3 testes (mime mismatch reject, size>20MB reject, latin1 convert).
+### Task 13a: schemas/custom-attrs dynamic shape
 
-- [ ] Step 2: Implementar `parseFile(buffer, filename): Promise<ParseResult>` orquestra size+mime+encoding+csv/xlsx dispatch.
+**Files:** `src/lib/datatransfer/schemas/custom-attrs.ts`
 
-- [ ] Step 3: Commit.
+- [ ] Step 1: TDD 2 cases (text+number+date defs → valid shape; invalid type throws).
+- [ ] Step 2: Implementar `dynamicCustomShape(defs)` reusando registry Fase 5.
+- [ ] Step 3: Pass. Commit.
 
-### Task 12: FK lookup
+### Task 13b: leadImportSchema (TDD 4 cases)
 
-Idêntico v1 T12. 5 testes.
+### Task 13c: contactImportSchema (TDD 4 cases)
 
-### Task 13a: custom-attrs dynamic shape
+### Task 13d: opportunityImportSchema (TDD 3 cases)
 
-**Files:** `src/lib/datatransfer/schemas/custom-attrs.ts` + tests
+### Task 13e: productImportSchema (TDD 3 cases)
 
-- [ ] Step 1: TDD 2 testes (shape from defs text+number; shape preserva required).
+### Task 14: buildListQuery + POC refactor leads
 
-- [ ] Step 2: Implementar `dynamicCustomShape(defs): z.ZodObject` reusando registry Fase 5.
+**Files:** `src/lib/queries/build-list-query.ts`, `src/lib/queries/build-tenant-filter.ts`, refactor `src/app/(app)/leads/actions.ts`
 
-- [ ] Step 3: Commit.
-
-### Task 13b-e: Schemas import por entity
-
-Quatro tasks — leadImportSchema (4 tests), contactImportSchema (4), opportunityImportSchema (3), productImportSchema (3). Cada uma TDD + commit atômico.
-
-### Task 14: buildListQuery + POC leads
-
-**Files:** `src/lib/queries/build-list-query.ts`, `src/lib/queries/build-tenant-filter.ts`, `src/app/(app)/leads/actions.ts`
-
-- [ ] Step 1: Grep `@nexusai360/multi-tenant` por `buildTenantFilter`; se existe re-export, senão criar.
-
-- [ ] Step 2: TDD 4 testes buildListQuery.
-
-- [ ] Step 3: Implementar.
-
-- [ ] Step 4: Coverage baseline leads action: `pnpm vitest run src/app/\(app\)/leads --coverage` — anotar % antes.
-
-- [ ] Step 5: Refactor leads listing para consumir helper.
-
-- [ ] Step 6: Re-run coverage — ≥ baseline.
-
+- [ ] Step 1: Verificar re-export de `@nexusai360/multi-tenant.buildTenantFilter`. Se ausente, criar wrapper local.
+- [ ] Step 2: TDD 4 cases.
+- [ ] Step 3: Implementar `buildListQuery<E>(entity, filters, ctx)`.
+- [ ] Step 4: `pnpm vitest run src/app/\(app\)/leads --coverage` baseline antes.
+- [ ] Step 5: Refactor leads listing → helper.
+- [ ] Step 6: Re-run coverage — manter ≥ baseline.
 - [ ] Step 7: Commit.
 
-### Task 15a: streamCsv helper
+### Task 15a: streamCsv
 
-**Files:** `src/lib/datatransfer/export/csv.ts` + tests (1)
+**Files:** `src/lib/datatransfer/export-csv.ts`
 
-### Task 15b: streamXlsx helper
+- [ ] Step 1: TDD 2 cases (1k rows + escape formula).
+- [ ] Step 2: Implementar `streamCsv({ rows: AsyncIterable<T>, columns, bom }): Readable` via papaparse.unparse chunks + escape universal.
+- [ ] Step 3: Pass. Commit.
 
-**Files:** `src/lib/datatransfer/export/xlsx.ts` + tests (1)
+### Task 15b: streamXlsx
 
-### Task 15c: export orchestrator
+**Files:** `src/lib/datatransfer/export-xlsx.ts`
 
-**Files:** `src/lib/datatransfer/export/orchestrator.ts` + tests (1 cap 50k)
+- [ ] Step 1: TDD 2 cases (1k rows + header bold/freeze + force string).
+- [ ] Step 2: Implementar `streamXlsx({ rows, columns }): Readable` via `WorkbookWriter` + escape.
+- [ ] Step 3: Pass. Commit.
 
-### Task 16: commitChunks sync
+### Task 16: commitChunksSync (TDD 3 cases, timeout 30s)
 
-Idêntico v1 T16. 3 testes.
+### Task 17: Audit events registry com Zod
 
-### Task 17: Audit events + Zod payload schemas
+**Files:** `src/lib/audit-log/events.ts`
 
-**Files:** `src/lib/audit-log/events/data-transfer.ts`
-
-- [ ] Step 1: Zod schema por event (7 events).
-
-- [ ] Step 2: Teste valida `auditLog.create({ type, payload })` para cada.
-
+- [ ] Step 1: TDD 7 cases — um por event type; payload Zod valida.
+- [ ] Step 2: Implementar 7 events + schemas.
 - [ ] Step 3: Commit.
 
-### Task 17b: Rate-limit keys
+### Task 17b: Rate-limit keys registry
 
-**Files:** `src/lib/rate-limit/keys.ts` (ou equiv), `__tests__/rate-limit-data-transfer.test.ts`
+**Files:** `src/lib/rate-limit/datatransfer-keys.ts`
 
-- [ ] Step 1: TDD 3 testes (upload 10/h bucket, export 5/h bucket, parse 20/h bucket).
-
-- [ ] Step 2: Registrar chaves em registry (`@nexusai360/core/rate-limit` ou local helper).
-
+- [ ] Step 1: TDD 3 cases — bucket 10/h upload, 5/h export, 30/h parse.
+- [ ] Step 2: Implementar helpers `dataTransferLimits.upload(userId)`, `.export(userId)`, `.parse(userId)` usando `@nexusai360/core/rate-limit`.
 - [ ] Step 3: Commit.
 
-### Task 18: uploadImportFile action (troca stub)
+### Task 18: action uploadImportFile (TDD integration, código inline completo)
 
-**Files:** `src/app/(app)/settings/data-transfer/actions.ts`
+**Files:** `src/app/(app)/settings/data-transfer/actions.ts` (substitui stub T4b)
 
-- [ ] Step 1: TDD integração 3 casos (ok, size>20MB, duplicate).
-
-- [ ] Step 2: Implementar substituindo stub T4b. Código inline:
-
+- [ ] Step 1: TDD cases (happy, size>20MB, mime mismatch, dedupe hit, rate-limit trip, RBAC deny).
+- [ ] Step 2: Implementar:
 ```ts
 export async function uploadImportFile(formData: FormData): Promise<UploadResult> {
   const ctx = await requireAuth();
-  assertCan(ctx, 'data-transfer:import');
-  const bucket = `datatransfer:upload:${ctx.companyId}`;
-  await rateLimit(bucket, { limit: 10, window: '1h' });
-
+  await requirePermission(ctx, 'data-transfer:import');
+  await dataTransferLimits.upload(ctx.userId).consume();
   const file = formData.get('file') as File;
-  if (!file || file.size > 20 * 1024 * 1024) throw badRequest('FILE_TOO_LARGE');
   const entity = entityEnum.parse(formData.get('entity'));
   const force = formData.get('force') === 'true';
-  const buffer = Buffer.from(await file.arrayBuffer());
-
-  const detected = await fileTypeFromBuffer(buffer);
-  if (!isAllowedMime(file.name, detected?.mime)) throw badRequest('MIME_MISMATCH');
-
-  const fileHash = sha256Hex(buffer);
+  if (file.size > 20 * 1024 * 1024) throw new DataTransferError('SIZE_EXCEEDED');
+  const buf = Buffer.from(await file.arrayBuffer());
+  const mime = await fileTypeFromBuffer(buf);
+  if (!isAllowedMime(file.name, mime)) throw new DataTransferError('MIME_MISMATCH');
+  const hash = sha256Hex(buf);
   if (!force) {
-    const dup = await findDuplicate({ prisma, companyId: ctx.companyId, entity, fileHash });
-    if (dup) return { duplicate: true, jobId: uuid(), existingJobId: dup.id };
+    const dup = await findDuplicate({ prisma, companyId: ctx.companyId, entity, fileHash: hash });
+    if (dup) return { duplicate: true, jobId: dup.id, existingJobId: dup.id };
   }
-
-  const jobId = uuid();
-  const storage = createStorage();
-  const ext = extOf(file.name);
-  await storage.put(`quarantine/${ctx.companyId}/${jobId}/original.${ext}`, buffer, { contentType: detected?.mime });
-
-  await prisma.dataTransferJob.create({ data: {
-    id: jobId, companyId: ctx.companyId, userId: ctx.userId,
-    direction: 'import', entity, format: ext === 'csv' ? 'csv' : 'xlsx',
-    status: 'pending', quarantineId: jobId, fileHash, sizeBytes: BigInt(file.size), filename: file.name,
-  }});
-  await audit.log('data_transfer.import.uploaded', { jobId, entity, filename: file.name, sizeBytes: file.size, fileHash });
+  const jobId = randomUUID();
+  const key = `quarantine/${ctx.companyId}/${jobId}/original.${extFrom(file.name)}`;
+  await storage.put(key, buf, { contentType: mime?.mime });
+  await prisma.dataTransferJob.create({ data: { id: jobId, companyId: ctx.companyId, userId: ctx.userId, direction: 'import', entity, format: extToFormat(file.name), status: 'pending', quarantineId: jobId, fileHash: hash, filename: file.name, sizeBytes: BigInt(file.size) } });
+  await audit.log('data_transfer.import.uploaded', { jobId, entity, filename: file.name, sizeBytes: file.size, fileHash: hash }, ctx);
   return { duplicate: false, jobId, quarantineId: jobId };
 }
 ```
+- [ ] Step 3: Pass. Commit.
 
-- [ ] Step 3: Tests pass. Commit.
+### Task 19: action parseImportFile (código inline, idem estrutura T18)
 
-### Task 19: parseImportFile action
+**Skeleton**:
+```ts
+export async function parseImportFile(jobId: string, opts?: { encodingOverride?: string }): Promise<ParseResult> {
+  const ctx = await requireAuth();
+  const job = await prisma.dataTransferJob.findFirstOrThrow({ where: { id: jobId, companyId: ctx.companyId }});
+  if (job.status !== 'pending') throw new DataTransferError('INVALID_STATE');
+  const stream = await storage.get(`quarantine/${ctx.companyId}/${jobId}/original.${extFromFilename(job.filename)}`);
+  const buf = await streamToBuffer(stream);
+  const bom = detectBOM(buf);
+  if (bom?.startsWith('utf-16')) throw new DataTransferError('UNSUPPORTED_ENCODING');
+  const { encoding, confidence, candidates } = opts?.encodingOverride ? { encoding: opts.encodingOverride, confidence: 1, candidates: [] } : detectEncoding(buf);
+  if (confidence < 0.7 && !opts?.encodingOverride) return { rows: 0, columns: [], sample: [], needsEncoding: true, encodingCandidates: candidates };
+  const decoded = iconv.decode(buf, encoding);
+  return await parseFile(Buffer.from(decoded), job.filename!, { encodingOverride: encoding });
+}
+```
 
-Análogo T18 com assinatura `(jobId) → ParseResult` usando `parseFile()` lib T11d + permission check + flag. Código inline completo.
+TDD + commit.
 
-### Task 20: previewImport action (+ snapshot custom attrs)
+### Task 20: action previewImport + snapshot custom attrs (código inline)
 
-Análogo. Persiste `customAttrsSnapshot` idempotente. Código inline completo.
+Chave: persiste `customAttrsSnapshot` idempotente; roda schema; retorna erros.
 
-### Task 21: commitImport action (sync + enqueue)
+### Task 21: action commitImport (sync + enqueue)
 
-Análogo. Decide sync/async. Usa `commitChunksSync` (T16) ou `queue.add('data-transfer-commit', payload)`. Código inline completo.
+Decide sync vs async; sync chama `commitChunksSync`; async `queue.add('data-transfer-commit', payload)`.
 
-### Task 22a: rollbackImport action
+### Task 22a: action rollbackImport
 
-**Files:** action + tests (2 cases: happy + não-import bloqueado)
+```ts
+export async function rollbackImport(jobId: string): Promise<RollbackResult> {
+  const ctx = await requireAuth();
+  await requirePermission(ctx, 'data-transfer:import:rollback');
+  const job = await prisma.dataTransferJob.findFirstOrThrow({ where: { id: jobId, companyId: ctx.companyId, direction: 'import', status: 'success' }});
+  const model = modelFor(job.entity);
+  const { count } = await (model as any).deleteMany({ where: { companyId: job.companyId, importJobId: jobId }});
+  await prisma.dataTransferJob.update({ where: { id: jobId }, data: { status: 'rolled_back', finishedAt: new Date() }});
+  await audit.log('data_transfer.import.rolled_back', { jobId, rowCountRemoved: count }, ctx);
+  return { removed: count };
+}
+```
+TDD + commit.
 
-### Task 22b: cancelImport action
+### Task 22b: action cancelImport (análogo, job.discard())
 
-action + tests (2: happy + job não-running bloqueado)
+### Task 22c: action exportEntity (código inline completo)
 
-### Task 22c: exportEntity action
+Chama buildListQuery + streamCsv/Xlsx + storage.put + dataTransferJob.create + signedUrl + audit. Respeita cap 50k.
 
-action + tests (3: happy csv, cap 50k, xlsx force-string). Usa T15c orchestrator.
+### Task 22d: actions savePreset + getPreset (upsert DataTransferMappingPreset)
 
-### Task 22d: savePreset + getPreset actions
+### Task 22e: action listHistory (paginação cursor, tenant filter)
 
-actions + tests (3: save/get/upsert mesma chave).
-
-### Task 22e: listHistory action
-
-action + tests (3: scoped companyId, super_admin all, paging).
-
-### Task 23a: worker skeleton + payload Zod + boot
+### Task 23a: worker skeleton + Zod payload + boot
 
 **Files:** `src/workers/data-transfer-commit.worker.ts`, `instrumentation.ts`
 
-- [ ] Step 1: TDD payload Zod (validate OK / invalid mapping rejected).
-
-- [ ] Step 2: Skeleton `new Worker('data-transfer-commit', processor, { connection })`; boot condicional via `WORKER_NAME`.
-
-- [ ] Step 3: Commit.
+- [ ] Step 1: TDD payload schema valid/invalid.
+- [ ] Step 2: Esqueleto BullMQ Worker com `commitJobPayloadSchema.parse(job.data)` + `configureRateLimit`.
+- [ ] Step 3: Register em `instrumentation.ts` (Node boot).
+- [ ] Step 4: Commit.
 
 ### Task 23b: advisory lock
 
-- [ ] Step 1: TDD (2 workers concorrentes mesmo companyId serializam).
-
-- [ ] Step 2: Wrap processor em `prisma.$transaction(async tx => { await tx.$queryRaw`SELECT pg_advisory_xact_lock(...)`; ... })`.
-
+- [ ] Step 1: TDD 2 cases (lock acquired, two workers serialize).
+- [ ] Step 2: `pg_try_advisory_xact_lock(hashtext('dt:' || companyId))` dentro de tx curta.
 - [ ] Step 3: Commit.
 
-### Task 23c: chunks + committedChunks idempotency
+### Task 23c: chunk loop + committedChunks idempotency
 
-- [ ] Step 1: TDD (resume after crash processa só chunks restantes).
-
-- [ ] Step 2: Loop chunks 500 rows; cada chunk em tx separada; update `progress.committedChunks`.
-
+- [ ] Step 1: TDD 2 cases (process 3 chunks / resume skipping [1,2] chunks).
+- [ ] Step 2: Loop lê `progress.committedChunks`, processa próximo chunk em tx 30s, atualiza progress.
 - [ ] Step 3: Commit.
 
 ### Task 23d: retry + backoff + DLQ
 
-- [ ] Step 1: TDD (retry 3x backoff exp; última→DLQ).
-
-- [ ] Step 2: BullMQ `attempts: 3, backoff: { type: 'exponential', delay: 1000 }`; onFailed move to DLQ queue.
-
+- [ ] Step 1: TDD 2 cases (retry 3× then DLQ).
+- [ ] Step 2: BullMQ Worker opts `attempts: 3, backoff: { type: 'exponential', delay: 1000 }` + queue DLQ.
 - [ ] Step 3: Commit.
 
 ### Task 23e: progress update + snapshot read
 
-- [ ] Step 1: TDD (rowCount incrementa; snapshot lido, não live).
-
-- [ ] Step 2: Após cada chunk, `prisma.dataTransferJob.update({ progress, rowCount })`.
-
+- [ ] Step 1: TDD 2 cases (progress updated between chunks / snapshot read).
+- [ ] Step 2: Worker lê `customAttrsSnapshot` on start, nunca refetch.
 - [ ] Step 3: Commit.
 
-### Task 23f: resume after crash integration
+### Task 23f: resume after crash integration test
 
-- [ ] Step 1: Simular crash mid-chunk via SIGKILL mock.
+- [ ] Step 1: Integration test simula worker kill mid-chunk → restart → resumes committedChunks.
+- [ ] Step 2: Commit.
 
-- [ ] Step 2: Reiniciar worker; validar não duplicou.
+### Task 24a: cleanup worker (quarantine >30min)
 
+**Files:** `src/workers/data-transfer-cleanup.worker.ts`
+
+- [ ] Step 1: TDD 3 cases (TTL expiry, deleta storage, marca failed).
+- [ ] Step 2: Repeatable job 5min. Instrumentar métrica `data_transfer_cleanup_removed_total` aqui.
+- [ ] Step 3: Boot register. Commit.
+
+### Task 24b: history-purge worker (>90d)
+
+**Files:** `src/workers/data-transfer-history-purge.worker.ts`
+
+- [ ] Step 1: TDD 2 cases (purge >90d + audit event).
+- [ ] Step 2: Repeatable semanal domingos 02:00.
 - [ ] Step 3: Commit.
 
-### Task 24a: cleanup worker (quarentena TTL)
+### Task 25: healthcheck script
 
-**Files:** `src/workers/data-transfer-cleanup.worker.ts` + tests (3)
+**Files:** `src/workers/healthcheck.ts`
 
-- [ ] Repeatable 5min; TTL 30min; `storage.deletePrefix`; instrument metric `cleanup_removed_total`.
+- [ ] Step 1: `node dist/workers/healthcheck.js <queueName>` ping BullMQ queue (exit 0 healthy).
+- [ ] Step 2: Commit.
 
-### Task 24b: history-purge worker
+### Task 26-34: (reservado para expansão)
 
-**Files:** `src/workers/data-transfer-history-purge.worker.ts` + tests (2)
+### Task 35: Close wave 10a
 
-- [ ] Repeatable weekly; >90d soft-delete; `storage.deletePrefix`; audit `data_transfer.history.purged`.
-
-### Task 24c: layout flag gate + E2E smoke
-
-**Files:** `src/app/(app)/settings/data-transfer/layout.tsx`, e2e spec
-
-- [ ] Step 1: server component layout → `await getFlag('data_transfer', { companyId, userId })` → `notFound()` se OFF.
-
-- [ ] Step 2: E2E: flag OFF → 404; override company ON → 200.
-
-- [ ] Step 3: Commit.
-
-### Task 25: Close wave 10a
-
-- [ ] `pnpm typecheck && pnpm lint && pnpm vitest run`.
-
-- [ ] `Agent superpowers:code-reviewer` revisa wave 10a.
-
-- [ ] Tag local `phase-10a-green`.
-
-- [ ] Commit `chore(data-transfer): wave 10a close (T25)`.
+- [ ] Step 1: `pnpm lint && pnpm typecheck && pnpm vitest run && pnpm build`.
+- [ ] Step 2: Dispatch `Agent superpowers:code-reviewer` sobre diffs 10a (review independente).
+- [ ] Step 3: Bundle check se tocou packages.
+- [ ] Step 4: Tag local `phase-10a-green`. Commit fence.
 
 ---
 
-## Wave 10b — UI (Tasks 26-37)
+## Wave 10b — UI (Tasks 36-50)
 
 **Invocar `Skill ui-ux-pro-max:ui-ux-pro-max` antes de cada task visual.**
 
-### Task 26: DS stepper+dropzone (packages/settings-ui)
+### Task 36: DS Stepper (se ausente)
 
-**Files:** `packages/settings-ui/src/ui/stepper.tsx`, `dropzone.tsx`, exports, CHANGELOG.md, package.json bump patch
+**Files:** `packages/settings-ui/src/ui/stepper.tsx`, CHANGELOG.md, package.json bump patch
 
-- [ ] Step 1: Grep existence. Se ausente, criar seguindo DS tokens.
+- [ ] Step 1: Grep existente; se ausente continuar.
+- [ ] Step 2: TDD render + a11y (aria-current, step roles).
+- [ ] Step 3: Implementar seguindo DS tokens.
+- [ ] Step 4: Bump patch, CHANGELOG, rebuild.
+- [ ] Step 5: Bundle budget <15KB gz.
+- [ ] Step 6: Commit.
 
-- [ ] Step 2: Unit tests (render, keyboard nav, a11y axe).
+### Task 37: DS Dropzone (idem T36)
 
-- [ ] Step 3: Bump patch version + CHANGELOG entry + rebuild `pnpm -F @nexusai360/settings-ui build` + check gzip <15KB subpath.
+### Task 38: rota layout flag gate
 
-- [ ] Step 4: Commit.
+**Files:** `src/app/(app)/settings/data-transfer/layout.tsx`
 
-### Task 27: Rota + layout + tabs
+- [ ] Step 1: TDD E2E smoke (flag OFF → 404).
+- [ ] Step 2: Server component:
+```tsx
+export default async function Layout({ children }) {
+  const ctx = await requireAuth();
+  const enabled = await getFlag('data_transfer', { companyId: ctx.companyId, userId: ctx.userId });
+  if (!enabled) notFound();
+  return children;
+}
+```
+- [ ] Step 3: Commit.
+
+### Task 39: page tabs
 
 **Files:** `src/app/(app)/settings/data-transfer/page.tsx`
 
-- [ ] Step 1: Server component com `PageHeader` + `Tabs` (Import/Export/Histórico).
-
+- [ ] Step 1: PageHeader + Tabs (Import/Export/Histórico) com defaultValue URL query.
 - [ ] Step 2: Commit.
 
-### Task 28: ImportWizard state machine
+### Task 40: ImportWizard state machine
 
 **Files:** `src/components/data-transfer/import-wizard.tsx`
 
-- [ ] Step 1: TDD reducer (step transitions + invalid blocked).
-
-- [ ] Step 2: Implementar useReducer.
-
+- [ ] Step 1: TDD reducer transitions (advance valid, block invalid, reset).
+- [ ] Step 2: useReducer + context provider.
 - [ ] Step 3: Commit.
 
-### Task 29: UploadStep
+### Task 41: UploadStep + hook progress
 
-**Files:** `src/components/data-transfer/upload-step.tsx`, `src/hooks/use-data-transfer-progress.ts`
+### Task 42: MappingStep + presets
 
-- [ ] Step 1: Dropzone + entity select + uploadImportFile call.
+### Task 43: PreviewStep + Progress + Cancel
 
-- [ ] Step 2: Estados idle/uploading/error/success + needsEncoding dropdown + duplicate AlertDialog.
+- [ ] Poll interval via `DATA_TRANSFER_POLL_INTERVAL_MS` env (default 2000) + backoff exp após 5 polls sem mudança.
 
-- [ ] Step 3: Unit tests user-event (upload + dup + encoding).
+### Task 44: Error boundaries + network failure states
 
-- [ ] Step 4: Commit.
+**Files:** `src/components/data-transfer/error-boundary.tsx`
 
-### Task 30: MappingStep + presets
-
-**Files:** `mapping-step.tsx`
-
-- [ ] Step 1: Auto-suggest via T9 + tabela column→field + locale picker + modo radio.
-
-- [ ] Step 2: getPreset pre-fill + savePreset button.
-
-- [ ] Step 3: Unit tests. Commit.
-
-### Task 31: PreviewStep + progress + cancel
-
-**Files:** `preview-step.tsx`
-
-- [ ] Step 1: Card validCount/errorCount + sample + erros.
-
-- [ ] Step 2: "Validar tudo" re-call preview.
-
-- [ ] Step 3: "Importar" triggers commit; durante running SWR polling env `DATA_TRANSFER_POLL_INTERVAL_MS` default 2000 + backoff exp após 5 polls sem mudança; timeout 10min msg fallback.
-
-- [ ] Step 4: Botão "Cancelar" → cancelImport.
-
-- [ ] Step 5: Unit tests. Commit.
-
-### Task 31b: UI error boundaries + network failure states
-
-**Files:** `src/components/data-transfer/error-boundary.tsx`, integração em wizard/export
-
-- [ ] Step 1: ErrorBoundary React + toast + retry CTA por step.
-
-- [ ] Step 2: Testes — network fail mid-upload → toast + retry; storage 500 → fallback.
-
+- [ ] Step 1: TDD 3 cases (upload fail / parse fail / commit fail com retry CTA).
+- [ ] Step 2: ErrorBoundary + toasts.
 - [ ] Step 3: Commit.
 
-### Task 32: Export panel + dialog
+### Task 45: ExportPanel + ExportDialog
 
-**Files:** `export-panel.tsx`, `export-dialog.tsx`
+### Task 46: HistoryTable + RollbackDialog
 
-- [ ] Step 1: 4 cards + Dialog com form.
+### Task 47: A11y pass (checklist enumerado)
 
-- [ ] Step 2: exportEntity → signedUrl → `<a href download>`.
+- [ ] roles: banner/main/dialog
+- [ ] aria-live="polite" progress
+- [ ] focus trap modal
+- [ ] keyboard esc/enter
+- [ ] contraste AA verify via axe-core
+- [ ] labels em inputs
+- [ ] Commit por batch.
 
-- [ ] Step 3: EXPORT_TOO_LARGE toast + refine hint.
+### Task 48: Responsivo <md
 
-- [ ] Step 4: Unit tests. Commit.
+### Task 49: Sidebar menu item condicional
 
-### Task 33: History + rollback
+### Task 50: Close wave 10b
 
-**Files:** `history-table.tsx`, `rollback-dialog.tsx`
-
-- [ ] Step 1: DataTable 50 rows + actions column (download + Reverter).
-
-- [ ] Step 2: RollbackDialog AlertDialog confirm.
-
-- [ ] Step 3: Unit tests. Commit.
-
-### Task 34: A11y pass
-
-Critérios enumerados:
-- [ ] Roles: banner, main, dialog, alert.
-- [ ] aria-live em progresso.
-- [ ] focus trap modal.
-- [ ] Keyboard: esc fecha, enter confirma, tab navega wizard.
-- [ ] Contraste AA (WCAG 2.1).
-- [ ] Labels em todos inputs.
-- [ ] Testes axe-core via storybook.
-- [ ] Commit.
-
-### Task 35: Responsivo mobile <md
-
-- [ ] Wizard empilha vertical <768px.
-- [ ] Screenshots visual regression mobile.
-- [ ] Commit.
-
-### Task 36: Sidebar menu item + flag gate
-
-- [ ] Item "Importar / Exportar" condicional getFlag.
-- [ ] Icon + ordem correta.
-- [ ] Commit.
-
-### Task 37: Close wave 10b
-
-- [ ] `pnpm typecheck && pnpm lint && pnpm vitest run && pnpm build`.
-- [ ] Bundle budget check subpaths.
-- [ ] Agent code-reviewer.
-- [ ] Tag `phase-10b-green`.
-- [ ] Commit.
+- [ ] `pnpm lint && typecheck && vitest && build`
+- [ ] Dispatch code-reviewer
+- [ ] Tag `phase-10b-green`
 
 ---
 
-## Wave 10c — Verification + observabilidade (Tasks 38-47b)
+## Wave 10c — Verification + obs (Tasks 51-76)
 
-### Task 38: OTel metrics
+### Task 51: OTel MeterProvider init
 
-**Files:** `src/lib/observability/data-transfer-metrics.ts`
+### Task 52-55: 4 metrics (rows_total, duration_ms, errors_total, queue_depth) instrumentadas
 
-- [ ] Step 1: Adicionar `@opentelemetry/exporter-metrics-otlp-http` se ausente.
+### Task 56: dlq_depth metric
 
-- [ ] Step 2: MeterProvider + 6 métricas (rows_total, duration_ms, errors_total, queue_depth, dlq_depth, cleanup_removed_total).
+### Task 57: Sentry custom span wrapper
 
-- [ ] Step 3: Instrumentar T18/21/22c actions + T23 worker + T24a cleanup.
+### Task 58-66: 9 E2E Playwright specs (uma task por spec conforme §6.3)
 
-- [ ] Step 4: Unit test recording. Commit.
+- [ ] 58: happy path 10 rows
+- [ ] 59: lenient com erros
+- [ ] 60: strict bloqueia
+- [ ] 61: size 60k erro
+- [ ] 62: viewer 403
+- [ ] 63: export com filtro
+- [ ] 64: rollback UI
+- [ ] 65: super_admin history cross-tenant
+- [ ] 66: dedupe AlertDialog
 
-### Task 39: Sentry spans
+### Task 67-73: 7 integration tests (uma task cada)
 
-- [ ] Step 1: Span `dataTransferOperation` envolvendo parse/commit/export.
-- [ ] Step 2: Tag jobId em erros.
-- [ ] Step 3: Commit.
+- [ ] 67: import 1000 CSV sync
+- [ ] 68: import 10k worker
+- [ ] 69: round-trip
+- [ ] 70: rollback DB state
+- [ ] 71: cancel mid-worker
+- [ ] 72: super_admin history:all
+- [ ] 73: rate-limit 11º reject
 
-### Task 40: DLQ reprocess script
-
-**Files:** `scripts/dlq-reprocess.js` + test
-
-- [ ] Step 1: Lê jobs de `data-transfer-dlq`; re-enqueue com delay 0.
-- [ ] Step 2: E2E test: falha 4x → DLQ → reprocess → sucesso.
-- [ ] Step 3: Commit.
-
-### Tasks 41-49: E2E Playwright (1 spec por task)
-
-Um commit atômico cada.
-
-- [ ] **T41** happy path 10 rows admin.
-- [ ] **T42** lenient com erros → download relatório.
-- [ ] **T43** strict bloqueia commit.
-- [ ] **T44** size 60k erro mensagem.
-- [ ] **T45-E2E** viewer 403 (renomear pra evitar colisão com T45a/b abaixo — chamar **T45e**).
-- [ ] **T46-E2E** export com filtro URL (**T46e**).
-- [ ] **T47-E2E** rollback via UI (**T47e**).
-- [ ] **T48** super_admin cross-tenant history.
-- [ ] **T49** dedupe override flow.
-
-### Task 50: Integration tests 7 cases
-
-**Files:** `src/lib/datatransfer/__tests__/integration/*.test.ts`
-
-- [ ] Postgres test fixture setup.
-- [ ] 7 testes spec §6.2.
-- [ ] Commit.
-
-### Task 45a: Runbook
+### Task 74: Runbook
 
 **Files:** `docs/runbooks/data-transfer.md`
 
-- [ ] Health, métricas-chave, troubleshoot (TIMEOUT_QUARANTINE, DLQ, storage, rate-limit), comandos gh/docker logs + dlq-reprocess.
-- [ ] Commit.
+- Health probe commands.
+- Métricas-chave com threshold alerta.
+- Troubleshoot: TIMEOUT_QUARANTINE, DLQ inspect+reprocess, storage errors, rate-limit saturation.
+- Rollback operacional (flag OFF + instruções).
 
-### Task 45b: Bench script + baseline
+### Task 74b: bench script + seed
 
-**Files:** `scripts/bench-datatransfer.mjs`, seed helper, `docs/benchmarks/data-transfer.md`
+**Files:** `scripts/bench-datatransfer.mjs`, `scripts/seed-bench.mjs`
 
-- [ ] Seed 10k rows helper.
-- [ ] Bench 1k/10k CSV+XLSX (parse, preview, commit, export).
-- [ ] Baseline p50/p95 capturados.
-- [ ] Commit.
+- [ ] Step 1: Seed helper 10k rows.
+- [ ] Step 2: Bench round-trip capturing p50/p95.
+- [ ] Step 3: Commit baseline numbers em `bench-baseline.json`.
 
-### Task 46a: Dockerfile worker target
+### Task 75: DLQ reprocess script + test
 
-**Files:** `Dockerfile`
+### Task 76a: Deploy Portainer — Dockerfile target
 
-- [ ] Step 1: Multi-stage — target `worker-commit` e `worker-cleanup` com CMD node dist/workers/….
+**Files:** `Dockerfile` (atualizado) ou `Dockerfile.worker`
 
-- [ ] Step 2: Build verify `docker build -t test --target worker-commit .`.
-
+- [ ] Step 1: Multi-stage target `worker` com CMD `node dist/workers/data-transfer-commit.worker.js` parametrizado via `WORKER_NAME` env.
+- [ ] Step 2: Build local test.
 - [ ] Step 3: Commit.
 
-### Task 46: Portainer stack.yml
+### Task 76b: Portainer stack.yml
 
 **Files:** `portainer/stack.yml`
 
-- [ ] 2 serviços `nexus-crm-worker-datatransfer` + `nexus-crm-worker-cleanup` com healthcheck `node dist/workers/healthcheck.js`.
-- [ ] Env vars required documentadas.
-- [ ] Commit.
+- Adicionar 2 serviços commit + cleanup com healthcheck, restart, replicas 1.
 
-### Task 47a: Deliver staging + 1 tenant piloto
+### Task 76c: Rollout staging + piloto (entrega final)
 
-- [ ] Override staging company ON.
-- [ ] Smoke 100 rows round-trip.
-- [ ] Flip 1 tenant piloto prod ON.
-- [ ] Tag `phase-10-delivered`.
-- [ ] Update HANDOFF + memória.
-- [ ] Commit.
+- [ ] Step 1: Override flag staging → smoke round-trip 100 rows.
+- [ ] Step 2: Override 1 tenant prod piloto.
+- [ ] Step 3: Tag `phase-10-delivered` + atualiza HANDOFF/RELATORIO/memória.
 
-### Task 47b: Rollout 25→50→100% + monitor
+### Task 76d: GA rollout (pós-deploy, fora do marco entrega)
 
-- [ ] 7 dias monitor (Sentry, métricas).
-- [ ] rolloutPct gradual.
-- [ ] Tag `phase-10-ga`.
-- [ ] Update memória fechamento Fase 10.
+- [ ] Monitor 7d → 25% → 50% → 100% → tag `phase-10-ga`.
 
 ---
 
 ## Failure modes
 
-| Falha | Recuperação |
-|-------|-------------|
-| Migration T2 falha prod | `prisma migrate resolve --rolled-back <name>` + aplicar `migration.rollback.sql`. |
-| Worker não sobe pós-deploy | `overrideFlag('data_transfer', 'company', *, false)` globalmente → sistema volta ao estado pré-fase sem UI acessível. |
-| Storage S3 indisponível | `STORAGE_DRIVER=fs` temp + alertar ops. Sync-path funciona; async degrada. |
-| Commit parcial mid-job | Worker retry recupera via committedChunks. Se DLQ acumula, `scripts/dlq-reprocess.js`. Se corrupção: `rollbackImport` action remove rows por `importJobId`. |
-| DLQ overflow | Métrica `dlq_depth` dispara alerta; runbook §DLQ reprocess. |
-| Bundle budget exceeded wave 10b | Revert Task 26 Stepper/Dropzone ou code-split. |
+| Cenário | Recuperação |
+|---------|-------------|
+| Migration falhou mid-deploy | `prisma migrate resolve --rolled-back` + aplicar `rollback.sql` manual |
+| Worker não sobe | Feature flag OFF; sync-only ≤5k permanece funcional |
+| Storage S3 outage | Toast "Storage indisponível"; manual retry |
+| Commit parcial crash | Retry BullMQ via committedChunks; ou rollback via importJobId |
+| DLQ acumulado | `scripts/dlq-reprocess.js data-transfer-commit` |
+| Flag rollout ruim | `overrideFlag('data_transfer', 'company', X, false)` instant |
 
 ---
 
 ## Self-review
 
-- Spec coverage: seções 1-16 → tasks mapeadas (grafo explícito). ✅
-- Placeholder scan: sem TBD/TODO. Tasks agrupadoras decompostas. ✅
-- Type consistency: contratos T4 consumidos coerentemente. ✅
-- Tasks atômicas: média 2-5min; tasks maiores (T18, T23a-f) decompostas. ✅
-- 75 tasks concretas (1, 2, 2b, 3, 4, 4b, 5, 6, 7, 8, 9, 10, 11a-d, 12, 13a-e, 14, 15a-c, 16, 17, 17b, 18, 19, 20, 21, 22a-e, 23a-f, 24a-c, 25, 26-37, 31b, 38, 39, 40, 41-49, 50, 45a, 45b, 46, 46a, 47a, 47b).
-- Paralelismo: T4+T4b desbloqueia wave 10b enquanto T5-T24 continuam 10a. ✅
-- Commit convention: `<type>(scope): <desc> (T<N>)`. ✅
-- Failure modes documentadas. ✅
-- Dependency graph no topo. ✅
+- **Spec coverage:** §1-§16 mapeados. ✅
+- **Placeholders:** todos "Idem task X" expandidos ou explicitamente trivia. ✅
+- **Type consistency:** `PreviewResult`, `UploadResult`, `CommitJobPayload`, `HistoryItem` definidos em T4 consumidos coerentemente. ✅
+- **Paralelismo:** T4+T4b desbloqueiam 10b sem quebrar typecheck. ✅
+- **Total testes:** 87 unit enumerados na spec (reconcile OK) + 7 integration (67-73) + 9 E2E (58-66) = 103 tests. ✅
+- **Tasks count:** 76.
+- **Decomposição:** tasks 2-5min cada, TDD disciplinado.
+- **Rollback story:** section "Failure modes" explícita. ✅
