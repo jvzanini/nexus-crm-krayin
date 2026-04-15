@@ -12,8 +12,11 @@ export function toCSV<T extends Record<string, unknown>>(rows: T[]): string {
   return lines.join("\n");
 }
 
-export function downloadCSV(filename: string, rows: Record<string, unknown>[]): void {
-  const csv = toCSV(rows);
+export function downloadCSV<T extends object>(
+  filename: string,
+  rows: ReadonlyArray<T>,
+): void {
+  const csv = toCSV(rows as unknown as Record<string, unknown>[]);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
