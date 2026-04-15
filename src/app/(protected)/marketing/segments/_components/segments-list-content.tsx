@@ -30,8 +30,14 @@ import {
   deleteSegmentsBulkAction,
 } from "@/lib/actions/marketing-segments";
 import type { SegmentItem } from "@/lib/actions/marketing-segments";
+import {
+  SegmentsFiltersSchema,
+  type SegmentsFilters,
+} from "@/lib/actions/marketing-segments-schemas";
 import { BulkActionBar } from "@/components/tables/bulk-action-bar";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 
 // ---------------------------------------------------------------------------
 // Variants de animação
@@ -60,17 +66,27 @@ const itemVariants = {
 
 interface SegmentsListContentProps {
   canManage: boolean;
+  initialFilters?: Record<string, string | undefined>;
 }
 
 // ---------------------------------------------------------------------------
 // Componente
 // ---------------------------------------------------------------------------
 
-export function SegmentsListContent({ canManage }: SegmentsListContentProps) {
+export function SegmentsListContent({ canManage, initialFilters = {} }: SegmentsListContentProps) {
   const router = useRouter();
 
   const [segments, setSegments] = useState<SegmentItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<SegmentsFilters>(() => {
+    const parsed = SegmentsFiltersSchema.safeParse({
+      q: initialFilters.q,
+      from: initialFilters.from,
+      to: initialFilters.to,
+    });
+    return parsed.success ? parsed.data : {};
+  });
+  const debouncedQ = useDebouncedValue(filters.q ?? "", 300);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingSegment, setDeletingSegment] = useState<SegmentItem | null>(null);
   const [deleting, startDeleting] = useTransition();
@@ -110,9 +126,14 @@ export function SegmentsListContent({ canManage }: SegmentsListContentProps) {
     });
   }
 
-  async function loadSegments() {
+  async function loadSegments(f: SegmentsFilters = filters) {
     setLoading(true);
-    const result = await listSegmentsAction();
+    const payload: SegmentsFilters = {
+      q: f.q && f.q.trim() !== "" ? f.q.trim() : undefined,
+      from: f.from && f.from !== "" ? f.from : undefined,
+      to: f.to && f.to !== "" ? f.to : undefined,
+    };
+    const result = await listSegmentsAction(payload);
     if (result.success && result.data) {
       setSegments(result.data);
     } else {
@@ -122,8 +143,53 @@ export function SegmentsListContent({ canManage }: SegmentsListContentProps) {
   }
 
   useEffect(() => {
-    loadSegments();
-  }, []);
+    loadSegments({ q: debouncedQ, from: filters.from, to: filters.to });
+    const qs = new URLSearchParams();
+    if (debouncedQ && debouncedQ.trim() !== "") qs.set("q", debouncedQ.trim());
+    if (filters.from) qs.set("from", filters.from);
+    if (filters.to) qs.set("to", filters.to);
+    const s = qs.toString();
+    router.replace(`/marketing/segments${s ? "?" + s : ""}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQ, filters.from, filters.to]);
+
+  function updateFilter(key: string, value: string) {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value === "" ? undefined : value,
+    }));
+    setSelectedIds(new Set());
+  }
+
+  function clearFilters() {
+    setFilters({});
+    setSelectedIds(new Set());
+  }
+
+  const hasActiveFilters =
+    Boolean(filters.q) || Boolean(filters.from) || Boolean(filters.to);
+
+  const filterConfigs: FilterConfig[] = [
+    {
+      type: "input",
+      key: "q",
+      label: "Buscar",
+      value: filters.q ?? "",
+      placeholder: "Buscar nome...",
+    },
+    {
+      type: "date",
+      key: "from",
+      label: "De",
+      value: filters.from ?? "",
+    },
+    {
+      type: "date",
+      key: "to",
+      label: "Até",
+      value: filters.to ?? "",
+    },
+  ];
 
   function openDeleteDialog(segment: SegmentItem) {
     setDeletingSegment(segment);
@@ -186,6 +252,16 @@ export function SegmentsListContent({ canManage }: SegmentsListContentProps) {
         </PageHeader.Root>
       </motion.div>
 
+      {/* Filtros */}
+      <motion.div variants={itemVariants}>
+        <FilterBar
+          filters={filterConfigs}
+          onChange={updateFilter}
+          onClear={clearFilters}
+          hasActive={hasActiveFilters}
+        />
+      </motion.div>
+
       {/* Bulk action bar */}
       {canManage && (
         <BulkActionBar
@@ -214,19 +290,36 @@ export function SegmentsListContent({ canManage }: SegmentsListContentProps) {
         ) : segments.length === 0 ? (
           <EmptyState.Root>
             <EmptyState.Icon icon={Layers} color="blue" />
-            <EmptyState.Title>Nenhum segmento criado</EmptyState.Title>
+            <EmptyState.Title>
+              {hasActiveFilters
+                ? "Nenhum segmento encontrado"
+                : "Nenhum segmento criado"}
+            </EmptyState.Title>
             <EmptyState.Description>
-              Segmente seus contatos para campanhas mais eficazes.
+              {hasActiveFilters
+                ? "Nenhum resultado para os filtros atuais. Ajuste ou limpe os filtros."
+                : "Segmente seus contatos para campanhas mais eficazes."}
             </EmptyState.Description>
-            {canManage && (
+            {hasActiveFilters ? (
               <EmptyState.Action>
                 <Button
-                  onClick={() => router.push("/marketing/segments/new")}
+                  onClick={clearFilters}
                   className="bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
                 >
-                  Novo segmento
+                  Limpar filtros
                 </Button>
               </EmptyState.Action>
+            ) : (
+              canManage && (
+                <EmptyState.Action>
+                  <Button
+                    onClick={() => router.push("/marketing/segments/new")}
+                    className="bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
+                  >
+                    Novo segmento
+                  </Button>
+                </EmptyState.Action>
+              )
             )}
           </EmptyState.Root>
         ) : (

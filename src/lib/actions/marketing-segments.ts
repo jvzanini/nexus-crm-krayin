@@ -8,7 +8,9 @@ import {
   createSegmentSchema,
   updateSegmentSchema,
   previewSegmentSchema,
+  SegmentsFiltersSchema,
 } from "./marketing-segments-schemas";
+import type { SegmentsFilters } from "./marketing-segments-schemas";
 import type { SegmentFilter } from "@/lib/marketing/segment";
 
 export interface SegmentItem {
@@ -43,14 +45,34 @@ function handleError(err: unknown, fallback: string): ActionResult<never> {
   return { success: false, error: fallback };
 }
 
-export async function listSegmentsAction(): Promise<ActionResult<SegmentItem[]>> {
+export async function listSegmentsAction(
+  raw?: unknown,
+): Promise<ActionResult<SegmentItem[]>> {
   try {
     const user = await requirePermission("marketing:view");
     const companyId = await resolveActiveCompanyId(user.id);
     if (!companyId) return { success: false, error: "Empresa ativa não encontrada" };
 
+    const parsed = SegmentsFiltersSchema.safeParse(raw ?? {});
+    const filters: SegmentsFilters = parsed.success ? parsed.data : {};
+
+    const where: Record<string, unknown> = { companyId };
+    if (filters.q) {
+      where.name = { contains: filters.q, mode: "insensitive" };
+    }
+    if (filters.from || filters.to) {
+      const createdAt: Record<string, Date> = {};
+      if (filters.from) createdAt.gte = new Date(filters.from);
+      if (filters.to) {
+        const end = new Date(filters.to);
+        end.setUTCHours(23, 59, 59, 999);
+        createdAt.lte = end;
+      }
+      where.createdAt = createdAt;
+    }
+
     const segments = await prisma.segment.findMany({
-      where: { companyId },
+      where: where as any,
       orderBy: { updatedAt: "desc" },
     });
 
