@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -29,8 +29,14 @@ import {
   deleteCampaignsBulkAction,
 } from "@/lib/actions/marketing-campaigns";
 import type { CampaignItem } from "@/lib/actions/marketing-campaigns";
+import {
+  CampaignsFiltersSchema,
+  type CampaignsFilters,
+} from "@/lib/actions/marketing-campaigns-schemas";
 import { BulkActionBar } from "@/components/tables/bulk-action-bar";
+import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -79,25 +85,47 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+const STATUS_OPTIONS = [
+  { value: "draft", label: "Rascunho" },
+  { value: "scheduled", label: "Agendada" },
+  { value: "sending", label: "Enviando" },
+  { value: "sent", label: "Enviada" },
+  { value: "paused", label: "Pausada" },
+  { value: "canceled", label: "Cancelada" },
+  { value: "failed", label: "Falhou" },
+];
+
 interface CampaignsListContentProps {
   canManage: boolean;
   canSend: boolean;
+  initialFilters?: Record<string, string | undefined>;
 }
 
-export function CampaignsListContent({ canManage }: CampaignsListContentProps) {
+export function CampaignsListContent({
+  canManage,
+  initialFilters = {},
+}: CampaignsListContentProps) {
   const router = useRouter();
 
   const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Filtros — safeParse de initialFilters
+  const [filters, setFilters] = useState<CampaignsFilters>(() => {
+    const parsed = CampaignsFiltersSchema.safeParse(initialFilters);
+    return parsed.success ? parsed.data : {};
+  });
+  const [qInput, setQInput] = useState<string>(filters.q ?? "");
+  const debouncedQ = useDebouncedValue(qInput, 300);
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleting, startBulkDeleting] = useTransition();
 
-  async function loadCampaigns() {
+  async function loadCampaigns(f: CampaignsFilters = filters) {
     setLoading(true);
-    const result = await listCampaignsAction();
+    const result = await listCampaignsAction(f);
     if (result.success && result.data) {
       setCampaigns(result.data);
     } else {
@@ -106,9 +134,85 @@ export function CampaignsListContent({ canManage }: CampaignsListContentProps) {
     setLoading(false);
   }
 
+  // Sincroniza q debounced com filters
   useEffect(() => {
-    loadCampaigns();
-  }, []);
+    const next: CampaignsFilters = {
+      ...filters,
+      q: debouncedQ.trim() === "" ? undefined : debouncedQ.trim(),
+    };
+    // só atualiza se mudou
+    if (next.q !== filters.q) {
+      setFilters(next);
+      setSelectedIds(new Set());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQ]);
+
+  // Recarrega + replace URL quando filters mudam
+  useEffect(() => {
+    const qs = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v !== undefined && v !== "") qs.set(k, String(v));
+    });
+    const s = qs.toString();
+    router.replace(`/marketing/campaigns${s ? "?" + s : ""}`);
+    loadCampaigns(filters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.status, filters.from, filters.to, filters.q]);
+
+  const hasActiveFilters = useMemo(
+    () => Object.values(filters).some((v) => v !== undefined && v !== ""),
+    [filters],
+  );
+
+  function updateFilter(key: string, value: string) {
+    if (key === "q") {
+      setQInput(value);
+      return;
+    }
+    const next: CampaignsFilters = {
+      ...filters,
+      [key]: value === "" || value === "all" ? undefined : value,
+    } as CampaignsFilters;
+    setFilters(next);
+    setSelectedIds(new Set());
+  }
+
+  function clearFilters() {
+    setFilters({});
+    setQInput("");
+    setSelectedIds(new Set());
+    router.replace("/marketing/campaigns");
+  }
+
+  const filterConfigs: FilterConfig[] = [
+    {
+      type: "input",
+      key: "q",
+      label: "Buscar",
+      value: qInput,
+      placeholder: "Buscar nome...",
+    },
+    {
+      type: "select",
+      key: "status",
+      label: "Status",
+      value: filters.status ?? "all",
+      options: [{ value: "all", label: "Todos" }, ...STATUS_OPTIONS],
+    },
+    {
+      type: "date",
+      key: "from",
+      label: "De",
+      value: filters.from ?? "",
+    },
+    {
+      type: "date",
+      key: "to",
+      label: "Até",
+      value: filters.to ?? "",
+    },
+  ];
 
   function toggleRow(id: string) {
     setSelectedIds((prev) => {
@@ -181,6 +285,16 @@ export function CampaignsListContent({ canManage }: CampaignsListContentProps) {
         </PageHeader.Root>
       </motion.div>
 
+      {/* Filtros */}
+      <motion.div variants={itemVariants}>
+        <FilterBar
+          filters={filterConfigs}
+          onChange={updateFilter}
+          onClear={clearFilters}
+          hasActive={hasActiveFilters}
+        />
+      </motion.div>
+
       {/* Bulk action bar */}
       {canManage && (
         <BulkActionBar
@@ -209,19 +323,36 @@ export function CampaignsListContent({ canManage }: CampaignsListContentProps) {
         ) : campaigns.length === 0 ? (
           <EmptyState.Root>
             <EmptyState.Icon icon={Megaphone} color="violet" />
-            <EmptyState.Title>Nenhuma campanha cadastrada</EmptyState.Title>
+            <EmptyState.Title>
+              {hasActiveFilters
+                ? "Nenhuma campanha encontrada"
+                : "Nenhuma campanha cadastrada"}
+            </EmptyState.Title>
             <EmptyState.Description>
-              Crie campanhas para engajar sua base de contatos.
+              {hasActiveFilters
+                ? "Nenhum resultado para os filtros aplicados. Tente ajustar ou limpar os filtros."
+                : "Crie campanhas para engajar sua base de contatos."}
             </EmptyState.Description>
-            {canManage && (
+            {hasActiveFilters ? (
               <EmptyState.Action>
                 <Button
-                  onClick={() => router.push("/marketing/campaigns/new")}
+                  onClick={clearFilters}
                   className="bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
                 >
-                  Nova campanha
+                  Limpar filtros
                 </Button>
               </EmptyState.Action>
+            ) : (
+              canManage && (
+                <EmptyState.Action>
+                  <Button
+                    onClick={() => router.push("/marketing/campaigns/new")}
+                    className="bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
+                  >
+                    Nova campanha
+                  </Button>
+                </EmptyState.Action>
+              )
             )}
           </EmptyState.Root>
         ) : (

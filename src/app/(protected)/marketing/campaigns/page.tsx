@@ -5,7 +5,12 @@ import { CampaignsListContent } from "./_components/campaigns-list-content";
 
 export const dynamic = "force-dynamic";
 
-export default async function CampaignsPage() {
+export default async function CampaignsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const params = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!userHasPermission(user, "marketing:view")) redirect("/dashboard");
@@ -13,5 +18,11 @@ export default async function CampaignsPage() {
   const canManage = userHasPermission(user, "marketing:manage");
   const canSend = userHasPermission(user, "marketing:send");
 
-  return <CampaignsListContent canManage={canManage} canSend={canSend} />;
+  return (
+    <CampaignsListContent
+      canManage={canManage}
+      canSend={canSend}
+      initialFilters={params}
+    />
+  );
 }

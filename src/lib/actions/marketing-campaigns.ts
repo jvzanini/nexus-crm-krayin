@@ -8,6 +8,7 @@ import { enqueueMarketingSend } from "@/lib/worker/queues/marketing-send";
 import {
   createCampaignSchema,
   updateCampaignSchema,
+  CampaignsFiltersSchema,
 } from "./marketing-campaigns-schemas";
 import type { SegmentFilter } from "@/lib/marketing/segment";
 
@@ -68,14 +69,42 @@ function toCampaignItem(c: any): CampaignItem {
   };
 }
 
-export async function listCampaignsAction(): Promise<ActionResult<CampaignItem[]>> {
+export async function listCampaignsAction(
+  raw?: unknown,
+): Promise<ActionResult<CampaignItem[]>> {
   try {
     const user = await requirePermission("marketing:view");
     const companyId = await resolveActiveCompanyId(user.id);
     if (!companyId) return { success: false, error: "Empresa ativa não encontrada" };
 
+    const parsed = CampaignsFiltersSchema.safeParse(raw ?? {});
+    const filters = parsed.success ? parsed.data : {};
+
+    const where: Record<string, unknown> = { companyId };
+
+    if (filters.status) {
+      where.status = filters.status;
+    }
+
+    if (filters.q) {
+      where.name = { contains: filters.q, mode: "insensitive" };
+    }
+
+    if (filters.from || filters.to) {
+      const range: Record<string, Date> = {};
+      if (filters.from) {
+        const d = new Date(`${filters.from}T00:00:00.000Z`);
+        if (!isNaN(d.getTime())) range.gte = d;
+      }
+      if (filters.to) {
+        const d = new Date(`${filters.to}T23:59:59.999Z`);
+        if (!isNaN(d.getTime())) range.lte = d;
+      }
+      if (Object.keys(range).length > 0) where.createdAt = range;
+    }
+
     const campaigns = await prisma.campaign.findMany({
-      where: { companyId },
+      where,
       orderBy: { createdAt: "desc" },
     });
 

@@ -25,3 +25,26 @@ export const updateCampaignSchema = createCampaignSchema.partial().omit({ mailbo
 export const campaignStatusTransitionSchema = z.object({
   status: z.enum(["scheduled", "sending", "paused", "canceled"]),
 });
+
+/**
+ * Fase 32 — filtros URL para listagem de campanhas.
+ * Grupo C: busca por nome, status, range de datas (createdAt).
+ */
+export const CampaignsFiltersSchema = z.object({
+  q: z.string().trim().min(1).max(128).optional(),
+  status: z
+    .enum([
+      "draft",
+      "scheduled",
+      "sending",
+      "sent",
+      "paused",
+      "canceled",
+      "failed",
+    ])
+    .optional(),
+  from: z.string().date().optional(),
+  to: z.string().date().optional(),
+});
+
+export type CampaignsFilters = z.infer<typeof CampaignsFiltersSchema>;
