@@ -233,3 +233,51 @@ export async function deleteSegmentAction(id: string): Promise<ActionResult> {
     return handleError(err, "Erro ao excluir segmento");
   }
 }
+
+export async function deleteSegmentsBulkAction(
+  ids: string[],
+): Promise<ActionResult<{ deletedCount: number; skippedInUse: number }>> {
+  try {
+    const user = await requirePermission("marketing:manage");
+    const companyId = await resolveActiveCompanyId(user.id);
+    if (!companyId) return { success: false, error: "Empresa ativa não encontrada" };
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return { success: false, error: "Nenhum segmento selecionado" };
+    }
+    if (ids.length > 500) {
+      return { success: false, error: "Limite de 500 itens por operação" };
+    }
+
+    const inUseRows = await prisma.campaign.findMany({
+      where: {
+        segmentId: { in: ids },
+        status: { in: ["scheduled", "sending", "paused"] },
+      },
+      select: { segmentId: true },
+    });
+    const inUseIds = new Set(inUseRows.map((r) => r.segmentId));
+    const deletable = ids.filter((id) => !inUseIds.has(id));
+
+    if (deletable.length === 0) {
+      return {
+        success: false,
+        error: "Todos os segmentos selecionados estão em uso por campanhas ativas",
+      };
+    }
+
+    const result = await prisma.segment.deleteMany({
+      where: { id: { in: deletable }, companyId },
+    });
+
+    return {
+      success: true,
+      data: {
+        deletedCount: result.count,
+        skippedInUse: inUseIds.size,
+      },
+    };
+  } catch (err) {
+    return handleError(err, "Erro ao excluir segmentos em massa");
+  }
+}

@@ -379,3 +379,50 @@ export async function getCampaignStatsAction(
     return handleError(err, "Erro ao buscar estatísticas da campanha");
   }
 }
+
+export async function deleteCampaignsBulkAction(
+  ids: string[],
+): Promise<ActionResult<{ deletedCount: number; skippedActive: number }>> {
+  try {
+    const user = await requirePermission("marketing:manage");
+    const companyId = await resolveActiveCompanyId(user.id);
+    if (!companyId) return { success: false, error: "Empresa ativa não encontrada" };
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return { success: false, error: "Nenhuma campanha selecionada" };
+    }
+    if (ids.length > 500) {
+      return { success: false, error: "Limite de 500 itens por operação" };
+    }
+
+    // Status elegíveis para deleção: draft, canceled, completed. Bloqueia running/scheduled/paused/sending.
+    const ELIGIBLE = ["draft", "canceled", "completed"] as const;
+    const campaigns = await prisma.campaign.findMany({
+      where: { id: { in: ids }, companyId },
+      select: { id: true, status: true },
+    });
+    const deletableIds = campaigns.filter((c) => ELIGIBLE.includes(c.status as typeof ELIGIBLE[number])).map((c) => c.id);
+    const skippedActive = campaigns.length - deletableIds.length;
+
+    if (deletableIds.length === 0) {
+      return {
+        success: false,
+        error: "Nenhuma campanha elegível (status em execução não pode ser excluído)",
+      };
+    }
+
+    const result = await prisma.campaign.deleteMany({
+      where: { id: { in: deletableIds }, companyId },
+    });
+
+    return {
+      success: true,
+      data: {
+        deletedCount: result.count,
+        skippedActive,
+      },
+    };
+  } catch (err) {
+    return handleError(err, "Erro ao excluir campanhas em massa");
+  }
+}

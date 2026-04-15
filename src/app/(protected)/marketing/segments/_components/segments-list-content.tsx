@@ -27,8 +27,11 @@ import { toast } from "sonner";
 import {
   listSegmentsAction,
   deleteSegmentAction,
+  deleteSegmentsBulkAction,
 } from "@/lib/actions/marketing-segments";
 import type { SegmentItem } from "@/lib/actions/marketing-segments";
+import { BulkActionBar } from "@/components/tables/bulk-action-bar";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // ---------------------------------------------------------------------------
 // Variants de animação
@@ -71,6 +74,41 @@ export function SegmentsListContent({ canManage }: SegmentsListContentProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingSegment, setDeletingSegment] = useState<SegmentItem | null>(null);
   const [deleting, startDeleting] = useTransition();
+
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [bulkDeleting, startBulkDeleting] = useTransition();
+
+  function toggleRow(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleAll(rowIds: string[]) {
+    const allSelected = rowIds.length > 0 && rowIds.every((id) => selectedIds.has(id));
+    setSelectedIds(allSelected ? new Set() : new Set(rowIds));
+  }
+  function confirmBulkDelete() {
+    const ids = Array.from(selectedIds);
+    startBulkDeleting(async () => {
+      const result = await deleteSegmentsBulkAction(ids);
+      if (result.success && result.data) {
+        const { deletedCount, skippedInUse } = result.data;
+        toast.success(
+          `${deletedCount} segmento${deletedCount === 1 ? "" : "s"} excluído${deletedCount === 1 ? "" : "s"}${skippedInUse > 0 ? ` (${skippedInUse} ignorado${skippedInUse === 1 ? "" : "s"} por uso em campanha)` : ""}`,
+        );
+        await loadSegments();
+        setSelectedIds(new Set());
+      } else {
+        toast.error(result.error ?? "Erro ao excluir segmentos");
+      }
+      setBulkDeleteDialogOpen(false);
+    });
+  }
 
   async function loadSegments() {
     setLoading(true);
@@ -148,6 +186,17 @@ export function SegmentsListContent({ canManage }: SegmentsListContentProps) {
         </PageHeader.Root>
       </motion.div>
 
+      {/* Bulk action bar */}
+      {canManage && (
+        <BulkActionBar
+          count={selectedIds.size}
+          onCancel={() => setSelectedIds(new Set())}
+          onDelete={() => setBulkDeleteDialogOpen(true)}
+          entityLabel="segmento"
+          entityPlural="segmentos"
+        />
+      )}
+
       {/* Tabela */}
       <motion.div
         variants={itemVariants}
@@ -184,6 +233,24 @@ export function SegmentsListContent({ canManage }: SegmentsListContentProps) {
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
+                {canManage && (
+                  <TableHead className="text-muted-foreground w-10">
+                    <Checkbox
+                      checked={
+                        segments.length > 0 &&
+                        segments.every((s) => selectedIds.has(s.id))
+                      }
+                      indeterminate={
+                        selectedIds.size > 0 &&
+                        !segments.every((s) => selectedIds.has(s.id))
+                      }
+                      onCheckedChange={() =>
+                        toggleAll(segments.map((s) => s.id))
+                      }
+                      aria-label="Selecionar todos"
+                    />
+                  </TableHead>
+                )}
                 <TableHead className="text-muted-foreground">Nome</TableHead>
                 <TableHead className="text-muted-foreground hidden md:table-cell">Filtros</TableHead>
                 <TableHead className="text-muted-foreground hidden lg:table-cell">Atualizado em</TableHead>
@@ -205,6 +272,15 @@ export function SegmentsListContent({ canManage }: SegmentsListContentProps) {
                   }}
                   className="border-border hover:bg-accent/30 transition-colors duration-200"
                 >
+                  {canManage && (
+                    <TableCell className="w-10">
+                      <Checkbox
+                        checked={selectedIds.has(segment.id)}
+                        onCheckedChange={() => toggleRow(segment.id)}
+                        aria-label={`Selecionar ${segment.name}`}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell className="font-medium text-foreground">
                     {segment.name}
                     {segment.description && (
@@ -249,6 +325,42 @@ export function SegmentsListContent({ canManage }: SegmentsListContentProps) {
           </Table>
         )}
       </motion.div>
+
+      {/* AlertDialog — Bulk delete */}
+      <AlertDialog
+        open={bulkDeleteDialogOpen}
+        onOpenChange={setBulkDeleteDialogOpen}
+      >
+        <AlertDialogContent className="bg-card border border-border rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-foreground">
+              <AlertTriangle className="h-5 w-5 text-red-400" />
+              Excluir segmentos selecionados
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Tem certeza que deseja excluir{" "}
+              <strong className="text-foreground">{selectedIds.size}</strong>{" "}
+              segmento{selectedIds.size === 1 ? "" : "s"}? Segmentos em uso por campanhas ativas serão ignorados. Esta ação é irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={bulkDeleting}
+              className="border-border text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer transition-all duration-200"
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
+              disabled={bulkDeleting}
+              className="bg-red-600 text-white hover:bg-red-700 cursor-pointer transition-all duration-200"
+            >
+              {bulkDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Excluir {selectedIds.size}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* AlertDialog — Excluir segmento */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

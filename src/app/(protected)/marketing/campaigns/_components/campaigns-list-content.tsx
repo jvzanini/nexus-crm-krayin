@@ -13,15 +13,24 @@ import {
   Button,
   PageHeader,
   EmptyState,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@nexusai360/design-system";
-import { Megaphone, Mail, Plus, Eye, Loader2 } from "lucide-react";
+import { Megaphone, Plus, Eye, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { listCampaignsAction } from "@/lib/actions/marketing-campaigns";
+import {
+  listCampaignsAction,
+  deleteCampaignsBulkAction,
+} from "@/lib/actions/marketing-campaigns";
 import type { CampaignItem } from "@/lib/actions/marketing-campaigns";
-
-// ---------------------------------------------------------------------------
-// Variants de animação
-// ---------------------------------------------------------------------------
+import { BulkActionBar } from "@/components/tables/bulk-action-bar";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -39,10 +48,6 @@ const itemVariants = {
     transition: { duration: 0.3, ease: "easeOut" as const },
   },
 };
-
-// ---------------------------------------------------------------------------
-// Badge de status
-// ---------------------------------------------------------------------------
 
 const STATUS_STYLES: Record<string, string> = {
   draft: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30",
@@ -74,24 +79,21 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Props
-// ---------------------------------------------------------------------------
-
 interface CampaignsListContentProps {
   canManage: boolean;
   canSend: boolean;
 }
-
-// ---------------------------------------------------------------------------
-// Componente
-// ---------------------------------------------------------------------------
 
 export function CampaignsListContent({ canManage }: CampaignsListContentProps) {
   const router = useRouter();
 
   const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [bulkDeleting, startBulkDeleting] = useTransition();
 
   async function loadCampaigns() {
     setLoading(true);
@@ -107,6 +109,36 @@ export function CampaignsListContent({ canManage }: CampaignsListContentProps) {
   useEffect(() => {
     loadCampaigns();
   }, []);
+
+  function toggleRow(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleAll(rowIds: string[]) {
+    const allSelected = rowIds.length > 0 && rowIds.every((id) => selectedIds.has(id));
+    setSelectedIds(allSelected ? new Set() : new Set(rowIds));
+  }
+  function confirmBulkDelete() {
+    const ids = Array.from(selectedIds);
+    startBulkDeleting(async () => {
+      const result = await deleteCampaignsBulkAction(ids);
+      if (result.success && result.data) {
+        const { deletedCount, skippedActive } = result.data;
+        toast.success(
+          `${deletedCount} campanha${deletedCount === 1 ? "" : "s"} excluída${deletedCount === 1 ? "" : "s"}${skippedActive > 0 ? ` (${skippedActive} em execução ignorada${skippedActive === 1 ? "" : "s"})` : ""}`,
+        );
+        await loadCampaigns();
+        setSelectedIds(new Set());
+      } else {
+        toast.error(result.error ?? "Erro ao excluir campanhas");
+      }
+      setBulkDeleteDialogOpen(false);
+    });
+  }
 
   const count = campaigns.length;
 
@@ -149,6 +181,17 @@ export function CampaignsListContent({ canManage }: CampaignsListContentProps) {
         </PageHeader.Root>
       </motion.div>
 
+      {/* Bulk action bar */}
+      {canManage && (
+        <BulkActionBar
+          count={selectedIds.size}
+          onCancel={() => setSelectedIds(new Set())}
+          onDelete={() => setBulkDeleteDialogOpen(true)}
+          entityLabel="campanha"
+          entityPlural="campanhas"
+        />
+      )}
+
       {/* Tabela */}
       <motion.div
         variants={itemVariants}
@@ -185,6 +228,24 @@ export function CampaignsListContent({ canManage }: CampaignsListContentProps) {
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
+                {canManage && (
+                  <TableHead className="text-muted-foreground w-10">
+                    <Checkbox
+                      checked={
+                        campaigns.length > 0 &&
+                        campaigns.every((c) => selectedIds.has(c.id))
+                      }
+                      indeterminate={
+                        selectedIds.size > 0 &&
+                        !campaigns.every((c) => selectedIds.has(c.id))
+                      }
+                      onCheckedChange={() =>
+                        toggleAll(campaigns.map((c) => c.id))
+                      }
+                      aria-label="Selecionar todas"
+                    />
+                  </TableHead>
+                )}
                 <TableHead className="text-muted-foreground">Nome</TableHead>
                 <TableHead className="text-muted-foreground">Status</TableHead>
                 <TableHead className="text-muted-foreground hidden md:table-cell">Agendada para</TableHead>
@@ -204,6 +265,15 @@ export function CampaignsListContent({ canManage }: CampaignsListContentProps) {
                   }}
                   className="border-border hover:bg-accent/30 transition-colors duration-200"
                 >
+                  {canManage && (
+                    <TableCell className="w-10">
+                      <Checkbox
+                        checked={selectedIds.has(campaign.id)}
+                        onCheckedChange={() => toggleRow(campaign.id)}
+                        aria-label={`Selecionar ${campaign.name}`}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell className="font-medium text-foreground">
                     {campaign.name}
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
@@ -234,6 +304,42 @@ export function CampaignsListContent({ canManage }: CampaignsListContentProps) {
           </Table>
         )}
       </motion.div>
+
+      {/* AlertDialog — Bulk delete */}
+      <AlertDialog
+        open={bulkDeleteDialogOpen}
+        onOpenChange={setBulkDeleteDialogOpen}
+      >
+        <AlertDialogContent className="bg-card border border-border rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-foreground">
+              <AlertTriangle className="h-5 w-5 text-red-400" />
+              Excluir campanhas selecionadas
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Tem certeza que deseja excluir{" "}
+              <strong className="text-foreground">{selectedIds.size}</strong>{" "}
+              campanha{selectedIds.size === 1 ? "" : "s"}? Campanhas em execução (agendadas/enviando/pausadas) serão ignoradas. Esta ação é irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={bulkDeleting}
+              className="border-border text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer transition-all duration-200"
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
+              disabled={bulkDeleting}
+              className="bg-red-600 text-white hover:bg-red-700 cursor-pointer transition-all duration-200"
+            >
+              {bulkDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Excluir {selectedIds.size}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }
