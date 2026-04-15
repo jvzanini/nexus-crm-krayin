@@ -428,6 +428,32 @@ export async function deleteProduct(id: string): Promise<ActionResult> {
   }
 }
 
+export async function deleteProductsBulk(
+  ids: string[],
+): Promise<ActionResult<{ deletedCount: number }>> {
+  try {
+    const user = await requirePermission("products:delete");
+    const companyId = await resolveActiveCompanyId(user.id);
+    if (!companyId) return { success: false, error: "Nenhuma empresa ativa encontrada" };
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return { success: false, error: "Nenhum produto selecionado" };
+    }
+    if (ids.length > 500) {
+      return { success: false, error: "Limite de 500 itens por operação" };
+    }
+
+    const result = await prisma.product.deleteMany({
+      where: { id: { in: ids }, companyId },
+    });
+
+    revalidatePath("/products");
+    return { success: true, data: { deletedCount: result.count } };
+  } catch (err) {
+    return handleError(err, "Erro ao excluir produtos em massa");
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Preços
 // ---------------------------------------------------------------------------

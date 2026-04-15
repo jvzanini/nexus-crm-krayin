@@ -53,6 +53,7 @@ import {
   archiveProduct,
   unarchiveProduct,
   deleteProduct,
+  deleteProductsBulk,
   upsertPrice,
   deletePrice,
 } from "@/lib/actions/products";
@@ -61,6 +62,8 @@ import {
   SUPPORTED_CURRENCIES,
   currencyLabel,
 } from "@/lib/currency/allowlist";
+import { BulkActionBar } from "@/components/tables/bulk-action-bar";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -238,6 +241,40 @@ export function ProductsContent({
   const [saving, startSaving] = useTransition();
   const [archiving, startArchiving] = useTransition();
   const [deleting, startDeleting] = useTransition();
+
+  // --- Bulk selection ---
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [bulkDeleting, startBulkDeleting] = useTransition();
+
+  function toggleRow(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleAll(rowIds: string[]) {
+    const allSelected = rowIds.length > 0 && rowIds.every((id) => selectedIds.has(id));
+    setSelectedIds(allSelected ? new Set() : new Set(rowIds));
+  }
+  function confirmBulkDelete() {
+    const ids = Array.from(selectedIds);
+    startBulkDeleting(async () => {
+      const result = await deleteProductsBulk(ids);
+      if (result.success && result.data) {
+        toast.success(
+          `${result.data.deletedCount} produto${result.data.deletedCount === 1 ? "" : "s"} excluído${result.data.deletedCount === 1 ? "" : "s"}`,
+        );
+        setProducts((prev) => prev.filter((p) => !selectedIds.has(p.id)));
+        setSelectedIds(new Set());
+      } else {
+        toast.error(result.error ?? "Erro ao excluir produtos");
+      }
+      setBulkDeleteDialogOpen(false);
+    });
+  }
 
   // ---------------------------------------------------------------------------
   // Carregamento
@@ -783,6 +820,17 @@ export function ProductsContent({
           ))}
         </div>
       </motion.div>
+
+      {/* Bulk action bar */}
+      {canDelete && (
+        <BulkActionBar
+          count={selectedIds.size}
+          onCancel={() => setSelectedIds(new Set())}
+          onDelete={() => setBulkDeleteDialogOpen(true)}
+          entityLabel="produto"
+          entityPlural="produtos"
+        />
+      )}
 
       {/* Tabela */}
       <motion.div

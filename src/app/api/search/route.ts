@@ -96,22 +96,28 @@ export async function GET(req: NextRequest) {
     campaigns,
     segments,
   ] = await Promise.all([
-    prisma.user.findMany({
-      where: {
-        OR: [
-          { name: { contains: normalized, mode: "insensitive" } },
-          { email: { contains: normalized, mode: "insensitive" } },
-        ],
-        isActive: true,
-      },
-      select: { id: true, name: true, email: true },
-      take: limit * 4,
-    }),
-    prisma.company.findMany({
-      where: { name: { contains: normalized, mode: "insensitive" } },
-      select: { id: true, name: true, slug: true },
-      take: limit * 4,
-    }),
+    // C1 fix (Review 2 Fase 25): users e companies só são visíveis para super_admin.
+    // Antes, qualquer user autenticado conseguia buscar por PII cross-tenant.
+    isSuperAdmin
+      ? prisma.user.findMany({
+          where: {
+            OR: [
+              { name: { contains: normalized, mode: "insensitive" } },
+              { email: { contains: normalized, mode: "insensitive" } },
+            ],
+            isActive: true,
+          },
+          select: { id: true, name: true, email: true },
+          take: limit * 4,
+        })
+      : Promise.resolve([] as Array<{ id: string; name: string; email: string }>),
+    isSuperAdmin
+      ? prisma.company.findMany({
+          where: { name: { contains: normalized, mode: "insensitive" } },
+          select: { id: true, name: true, slug: true },
+          take: limit * 4,
+        })
+      : Promise.resolve([] as Array<{ id: string; name: string; slug: string }>),
     canViewLeads
       ? prisma.lead.findMany({
           where: {
