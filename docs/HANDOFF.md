@@ -53,6 +53,7 @@ CI rodando com minutes ilimitados (benefício repos públicos).
 - **Fase 12.2 — E2E verde:** `phase-12-2-deployed` aplicado. 17+ tests passam em 43s (admin/manager/viewer/cross-tenant/pipeline).
 - **Fase 23 — Reports/Analytics:** nova rota `/reports` (admin/manager only, `audit:view`). 4 cards: RevenueForecast (AreaChart stacked 6 meses × stage), LeadsBySource (BarChart horizontal com conversion rate qualified/converted), OwnerPerformance (table top 10 assignedTo), PipelineEvolution (LineChart 12 semanas — **dados estimados**, snapshot real em follow-up 23b). CSV export em cada card via `src/lib/reports/csv-export.ts`. Period filter 7/30/90/365d.
 - **Fase 24 — Filtros + Bulk Actions:** URL-based filters (`?status=...`, `?stage=...`, `?q=...`, `?from/to=...`) em /leads/contacts/opportunities. Shareable via share URL + restaurável via back navigation. Bulk checkbox selection + BulkActionBar sticky + AlertDialog confirm + server action `delete<Entity>Bulk(ids)` com RBAC `<módulo>:delete` + tenant scope `deleteMany where companyId`. Componentes compartilhados em `src/components/tables/{bulk-action-bar,filter-bar}.tsx`.
+- **Fase 25 — Busca Global UI:** expansão do CommandPalette com scoring server-side (`exact=100/startsWith=75/contains=50` + tiebreak pt-BR), deep-link (`/leads/{id}`, `/contacts/{id}`, `/opportunities/{id}`), recents localStorage TTL 30d com "Limpar", HighlightMatch component (`<mark class="bg-primary/15 …">`), novas entidades (products/tasks/workflows/campaigns/segments), RBAC gating server, a11y (`aria-live`/`aria-label`/kbd `aria-hidden`) e tratamento de erro inline. Helpers compartilhados em `src/lib/search/{normalize,scoring,recent}.ts`. 31 unit tests + 1 E2E spec novo.
 
 **Todas fases acima COMPLETAS + deployed em prod.** Frente 17 tenant scoping (77e2918) e todas as fases subsequentes mergeadas em main.
 **LEI ABSOLUTA #4** adicionada: toda nova implementação deve consultar `nexus-blueprint/` (design-system.md, patterns/, modules/) antes de criar componentes/features.
@@ -62,7 +63,7 @@ CI rodando com minutes ilimitados (benefício repos públicos).
 
 | Opção | Descrição | Esforço | Blocker |
 |---|---|---|---|
-| **A — Busca global UI** | `/api/search` existe, falta UI completa com resultados agrupados | M | — |
+| ~~**A — Busca global UI**~~ ✅ | Entregue na **Fase 25** (scoring + deep-link + recents + highlight + novas entidades) | — | — |
 | **B — Sentry real** | Reativar `@sentry/nextjs` 10.x + instrumentation.ts | S | secret `SENTRY_DSN` no Portainer |
 | **C — Email OAuth real (Fase 7b/7c)** | Gmail/Outlook send + tracking | M-L | secrets `GOOGLE_OAUTH_*` + `MS_OAUTH_*` |
 | **D — Fase 4 Quotes** | Modelo de cotações vinculadas a oportunidades | M | — |
@@ -74,9 +75,9 @@ CI rodando com minutes ilimitados (benefício repos públicos).
 | **J — Bulk edit** | Mudar status/stage de N items de uma vez | M | — |
 | **K — Dark mode audit** | Passar pente fino contraste dark mode em todas telas | S | — |
 
-Recomendação: **A** (busca global — user visibility) + **B** (Sentry — observability crítica) em paralelo.
+Recomendação pós-Fase 25: avançar para **G** (Filtros + Bulk em products/tasks/campaigns/segments/workflows) → **I** (Saved filters) → **J** (Bulk edit) → **D** (Quotes) → **E** (Custom Attributes) → **H** (Pipeline snapshots reais) → **F** (CSP nonce) → **K** (Dark mode audit). Bloqueadas: B/C aguardam secrets externos.
 
-**Já entregue (não listar):** Reports ✅ (23), Filtros URL + Bulk Delete ✅ (24), Mobile kanban ✅ (21), Empty states ✅ (20), Loading skeletons ✅ (22).
+**Já entregue (não listar):** Busca global ✅ (25), Reports ✅ (23), Filtros URL + Bulk Delete ✅ (24), Mobile kanban ✅ (21), Empty states ✅ (20), Loading skeletons ✅ (22).
 
 ---
 

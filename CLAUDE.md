@@ -88,6 +88,119 @@ inconsistência visual.
 projeto sem antes ver se o blueprint já tem o padrão definido. Isso acumula
 débito visual e faz cada CRM ficar "parecido-mas-diferente".
 
+### 5. Modo autônomo total — metodologia obrigatória de fase a fase
+
+**Sessões de desenvolvimento longo são autônomas. Não pedir aprovação,
+não esperar confirmação — seguir a metodologia abaixo do início ao fim
+do projeto, fase após fase, até concluir todas as opções actionable do
+HANDOFF.** O usuário só interrompe se quiser mudar rumo.
+
+#### 5.1. Ciclo obrigatório por fase
+
+```
+Brainstorm (skill superpowers:brainstorming)
+  ↓
+Spec v1 (writing-plans escreve spec primeiro)
+  ↓
+Review #1 da spec → checklist:
+  • não estou esquecendo nada?
+  • não estou repetindo trabalho já feito?
+  • respeita identidade visual + componentes existentes (LEI #4)?
+  • cobertura completa do escopo?
+  ↓
+Spec v2 (incorpora review #1)
+  ↓
+Review #2 da spec → pente fino mais profundo
+  ↓
+Spec v3 final (versão definitiva)
+  ↓
+Plan v1 (writing-plans em cima da spec v3) — TASKS BEM DETALHADAS
+  ↓
+Review #1 do plan → granularidade, segmentação, sem dúvidas
+  ↓
+Plan v2 (mais detalhado)
+  ↓
+Review #2 do plan → pente fino criterioso
+  ↓
+Plan v3 final
+  ↓
+Implementação (skill superpowers:executing-plans /
+  subagent-driven-development) — task a task
+  ↓
+Testes (mesma stack: vitest, Playwright)
+  ↓
+verification-before-completion (skill obrigatória)
+  ↓
+Atualizar docs (HANDOFF.md, specs/plans, blueprint se aplicável)
+  ↓
+Atualizar memory (.claude/.../memory)
+  ↓
+Commits (português, conventional)
+  ↓
+Deploy (push main → CI → Portainer rollout)
+  ↓
+Monitorar CI + smoke prod (`/api/health`, `/login`)
+  ↓
+PRÓXIMA FASE — sem pedir confirmação
+```
+
+**Detalhes não negociáveis:**
+
+- **Specs e plans em `docs/superpowers/specs/` e `docs/superpowers/plans/`**
+  com sufixos `-v1.md`, `-v2.md`, `-v3.md` (manter histórico das versões).
+- **Quanto mais tasks no plan, melhor.** Granularidade alta evita ambiguidade.
+- **UI/UX SEMPRE via `ui-ux-pro-max`** respeitando 100% identidade visual
+  existente (cores, sidebar, cards `border-border bg-card/50 rounded-xl`,
+  botões `bg-violet-600 hover:bg-violet-700`, Lucide icons NUNCA emoji,
+  stagger 0.08, fonte Inter, design-system `@nexusai360/design-system`).
+- **Todo texto visível ao usuário em PT-BR com acentos corretos.**
+- Após cada deploy: aplicar tag `phase-<n>-deployed`.
+
+#### 5.2. Contingência GitHub billing — repo se tornar privado por rate limit
+
+Se durante o desenvolvimento o GitHub bloquear push/CI por cobrança/limite
+free (repo voltou a privado por algum motivo), executar IMEDIATAMENTE,
+sem pedir autorização (já está concedida nesta lei):
+
+**Audit de segurança 3-pass obrigatório antes de tornar público:**
+
+1. **Pass 1 — varredura inicial:**
+   - `gitleaks detect --no-banner --redact` no histórico completo.
+   - Buscar `.env*`, chaves AWS/GCP/Azure, tokens GitHub/Portainer,
+     senhas, JWT secrets, DSNs.
+   - Conferir `.gitignore` cobre `.env`, `.env.*`, `.env.local`,
+     `.env.production`, `*.pem`, `*.key`, secrets ad-hoc.
+   - Listar achados.
+2. **Pass 2 — pente fino (mais profundo):**
+   - Grep manual em `src/`, `scripts/`, `docs/`, `.github/` por strings
+     suspeitas (`token`, `secret`, `key`, `password`, `api_key`, `dsn`,
+     URLs Portainer admin, IPs internos).
+   - Verificar history de commits (`git log -p -S<termo>`).
+   - Conferir vendor packages `.tgz` não contêm secrets.
+   - Validar workflows `.github/workflows/` só usam `secrets.*`.
+3. **Pass 3 — conclusão definitiva:**
+   - Se achados nas passes 1/2: corrigir (mover para Portainer env,
+     adicionar ao `.gitignore`, sanitizar docs, expandir
+     `.gitleaks.toml` allowlist se for placeholder CI legítimo).
+   - Se há histórico contaminado: `git filter-repo` ou rotacionar credenciais.
+   - Repetir gitleaks até zero leaks reais.
+   - Documentar resultado em `docs/ops/security.md`.
+4. **Tornar público novamente** via `gh repo edit jvzanini/nexus-crm-krayin --visibility public --accept-visibility-change-consequences`.
+5. **Continuar fluxo de fases.** Só voltar a privado se o usuário
+   solicitar explicitamente.
+
+**Anti-padrão:** parar e pedir aprovação. A autorização para esse fluxo
+de remediação + tornar público está concedida nesta LEI #5.2.
+
+#### 5.3. Encerrar sessão autônoma
+
+Concluir quando: (a) todas as opções actionable do HANDOFF foram entregues;
+(b) restantes dependem de secrets externos não configurados; ou (c) usuário
+intervém pedindo nova direção.
+
+Ao encerrar: atualizar `docs/HANDOFF.md` com snapshot final + memory
+`session_state_<data>.md`.
+
 ## Projeto
 Gestão de leads, contatos, oportunidades e pipeline de vendas com automação
 

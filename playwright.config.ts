@@ -23,7 +23,7 @@ export default defineConfig({
     },
     {
       name: "admin",
-      testMatch: /golden-paths\/(admin|cross-tenant|pipeline|reports|filters-bulk)\.spec\.ts/,
+      testMatch: /golden-paths\/(admin|cross-tenant|pipeline|reports|filters-bulk|global-search)\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         storageState: path.join(authDir, "admin.json"),
