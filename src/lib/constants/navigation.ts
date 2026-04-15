@@ -11,6 +11,7 @@ import {
   CheckSquare,
   Megaphone,
   Workflow,
+  BarChart3,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -37,6 +38,12 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
 
 // Itens restritos por role
 export const RESTRICTED_NAV_ITEMS: NavItem[] = [
+  {
+    label: "Relatórios",
+    href: "/reports",
+    icon: BarChart3,
+    allowedRoles: ["super_admin", "admin", "manager"],
+  },
   {
     label: "Usuários",
     href: "/users",
