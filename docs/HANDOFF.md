@@ -2,7 +2,9 @@
 
 > **Novo terminal / nova sessão:** este é o ponto de entrada único. Leia do início ao fim e você saberá o estado atual, como prosseguir, e quais decisões já foram tomadas. Só depois veja `CLAUDE.md` (regras) e `memory/MEMORY.md` (índice de memories).
 
-**Atualizado:** 2026-04-15 **manhã** (Fase 25 Busca Global + Fase 25.1 security C1/C4 + tenant tests fix — 464/464 Vitest verde, deployed).
+**Atualizado:** 2026-04-15 **tarde** (Fase 5 Custom Attributes completa — 29 commits, 676/676 Vitest verde, deployed main).
+
+> **Fase 5 — Custom Attributes (commits 05160c4..b400dfb):** JSONB custom por tenant em Lead/Contact/Opportunity. 8 tipos, 30 attrs/entity cap, 32KB/row cap, unique partial index shared via refcount, purge→drop→finalize chain BullMQ, RBAC `custom-attributes:view|manage`, feature flag `feature.custom_attributes` (OFF default), DSAR export/erase+logger respeitando `piiMasked`, settings UI + integração leads/contacts/opps + FilterBar extension + E2E spec (4 ativos + 3 skip). Testes 464→676 (+212). Docs em `docs/HANDOFF-FASE-5-VERIFICATION.md` + `docs/superpowers/{specs,plans}/2026-04-15-fase-5-custom-attributes-v3.md`.
 **Branch principal:** `main` (tudo mergeado, sem branches ativas).
 **URL de produção:** https://crm2.nexusai360.com ✅ operacional.
 **Repositório:** https://github.com/jvzanini/nexus-crm-krayin ⭐ **PÚBLICO**
