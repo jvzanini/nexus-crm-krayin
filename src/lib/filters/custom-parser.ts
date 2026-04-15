@@ -19,7 +19,7 @@ import {
   MAX_CONCURRENT_FILTERS,
   MAX_FILTER_VALUE_LENGTH,
   MAX_FILTER_VALUES,
-} from "../custom-attributes/limits";
+} from "../custom-attributes/limits.constants";
 import type { CustomOp } from "../custom-attributes/types";
 
 const VALID_OPS = [

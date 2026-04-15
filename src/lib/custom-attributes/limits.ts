@@ -12,35 +12,17 @@
 import { prisma } from "../prisma";
 import type { CustomAttributeEntity } from "../../generated/prisma/enums";
 
-export const MAX_ATTRS_PER_ENTITY = 30;
-export const MAX_CUSTOM_BYTES_PER_ROW = 32 * 1024;
-export const MAX_FILTER_VALUES = 50;
-export const MAX_FILTER_VALUE_LENGTH = 256;
-export const MAX_CONCURRENT_FILTERS = 5;
+export {
+  MAX_ATTRS_PER_ENTITY,
+  MAX_CUSTOM_BYTES_PER_ROW,
+  MAX_FILTER_VALUES,
+  MAX_FILTER_VALUE_LENGTH,
+  MAX_CONCURRENT_FILTERS,
+  RESERVED_KEYS,
+  type ReservedKey,
+} from "./limits.constants";
 
-/**
- * Keys reservadas (colisão com colunas reais ou risco semântico).
- */
-export const RESERVED_KEYS = [
-  "id",
-  "company_id",
-  "companyId",
-  "created_at",
-  "createdAt",
-  "updated_at",
-  "updatedAt",
-  "email",
-  "name",
-  "phone",
-  "status",
-  "stage",
-  "custom",
-  "__proto__",
-  "constructor",
-  "prototype",
-] as const;
-
-export type ReservedKey = (typeof RESERVED_KEYS)[number];
+import { MAX_ATTRS_PER_ENTITY, MAX_CUSTOM_BYTES_PER_ROW, RESERVED_KEYS } from "./limits.constants";
 
 /**
  * Asserção: payload `custom` (JSON-encoded) cabe em 32KB por row.
