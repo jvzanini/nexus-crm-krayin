@@ -395,7 +395,7 @@ curl -X POST ... -d '{"Mode":{"Replicated":{"Replicas":1}}}'
 - Docker + Docker Compose
 - npm (preferível ao pnpm — CI usa `npm ci`)
 - Acesso ao repo `github.com/jvzanini/nexus-crm-krayin`
-- (Opcional para prod) acesso Portainer `portainer.nexusai360.com`
+- (Opcional para prod) acesso Portainer `$PORTAINER_URL` (ver `.env.production`)
 
 ### 6.2. Setup local
 
@@ -469,7 +469,7 @@ Para UI/frontend: sempre `ui-ux-pro-max:ui-ux-pro-max`.
 
 ## 8. Infraestrutura
 
-- **Portainer:** `https://portainer.nexusai360.com`
+- **Portainer:** `$PORTAINER_URL` (ver `.env.production`)
 - **App produção:** `https://crm2.nexusai360.com`
 - **GHCR:** `ghcr.io/jvzanini/nexus-crm-krayin`
 - **Containers:** `nexus-crm-app`, `nexus-crm-worker`, `nexus-crm-db`, `nexus-crm-redis`

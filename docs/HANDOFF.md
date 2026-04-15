@@ -342,7 +342,7 @@ Validar cada PR isoladamente (build + login funcional + testes) antes de merge.
 ## 6. Infraestrutura
 
 - **Registry:** `ghcr.io/jvzanini/nexus-crm-krayin`.
-- **Portainer:** `https://painel.nexusai360.com` (stack: db, redis, app, worker).
+- **Portainer:** `$PORTAINER_URL` (ver `.env.production`) (stack: db, redis, app, worker).
 - **DB:** PostgreSQL 16 (`nexus-crm-krayin_db`).
 - **Cache/Queue:** Redis 7 (`nexus-crm-krayin_redis`).
 - **Domínio:** `crm2.nexusai360.com`.

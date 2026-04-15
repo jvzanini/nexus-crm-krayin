@@ -4,10 +4,22 @@
 useDefault = true
 
 [allowlist]
-description = "Docs, seeds e fixtures de teste — sem segredos reais"
+description = "Docs, seeds, fixtures e placeholders CI — sem segredos reais"
 paths = [
   '''docs/''',
   '''.+\.md$''',
   '''prisma/seed.*\.ts''',
   '''tests/e2e/fixtures/.*''',
+  '''\.github/workflows/.*\.ya?ml$''',
+]
+regexes = [
+  # Placeholders CI fixos — strings inline reconhecíveis como dummy/test
+  '''e2e-[a-z0-9-]+-(secret|pad|xxxx)''',
+  '''ci-placeholder-[a-z0-9-]+''',
+  '''dummy-secret-for-ci-[a-z0-9-]+''',
+  '''e2e-test-secret-[a-z0-9-]+''',
+  '''nexus-crm-2026-min-32-chars-[a-z0-9-]+''',
+  '''E2E-Test-Pass-2026!''',
+  # Chaves de criptografia placeholder (zero-filled) em CI env
+  '''0{32,}''',
 ]
