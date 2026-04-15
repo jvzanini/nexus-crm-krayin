@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useTransition, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useTransition, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -300,18 +300,24 @@ export function ProductsContent({
   );
 
   // Sincroniza URL + refaz listProducts quando filtros mudam (debounce em q).
+  const didMount = useRef(false);
   useEffect(() => {
     const effective: ProductsFilters = {
       ...filters,
       q: debouncedQ ? debouncedQ : undefined,
     };
+    loadProducts(effective);
+    if (!didMount.current) {
+      // Primeira render: não sujar history; URL já reflete initialFilters SSR.
+      didMount.current = true;
+      return;
+    }
     const qs = new URLSearchParams();
     if (effective.q) qs.set("q", effective.q);
     if (effective.active) qs.set("active", effective.active);
     if (effective.category) qs.set("category", effective.category);
     const s = qs.toString();
     router.replace(`${pathname}${s ? "?" + s : ""}`, { scroll: false });
-    loadProducts(effective);
     // Deps intencionais: usamos `debouncedQ` em vez de `filters.q` para aplicar
     // debounce de 300ms no input de busca; incluir `filters`/`loadProducts`
     // dispararia refetch imediato a cada tecla, anulando o debounce.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition, useMemo } from "react";
+import { useState, useEffect, useRef, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -149,14 +149,20 @@ export function CampaignsListContent({
   }, [debouncedQ]);
 
   // Recarrega + replace URL quando filters mudam
+  const didMount = useRef(false);
   useEffect(() => {
+    loadCampaigns(filters);
+    if (!didMount.current) {
+      // Primeira render: não sujar history; URL já reflete initialFilters SSR.
+      didMount.current = true;
+      return;
+    }
     const qs = new URLSearchParams();
     Object.entries(filters).forEach(([k, v]) => {
       if (v !== undefined && v !== "") qs.set(k, String(v));
     });
     const s = qs.toString();
     router.replace(`/marketing/campaigns${s ? "?" + s : ""}`);
-    loadCampaigns(filters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.status, filters.from, filters.to, filters.q]);
 

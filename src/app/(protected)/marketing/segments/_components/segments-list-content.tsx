@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -142,8 +142,15 @@ export function SegmentsListContent({ canManage, initialFilters = {} }: Segments
     setLoading(false);
   }
 
+  const didMount = useRef(false);
   useEffect(() => {
     loadSegments({ q: debouncedQ, from: filters.from, to: filters.to });
+    if (!didMount.current) {
+      // Primeira render: não sujar history com router.replace — a URL atual
+      // já reflete os initialFilters vindos do SSR (searchParams).
+      didMount.current = true;
+      return;
+    }
     const qs = new URLSearchParams();
     if (debouncedQ && debouncedQ.trim() !== "") qs.set("q", debouncedQ.trim());
     if (filters.from) qs.set("from", filters.from);

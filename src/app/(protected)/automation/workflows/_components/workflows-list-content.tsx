@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition, useMemo } from "react";
+import { useState, useEffect, useRef, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
@@ -222,14 +222,20 @@ export function WorkflowsListContent({
   }, [debouncedQ]);
 
   // Load + URL sync whenever filters change
+  const didMount = useRef(false);
   useEffect(() => {
+    loadWorkflows(filters);
+    if (!didMount.current) {
+      // Primeira render: não sujar history; URL já reflete initialFilters SSR.
+      didMount.current = true;
+      return;
+    }
     const qs = new URLSearchParams();
     if (filters.status) qs.set("status", filters.status);
     if (filters.trigger) qs.set("trigger", filters.trigger);
     if (filters.q) qs.set("q", filters.q);
     const s = qs.toString();
     router.replace(`/automation/workflows${s ? "?" + s : ""}`);
-    loadWorkflows(filters);
     setSelectedIds(new Set());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.status, filters.trigger, filters.q]);

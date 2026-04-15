@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition, useMemo } from "react";
+import { useState, useEffect, useRef, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -488,11 +488,18 @@ export function TasksContent({
   }
 
   // Sync URL + refetch sempre que filtros mudam (debouncedQ já incorporado).
+  const didMount = useRef(false);
   useEffect(() => {
     const next: TasksFilters = {
       ...filters,
       q: debouncedQ.trim() ? debouncedQ.trim() : undefined,
     };
+    load(next);
+    if (!didMount.current) {
+      // Primeira render: não sujar history; URL já reflete initialFilters SSR.
+      didMount.current = true;
+      return;
+    }
     const qs = new URLSearchParams();
     if (next.q) qs.set("q", next.q);
     if (next.status) qs.set("status", next.status);
@@ -500,7 +507,6 @@ export function TasksContent({
     if (next.dueWithinDays) qs.set("dueWithinDays", next.dueWithinDays);
     const s = qs.toString();
     router.replace(`/tasks${s ? "?" + s : ""}`);
-    load(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     debouncedQ,
