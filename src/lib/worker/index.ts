@@ -8,6 +8,10 @@ import { reenqueuePendingReminders } from "./boot";
 import { startActivityReminderWorker } from "./processors/activity-reminder";
 import { startAutomationWorker } from "./processors/automation-execute";
 import { startMarketingSendWorker } from "./processors/marketing-send";
+import { startCustomAttrCreateIndexWorker } from "./processors/custom-attr-create-index";
+import { startCustomAttrDropIndexWorker } from "./processors/custom-attr-drop-index";
+import { startCustomAttrPurgeValuesWorker } from "./processors/custom-attr-purge-values";
+import { startCustomAttrFinalizeDeleteWorker } from "./processors/custom-attr-finalize-delete";
 import { logger } from "@/lib/logger";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://redis:6379";
@@ -93,6 +97,15 @@ const automationWorker = startAutomationWorker();
 const marketingWorker = startMarketingSendWorker();
 
 // ============================================================
+// Workers: custom-attributes (T9.0 — stubs; lógica em T9/T10/T11/T11.5)
+// ============================================================
+
+const customAttrCreateIndexWorker = startCustomAttrCreateIndexWorker();
+const customAttrDropIndexWorker = startCustomAttrDropIndexWorker();
+const customAttrPurgeValuesWorker = startCustomAttrPurgeValuesWorker();
+const customAttrFinalizeDeleteWorker = startCustomAttrFinalizeDeleteWorker();
+
+// ============================================================
 // Boot: reenqueue lembretes pendentes
 // ============================================================
 
@@ -112,6 +125,10 @@ async function shutdown() {
     activityReminderWorker.close(),
     automationWorker.close(),
     marketingWorker.close(),
+    customAttrCreateIndexWorker.close(),
+    customAttrDropIndexWorker.close(),
+    customAttrPurgeValuesWorker.close(),
+    customAttrFinalizeDeleteWorker.close(),
   ]);
   await connection.quit();
   process.exit(0);
@@ -120,4 +137,19 @@ async function shutdown() {
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
 
-logger.info({ queues: ["email", "outbox", "activity-reminders", "automation-execute", "marketing-send"] }, "worker.startup.ready");
+logger.info(
+  {
+    queues: [
+      "email",
+      "outbox",
+      "activity-reminders",
+      "automation-execute",
+      "marketing-send",
+      "custom-attr-create-index",
+      "custom-attr-drop-index",
+      "custom-attr-purge-values",
+      "custom-attr-finalize-delete",
+    ],
+  },
+  "worker.startup.ready",
+);
