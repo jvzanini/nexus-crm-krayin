@@ -2,7 +2,7 @@
 
 > **Novo terminal / nova sessão:** este é o ponto de entrada único. Leia do início ao fim e você saberá o estado atual, como prosseguir, e quais decisões já foram tomadas. Só depois veja `CLAUDE.md` (regras) e `memory/MEMORY.md` (índice de memories).
 
-**Atualizado:** 2026-04-15 **madrugada** (sessão autônoma concluída — 10 fases novas, repo público, CI verde).
+**Atualizado:** 2026-04-15 **manhã** (Fase 25 Busca Global + Fase 25.1 security C1/C4 + tenant tests fix — 464/464 Vitest verde, deployed).
 **Branch principal:** `main` (tudo mergeado, sem branches ativas).
 **URL de produção:** https://crm2.nexusai360.com ✅ operacional.
 **Repositório:** https://github.com/jvzanini/nexus-crm-krayin ⭐ **PÚBLICO**
@@ -58,6 +58,15 @@ CI rodando com minutes ilimitados (benefício repos públicos).
 - **Fase 27 — Bulk Delete em Segments + Campaigns:** `deleteSegmentsBulkAction(ids)` filtra FK P2003 (segmentos em uso por campanhas ativas) retornando `{deletedCount, skippedInUse}`; `deleteCampaignsBulkAction(ids)` só permite status `draft|canceled|completed` (bloqueia running/sending/scheduled/paused) retornando `{deletedCount, skippedActive}`. UI replicou pattern Fase 26 em ambos.
 - **Fase 28 — Bulk Delete em Workflows + Tasks:** `deleteWorkflowsBulkAction(ids)` com RBAC `workflows:manage` + tenant (WorkflowExecution cascade via onDelete Cascade nativo); `deleteActivitiesBulk(ids)` com RBAC `activities:delete` + cancela reminders best-effort + deleta files storage best-effort + cascade nativa para ActivityFile/Reminder. UI em workflows-list + tasks-content. **Completa cobertura bulk delete em todos os 8 módulos listados** (leads/contacts/opps Fase 24 + products/segments/campaigns/workflows/tasks Fases 26-28).
 - **Fase 29 — Bulk Edit (Leads status + Opportunities stage):** `updateLeadsStatusBulk(ids, status)` (RBAC `leads:edit`, allowlist 5 statuses) e `updateOpportunitiesStageBulk(ids, stage)` (RBAC `opportunities:edit`, allowlist 6 stages). `BulkActionBar` estendido com prop `editActions?: BulkEditOption[]` (reutilizável). Dialog com select e Aplicar button em ambos. Limite 500 itens.
+
+**Fase 25 — Busca Global UI (bbbc259, deployed):** CommandPalette Ctrl+K expandido com scoring server-side (exact=100/startsWith=75/contains=50), deep-link para leads/contacts/opportunities/{id}, HighlightMatch (`<mark bg-primary/15>`), recent searches localStorage (TTL 30d, limite 5), novas entidades products/tasks/workflows/campaigns/segments, RBAC gating + tenant scope, 31 unit tests + E2E admin. Spec/plan v1→v2→v3 em `docs/superpowers/{specs,plans}/2026-04-15-fase-25-busca-global-ui-v*.md`.
+
+**Fase 25b — tenant tests fix (1e45dd1 no blueprint + próprio commit no CRM):** 9 testes tenant scoping estavam quebrados pre-Fase 25. Fix: mockUser precisa `platformRole: "admin"` pra passar `requirePermission`. 461/461 Vitest verde.
+
+**Fase 25.1 — security + bug fixes pós-Review 2 (2 commits deployed):**
+- **C1 PII leak (CRÍTICO):** users/companies cross-tenant findMany sem filtro → todo usuário autenticado via PII de outros tenants. Fix: gatear ambas queries por `isSuperAdmin`.
+- **C4 HighlightMatch offset bug:** `normalize()` encurtava strings NFD-decomposed; `text.slice(nIdx, ...)` desalinhava. Fix: `findMatches` itera no texto original com `normalizeFragment` (sem trim). Bonus: múltiplos matches agora destacados (era só primeiro).
+- **Débitos abertos (Fase 26):** C5 pg_trgm GIN indexes em campos de texto (seq scan aceito no MVP); C6 coverage gaps (ordering E2E, error 500 branch, aria-live snapshot). Registrado em `memory/project_phase_25_1_followups.md`.
 
 **Todas fases acima COMPLETAS + deployed em prod.** Frente 17 tenant scoping (77e2918) e todas as fases subsequentes mergeadas em main.
 **LEI ABSOLUTA #4** adicionada: toda nova implementação deve consultar `nexus-blueprint/` (design-system.md, patterns/, modules/) antes de criar componentes/features.
