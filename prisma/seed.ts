@@ -121,6 +121,20 @@ async function main() {
     },
   ];
 
+  // Feature flags — Fase 5 Custom Attributes (default OFF; habilitado por
+  // tenant via FeatureFlagOverride).
+  await prisma.featureFlag.upsert({
+    where: { key: "feature.custom_attributes" },
+    update: {},
+    create: {
+      key: "feature.custom_attributes",
+      enabled: false,
+      description:
+        "Custom attributes (Fase 5) — habilitar por tenant via override",
+    },
+  });
+  console.log("Feature flag feature.custom_attributes garantida (enabled=false)");
+
   for (const company of companies) {
     for (const p of demoProducts) {
       const product = await prisma.product.upsert({
