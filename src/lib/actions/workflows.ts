@@ -280,3 +280,30 @@ export async function deleteWorkflowAction(id: string): Promise<ActionResult> {
     return handleError(err, "Erro ao excluir workflow");
   }
 }
+
+export async function deleteWorkflowsBulkAction(
+  ids: string[],
+): Promise<ActionResult<{ deletedCount: number }>> {
+  try {
+    const user = await requirePermission("workflows:manage");
+    const companyId = await resolveActiveCompanyId(user.id);
+    if (!companyId) return { success: false, error: "Nenhuma empresa ativa encontrada" };
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return { success: false, error: "Nenhum workflow selecionado" };
+    }
+    if (ids.length > 500) {
+      return { success: false, error: "Limite de 500 itens por operação" };
+    }
+
+    // WorkflowExecution -> Workflow é onDelete Cascade; excluir é seguro.
+    const result = await prisma.workflow.deleteMany({
+      where: { id: { in: ids }, companyId },
+    });
+
+    revalidatePath("/automation/workflows");
+    return { success: true, data: { deletedCount: result.count } };
+  } catch (err) {
+    return handleError(err, "Erro ao excluir workflows em massa");
+  }
+}

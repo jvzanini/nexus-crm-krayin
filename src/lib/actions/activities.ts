@@ -566,6 +566,62 @@ export async function deleteActivity(id: string): Promise<ActionResult> {
   }
 }
 
+export async function deleteActivitiesBulk(
+  ids: string[],
+): Promise<ActionResult<{ deletedCount: number }>> {
+  try {
+    const user = await requirePermission("activities:delete");
+    const companyId = await resolveActiveCompanyId(user.id);
+    if (!companyId) return { success: false, error: "Nenhuma empresa ativa encontrada" };
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return { success: false, error: "Nenhuma atividade selecionada" };
+    }
+    if (ids.length > 500) {
+      return { success: false, error: "Limite de 500 itens por operação" };
+    }
+
+    // Cancelar reminders + deletar files best-effort, por atividade, para não
+    // deixar jobs órfãos ou arquivos abandonados no storage.
+    const activities = await prisma.activity.findMany({
+      where: { id: { in: ids }, companyId },
+      select: { id: true, reminderJobId: true },
+    });
+    const eligibleIds = activities.map((a) => a.id);
+
+    if (eligibleIds.length === 0) {
+      return { success: false, error: "Nenhuma atividade encontrada no tenant ativo" };
+    }
+
+    await Promise.all(
+      activities.map((a) => cancelReminder(a.reminderJobId).catch(() => undefined)),
+    );
+
+    const files = await prisma.activityFile.findMany({
+      where: { activityId: { in: eligibleIds } },
+      select: { storageKey: true },
+    });
+    const driver = getFileDriver();
+    await Promise.all(
+      files.map((f) =>
+        driver.delete(f.storageKey).catch((fileErr) => {
+          logger.warn({ err: fileErr, storageKey: f.storageKey }, "activities.deleteFile.bulk.warn");
+        }),
+      ),
+    );
+
+    // Cascade via FK remove activity_files/reminders.
+    const result = await prisma.activity.deleteMany({
+      where: { id: { in: eligibleIds }, companyId },
+    });
+
+    revalidatePath("/tasks");
+    return { success: true, data: { deletedCount: result.count } };
+  } catch (err) {
+    return handleError(err, "Erro ao excluir atividades em massa");
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Upload / Download de arquivos
 // ---------------------------------------------------------------------------

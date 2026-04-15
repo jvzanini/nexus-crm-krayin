@@ -46,10 +46,13 @@ import {
   completeActivity,
   cancelActivity,
   deleteActivity,
+  deleteActivitiesBulk,
   createActivity,
   updateActivity,
 } from "@/lib/actions/activities";
 import type { ActivityItem } from "@/lib/actions/activities";
+import { BulkActionBar } from "@/components/tables/bulk-action-bar";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // ---------------------------------------------------------------------------
 // Variants de animação (stagger 0.08 conforme padrão)
@@ -400,6 +403,41 @@ export function TasksContent({
   const [canceling, startCanceling] = useTransition();
   const [deleting, startDeleting] = useTransition();
 
+  // --- Bulk selection ---
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [bulkDeleting, startBulkDeleting] = useTransition();
+
+  function toggleRow(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleAllTasks() {
+    const rowIds = tasks.map((t) => t.id);
+    const allSelected = rowIds.length > 0 && rowIds.every((id) => selectedIds.has(id));
+    setSelectedIds(allSelected ? new Set() : new Set(rowIds));
+  }
+  function confirmBulkDelete() {
+    const ids = Array.from(selectedIds);
+    startBulkDeleting(async () => {
+      const result = await deleteActivitiesBulk(ids);
+      if (result.success && result.data) {
+        toast.success(
+          `${result.data.deletedCount} tarefa${result.data.deletedCount === 1 ? "" : "s"} excluída${result.data.deletedCount === 1 ? "" : "s"}`,
+        );
+        await load();
+        setSelectedIds(new Set());
+      } else {
+        toast.error(result.error ?? "Erro ao excluir tarefas");
+      }
+      setBulkDeleteDialogOpen(false);
+    });
+  }
+
   // ---------------------------------------------------------------------------
   // Carregar
   // ---------------------------------------------------------------------------
@@ -577,6 +615,17 @@ export function TasksContent({
         </div>
       </motion.div>
 
+      {/* Bulk action bar */}
+      {canDelete && (
+        <BulkActionBar
+          count={selectedIds.size}
+          onCancel={() => setSelectedIds(new Set())}
+          onDelete={() => setBulkDeleteDialogOpen(true)}
+          entityLabel="tarefa"
+          entityPlural="tarefas"
+        />
+      )}
+
       {/* Tabela */}
       <motion.div
         variants={itemVariants}
@@ -608,6 +657,22 @@ export function TasksContent({
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
+                {canDelete && (
+                  <TableHead className="text-muted-foreground w-10">
+                    <Checkbox
+                      checked={
+                        tasks.length > 0 &&
+                        tasks.every((t) => selectedIds.has(t.id))
+                      }
+                      indeterminate={
+                        selectedIds.size > 0 &&
+                        !tasks.every((t) => selectedIds.has(t.id))
+                      }
+                      onCheckedChange={toggleAllTasks}
+                      aria-label="Selecionar todas"
+                    />
+                  </TableHead>
+                )}
                 <TableHead className="text-muted-foreground">Título</TableHead>
                 <TableHead className="text-muted-foreground hidden md:table-cell">Vencimento</TableHead>
                 <TableHead className="text-muted-foreground text-center">Status</TableHead>
@@ -631,6 +696,15 @@ export function TasksContent({
                     }}
                     className="border-border hover:bg-accent/30 transition-colors duration-200"
                   >
+                    {canDelete && (
+                      <TableCell className="w-10">
+                        <Checkbox
+                          checked={selectedIds.has(task.id)}
+                          onCheckedChange={() => toggleRow(task.id)}
+                          aria-label={`Selecionar ${task.title}`}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell className="text-foreground font-medium">
                       {task.title}
                       {task.description && (
@@ -715,6 +789,41 @@ export function TasksContent({
       )}
 
       {/* AlertDialog — Excluir tarefa */}
+      <AlertDialog
+        open={bulkDeleteDialogOpen}
+        onOpenChange={setBulkDeleteDialogOpen}
+      >
+        <AlertDialogContent className="bg-card border border-border rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-foreground">
+              <AlertTriangle className="h-5 w-5 text-red-400" />
+              Excluir tarefas selecionadas
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Tem certeza que deseja excluir{" "}
+              <strong className="text-foreground">{selectedIds.size}</strong>{" "}
+              tarefa{selectedIds.size === 1 ? "" : "s"}? Lembretes e arquivos anexos serão removidos em cascata. Esta ação é irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={bulkDeleting}
+              className="border-border text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer transition-all duration-200"
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
+              disabled={bulkDeleting}
+              className="bg-red-600 text-white hover:bg-red-700 cursor-pointer transition-all duration-200"
+            >
+              {bulkDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Excluir {selectedIds.size}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="bg-card border border-border rounded-2xl">
           <AlertDialogHeader>

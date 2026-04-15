@@ -40,8 +40,11 @@ import {
   listWorkflowsAction,
   setWorkflowStatusAction,
   deleteWorkflowAction,
+  deleteWorkflowsBulkAction,
 } from "@/lib/actions/workflows";
 import type { WorkflowItem } from "@/lib/actions/workflows";
+import { BulkActionBar } from "@/components/tables/bulk-action-bar";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // ---------------------------------------------------------------------------
 // Variants de animação
@@ -129,6 +132,40 @@ export function WorkflowsListContent({ canManage }: WorkflowsListContentProps) {
   // --- Transitions ---
   const [toggling, startToggling] = useTransition();
   const [deleting, startDeleting] = useTransition();
+
+  // --- Bulk selection ---
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [bulkDeleting, startBulkDeleting] = useTransition();
+
+  function toggleRow(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleAll(rowIds: string[]) {
+    const allSelected = rowIds.length > 0 && rowIds.every((id) => selectedIds.has(id));
+    setSelectedIds(allSelected ? new Set() : new Set(rowIds));
+  }
+  function confirmBulkDelete() {
+    const ids = Array.from(selectedIds);
+    startBulkDeleting(async () => {
+      const result = await deleteWorkflowsBulkAction(ids);
+      if (result.success && result.data) {
+        toast.success(
+          `${result.data.deletedCount} workflow${result.data.deletedCount === 1 ? "" : "s"} excluído${result.data.deletedCount === 1 ? "" : "s"}`,
+        );
+        await loadWorkflows();
+        setSelectedIds(new Set());
+      } else {
+        toast.error(result.error ?? "Erro ao excluir workflows");
+      }
+      setBulkDeleteDialogOpen(false);
+    });
+  }
 
   // ---------------------------------------------------------------------------
   // Carregamento
@@ -235,6 +272,17 @@ export function WorkflowsListContent({ canManage }: WorkflowsListContentProps) {
         </PageHeader.Root>
       </motion.div>
 
+      {/* Bulk action bar */}
+      {canManage && (
+        <BulkActionBar
+          count={selectedIds.size}
+          onCancel={() => setSelectedIds(new Set())}
+          onDelete={() => setBulkDeleteDialogOpen(true)}
+          entityLabel="workflow"
+          entityPlural="workflows"
+        />
+      )}
+
       {/* Tabela */}
       <motion.div
         variants={itemVariants}
@@ -266,6 +314,24 @@ export function WorkflowsListContent({ canManage }: WorkflowsListContentProps) {
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
+                {canManage && (
+                  <TableHead className="text-muted-foreground w-10">
+                    <Checkbox
+                      checked={
+                        workflows.length > 0 &&
+                        workflows.every((w) => selectedIds.has(w.id))
+                      }
+                      indeterminate={
+                        selectedIds.size > 0 &&
+                        !workflows.every((w) => selectedIds.has(w.id))
+                      }
+                      onCheckedChange={() =>
+                        toggleAll(workflows.map((w) => w.id))
+                      }
+                      aria-label="Selecionar todos"
+                    />
+                  </TableHead>
+                )}
                 <TableHead className="text-muted-foreground">Nome</TableHead>
                 <TableHead className="text-muted-foreground">Disparo</TableHead>
                 <TableHead className="text-muted-foreground">Status</TableHead>
@@ -288,6 +354,15 @@ export function WorkflowsListContent({ canManage }: WorkflowsListContentProps) {
                   }}
                   className="border-border hover:bg-accent/30 transition-colors duration-200"
                 >
+                  {canManage && (
+                    <TableCell className="w-10">
+                      <Checkbox
+                        checked={selectedIds.has(workflow.id)}
+                        onCheckedChange={() => toggleRow(workflow.id)}
+                        aria-label={`Selecionar ${workflow.name}`}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell className="text-foreground font-medium">
                     <div>
                       <p>{workflow.name}</p>
@@ -359,6 +434,42 @@ export function WorkflowsListContent({ canManage }: WorkflowsListContentProps) {
           </Table>
         )}
       </motion.div>
+
+      {/* AlertDialog — Bulk delete */}
+      <AlertDialog
+        open={bulkDeleteDialogOpen}
+        onOpenChange={setBulkDeleteDialogOpen}
+      >
+        <AlertDialogContent className="bg-card border border-border rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-foreground">
+              <AlertTriangle className="h-5 w-5 text-red-400" />
+              Excluir workflows selecionados
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Tem certeza que deseja excluir{" "}
+              <strong className="text-foreground">{selectedIds.size}</strong>{" "}
+              workflow{selectedIds.size === 1 ? "" : "s"}? Histórico de execuções será removido em cascata. Esta ação é irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={bulkDeleting}
+              className="border-border text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer transition-all duration-200"
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
+              disabled={bulkDeleting}
+              className="bg-red-600 text-white hover:bg-red-700 cursor-pointer transition-all duration-200"
+            >
+              {bulkDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Excluir {selectedIds.size}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* AlertDialog — Excluir */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
