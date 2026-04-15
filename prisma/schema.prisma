@@ -104,15 +104,17 @@ model User {
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")
 
-  invitedBy            User?                   @relation("UserInvites", fields: [invitedById], references: [id])
-  invitees             User[]                  @relation("UserInvites")
+  invitedBy            User?                       @relation("UserInvites", fields: [invitedById], references: [id])
+  invitees             User[]                      @relation("UserInvites")
   memberships          UserCompanyMembership[]
   notifications        Notification[]
-  auditLogs            AuditLog[]              @relation("AuditActor")
+  auditLogs            AuditLog[]                  @relation("AuditActor")
   passwordResetTokens  PasswordResetToken[]
   emailChangeTokens    EmailChangeToken[]
   apiKeys              ApiKey[]
-  localeChangesApplied Company[]               @relation("CompanyLocaleChangedBy")
+  localeChangesApplied Company[]                   @relation("CompanyLocaleChangedBy")
+  dataTransferJobs     DataTransferJob[]
+  dataTransferPresets  DataTransferMappingPreset[]
 
   @@map("users")
 }
@@ -185,6 +187,7 @@ model Company {
   contacts            Contact[]
   opportunities       Opportunity[]
   customAttributes    CustomAttribute[]
+  dataTransferJobs    DataTransferJob[]
 
   @@map("companies")
 }
@@ -360,19 +363,19 @@ enum OpportunityStage {
 }
 
 model Lead {
-  id          String     @id @default(uuid()) @db.Uuid
-  companyId   String     @map("company_id") @db.Uuid
-  name        String
-  email       String?
-  phone       String?
-  company     String?
-  source      String?
-  status      LeadStatus @default(new)
-  notes       String?
-  assignedTo  String?    @map("assigned_to") @db.Uuid
-  custom      Json       @default("{}")
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
+  id         String     @id @default(uuid()) @db.Uuid
+  companyId  String     @map("company_id") @db.Uuid
+  name       String
+  email      String?
+  phone      String?
+  company    String?
+  source     String?
+  status     LeadStatus @default(new)
+  notes      String?
+  assignedTo String?    @map("assigned_to") @db.Uuid
+  custom     Json       @default("{}")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
 
   consentMarketing       Boolean   @default(false) @map("consent_marketing")
   consentMarketingAt     DateTime? @map("consent_marketing_at")
@@ -381,11 +384,14 @@ model Lead {
   consentTrackingAt      DateTime? @map("consent_tracking_at")
   consentTrackingIpMask  String?   @map("consent_tracking_ip_mask")
 
+  importJobId String? @map("import_job_id") @db.Uuid
+
   companyRef Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
 
   @@index([status, createdAt(sort: Desc)], name: "idx_lead_status_created")
   @@index([assignedTo], name: "idx_lead_assigned")
   @@index([companyId, createdAt(sort: Desc)], name: "idx_lead_company_created")
+  @@index([companyId, importJobId], name: "idx_lead_import_job")
   @@map("leads")
 }
 
@@ -411,12 +417,15 @@ model Contact {
   consentTrackingAt      DateTime? @map("consent_tracking_at")
   consentTrackingIpMask  String?   @map("consent_tracking_ip_mask")
 
+  importJobId String? @map("import_job_id") @db.Uuid
+
   opportunities Opportunity[]
   companyRef    Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
 
   @@unique([companyId, email], name: "uq_contact_email_per_company")
   @@index([email], name: "idx_contact_email")
   @@index([companyId, createdAt(sort: Desc)], name: "idx_contact_company_created")
+  @@index([companyId, importJobId], name: "idx_contact_import_job")
   @@map("contacts")
 }
 
@@ -436,12 +445,15 @@ model Opportunity {
   createdAt   DateTime         @default(now()) @map("created_at")
   updatedAt   DateTime         @updatedAt @map("updated_at")
 
+  importJobId String? @map("import_job_id") @db.Uuid
+
   contact    Contact? @relation(fields: [contactId], references: [id], onDelete: Restrict)
   companyRef Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
 
   @@index([stage, createdAt(sort: Desc)], name: "idx_opp_stage_created")
   @@index([assignedTo], name: "idx_opp_assigned")
   @@index([companyId, createdAt(sort: Desc)], name: "idx_opp_company_created")
+  @@index([companyId, importJobId], name: "idx_opportunity_import_job")
   @@map("opportunities")
 }
 
@@ -514,12 +526,15 @@ model Product {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
+  importJobId String? @map("import_job_id") @db.Uuid
+
   company Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
   prices  ProductPrice[]
 
   @@unique([companyId, sku], name: "uq_product_sku_per_company")
   @@index([companyId, active, updatedAt(sort: Desc)], name: "idx_product_active_recent")
   @@index([companyId, category], name: "idx_product_company_category")
+  @@index([companyId, importJobId], name: "idx_product_import_job")
   @@map("products")
 }
 
@@ -563,38 +578,38 @@ enum ActivitySubjectType {
 }
 
 model Activity {
-  id           String              @id @default(uuid()) @db.Uuid
-  companyId    String              @map("company_id") @db.Uuid
-  type         ActivityType
-  status       ActivityStatus      @default(pending)
+  id        String         @id @default(uuid()) @db.Uuid
+  companyId String         @map("company_id") @db.Uuid
+  type      ActivityType
+  status    ActivityStatus @default(pending)
 
-  subjectType  ActivitySubjectType @map("subject_type")
-  subjectId    String              @map("subject_id") @db.Uuid
+  subjectType ActivitySubjectType @map("subject_type")
+  subjectId   String              @map("subject_id") @db.Uuid
 
-  title        String
-  description  String?
+  title       String
+  description String?
 
   // Call/Meeting/Task
-  scheduledAt  DateTime?           @map("scheduled_at")  // UTC
-  timezone     String?             @db.VarChar(64)        // IANA (meeting only)
-  durationMin  Int?                @map("duration_min")
-  location     String?             // url ou endereço (meeting)
+  scheduledAt DateTime? @map("scheduled_at") // UTC
+  timezone    String?   @db.VarChar(64) // IANA (meeting only)
+  durationMin Int?      @map("duration_min")
+  location    String? // url ou endereço (meeting)
 
   // Task
-  dueAt        DateTime?           @map("due_at")
-  completedAt  DateTime?           @map("completed_at")
+  dueAt       DateTime? @map("due_at")
+  completedAt DateTime? @map("completed_at")
 
   // Reminder
-  reminderAt    DateTime?           @map("reminder_at")    // UTC
-  reminderJobId String?             @map("reminder_job_id") // BullMQ
+  reminderAt    DateTime? @map("reminder_at") // UTC
+  reminderJobId String?   @map("reminder_job_id") // BullMQ
 
   // Common
-  assignedTo   String?             @map("assigned_to") @db.Uuid
-  createdBy    String              @map("created_by") @db.Uuid
-  createdAt    DateTime            @default(now()) @map("created_at")
-  updatedAt    DateTime            @updatedAt @map("updated_at")
+  assignedTo String?  @map("assigned_to") @db.Uuid
+  createdBy  String   @map("created_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
-  files        ActivityFile[]
+  files         ActivityFile[]
   emailMessages EmailMessage[]
 
   @@index([companyId, subjectType, subjectId, scheduledAt(sort: Desc)], name: "idx_activity_timeline")
@@ -634,30 +649,30 @@ enum MailboxProvider {
 // ============================================================
 
 model Mailbox {
-  id                 String          @id @default(uuid()) @db.Uuid
-  companyId          String          @map("company_id") @db.Uuid
-  userId             String          @map("user_id") @db.Uuid
-  provider           MailboxProvider
-  emailAddress       String          @map("email_address")
-  displayName        String?         @map("display_name")
-  isPrimary          Boolean         @default(false) @map("is_primary")
-  isActive           Boolean         @default(true) @map("is_active")
+  id           String          @id @default(uuid()) @db.Uuid
+  companyId    String          @map("company_id") @db.Uuid
+  userId       String          @map("user_id") @db.Uuid
+  provider     MailboxProvider
+  emailAddress String          @map("email_address")
+  displayName  String?         @map("display_name")
+  isPrimary    Boolean         @default(false) @map("is_primary")
+  isActive     Boolean         @default(true) @map("is_active")
 
   // OAuth (gmail/outlook)
-  accessTokenEnc     String?         @map("access_token_enc")
-  accessTokenExpAt   DateTime?       @map("access_token_exp_at")
-  refreshTokenEnc    String?         @map("refresh_token_enc")
+  accessTokenEnc   String?   @map("access_token_enc")
+  accessTokenExpAt DateTime? @map("access_token_exp_at")
+  refreshTokenEnc  String?   @map("refresh_token_enc")
 
   // IMAP/SMTP fallback
-  imapHost           String?         @map("imap_host")
-  imapPort           Int?            @map("imap_port")
-  smtpHost           String?         @map("smtp_host")
-  smtpPort           Int?            @map("smtp_port")
-  authUsername       String?         @map("auth_username")
-  authPasswordEnc    String?         @map("auth_password_enc")
+  imapHost        String? @map("imap_host")
+  imapPort        Int?    @map("imap_port")
+  smtpHost        String? @map("smtp_host")
+  smtpPort        Int?    @map("smtp_port")
+  authUsername    String? @map("auth_username")
+  authPasswordEnc String? @map("auth_password_enc")
 
-  createdAt          DateTime        @default(now()) @map("created_at")
-  updatedAt          DateTime        @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   messages EmailMessage[]
 
@@ -667,37 +682,37 @@ model Mailbox {
 }
 
 model EmailMessage {
-  id              String   @id @default(uuid()) @db.Uuid
-  companyId       String   @map("company_id") @db.Uuid
-  mailboxId       String   @map("mailbox_id") @db.Uuid
+  id        String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  mailboxId String @map("mailbox_id") @db.Uuid
 
   // threading
-  messageId       String   @map("message_id")
-  inReplyTo       String?  @map("in_reply_to")
-  threadKey       String?  @map("thread_key")
+  messageId String  @map("message_id")
+  inReplyTo String? @map("in_reply_to")
+  threadKey String? @map("thread_key")
 
   // subject refs (timeline)
-  subjectType     ActivitySubjectType? @map("subject_type")
-  subjectId       String?  @map("subject_id") @db.Uuid
-  activityId      String?  @map("activity_id") @db.Uuid
+  subjectType ActivitySubjectType? @map("subject_type")
+  subjectId   String?              @map("subject_id") @db.Uuid
+  activityId  String?              @map("activity_id") @db.Uuid
 
   // content
-  fromAddress     String   @map("from_address")
-  toAddresses     String[] @map("to_addresses")
-  ccAddresses     String[] @map("cc_addresses")
-  bccAddresses    String[] @map("bcc_addresses")
-  subject         String   @db.VarChar(500)
-  bodyText        String?  @map("body_text")
-  bodyHtml        String?  @map("body_html") @db.Text
+  fromAddress  String   @map("from_address")
+  toAddresses  String[] @map("to_addresses")
+  ccAddresses  String[] @map("cc_addresses")
+  bccAddresses String[] @map("bcc_addresses")
+  subject      String   @db.VarChar(500)
+  bodyText     String?  @map("body_text")
+  bodyHtml     String?  @map("body_html") @db.Text
 
   // tracking
-  trackingEnabled Boolean  @default(false) @map("tracking_enabled")
+  trackingEnabled Boolean   @default(false) @map("tracking_enabled")
   openedAt        DateTime? @map("opened_at")
   clickedAt       DateTime? @map("clicked_at")
 
-  sentAt          DateTime? @map("sent_at")
-  receivedAt      DateTime? @map("received_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
+  sentAt     DateTime? @map("sent_at")
+  receivedAt DateTime? @map("received_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
 
   mailbox  Mailbox   @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
   activity Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
@@ -908,4 +923,77 @@ model CustomAttributeUniqueRef {
 
   @@unique([entity, key])
   @@map("custom_attribute_unique_refs")
+}
+
+// ============================================================
+// FASE 10 — DATA TRANSFER (import/export CSV/XLSX)
+// ============================================================
+
+enum DataTransferDirection {
+  import
+  export
+}
+
+enum DataTransferEntity {
+  lead
+  contact
+  opportunity
+  product
+}
+
+enum DataTransferFormat {
+  csv
+  xlsx
+}
+
+enum DataTransferStatus {
+  pending
+  running
+  success
+  failed
+  rolled_back
+}
+
+model DataTransferJob {
+  id                  String                @id @default(uuid()) @db.Uuid
+  companyId           String                @map("company_id") @db.Uuid
+  userId              String                @map("user_id") @db.Uuid
+  direction           DataTransferDirection
+  entity              DataTransferEntity
+  format              DataTransferFormat
+  status              DataTransferStatus    @default(pending)
+  quarantineId        String?               @map("quarantine_id") @db.Uuid
+  fileHash            String?               @map("file_hash") @db.VarChar(64)
+  filename            String?               @db.VarChar(255)
+  sizeBytes           BigInt?               @map("size_bytes")
+  rowCount            Int                   @default(0) @map("row_count")
+  errorCount          Int                   @default(0) @map("error_count")
+  errorReportKey      String?               @map("error_report_key")
+  customAttrsSnapshot Json?                 @map("custom_attrs_snapshot")
+  progress            Json                  @default("{}")
+  errorMessage        String?               @map("error_message")
+  startedAt           DateTime?             @map("started_at")
+  finishedAt          DateTime?             @map("finished_at")
+  durationMs          Int?                  @map("duration_ms")
+  createdAt           DateTime              @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, createdAt(sort: Desc)], map: "idx_dtj_company_recent")
+  @@index([status, startedAt], map: "idx_dtj_queue")
+  @@index([companyId, entity, fileHash, createdAt(sort: Desc)], map: "idx_dtj_dedupe")
+  @@map("data_transfer_jobs")
+}
+
+model DataTransferMappingPreset {
+  userId    String             @map("user_id") @db.Uuid
+  entity    DataTransferEntity
+  mapping   Json
+  updatedAt DateTime           @default(now()) @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, entity])
+  @@map("data_transfer_mapping_presets")
 }
