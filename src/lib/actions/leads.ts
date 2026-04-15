@@ -221,6 +221,83 @@ export async function updateLeadsStatusBulk(
   return { success: true, data: { updatedCount: r.count } };
 }
 
+export async function assignLeadsBulk(
+  ids: string[],
+  assigneeId: string | null,
+): Promise<ActionResult<{ updatedCount: number }>> {
+  try {
+    await requirePermission("leads:edit");
+  } catch (err) {
+    if (err instanceof PermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
+  }
+
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return { success: false, error: "Nenhum id fornecido" };
+  }
+  if (ids.length > 500) {
+    return { success: false, error: "Limite de 500 itens por operação" };
+  }
+
+  if (assigneeId) {
+    const member = await prisma.userCompanyMembership.findFirst({
+      where: { userId: assigneeId, companyId, isActive: true },
+      select: { userId: true },
+    });
+    if (!member) {
+      return { success: false, error: "Usuário não é membro ativo da empresa" };
+    }
+  }
+
+  const r = await prisma.lead.updateMany({
+    where: { id: { in: ids }, companyId },
+    data: { assignedTo: assigneeId },
+  });
+
+  revalidatePath("/leads");
+  return { success: true, data: { updatedCount: r.count } };
+}
+
+export async function getCompanyAssignees(): Promise<
+  ActionResult<{ id: string; name: string; email: string }[]>
+> {
+  try {
+    await requirePermission("leads:view");
+  } catch (err) {
+    if (err instanceof PermissionDeniedError) {
+      return { success: false, error: "Sem permissão" };
+    }
+    throw err;
+  }
+
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
+
+  const memberships = await prisma.userCompanyMembership.findMany({
+    where: { companyId, isActive: true },
+    select: { user: { select: { id: true, name: true, email: true } } },
+    orderBy: { user: { name: "asc" } },
+  });
+
+  return {
+    success: true,
+    data: memberships.map((m) => m.user),
+  };
+}
+
 export async function createLead(data: {
   name: string;
   email?: string | null;
