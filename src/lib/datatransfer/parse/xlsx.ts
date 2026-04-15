@@ -82,7 +82,7 @@ export async function parseXlsx(
   let rowCount = 0;
 
   const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(buf);
+  await wb.xlsx.load(buf as unknown as ArrayBuffer);
   const ws = wb.worksheets[0];
   if (!ws) throw new Error("XLSX vazio — sem worksheet");
 

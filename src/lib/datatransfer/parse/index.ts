@@ -62,7 +62,7 @@ export async function parseFile(
   if (ext === "csv") {
     // CSV não tem magic bytes confiáveis — file-type retorna null para texto.
     // Se file-type detectou algo que NÃO seja texto genérico, reject.
-    if (detected && !CSV_MIMES.has(detected.mime) && detected.mime !== "application/octet-stream") {
+    if (detected && !CSV_MIMES.has(detected.mime) && (detected.mime as string) !== "application/octet-stream") {
       throw new Error(
         `MIME_MISMATCH: extensão csv com mime real ${detected.mime}`,
       );

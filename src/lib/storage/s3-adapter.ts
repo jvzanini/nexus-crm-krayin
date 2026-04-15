@@ -82,15 +82,19 @@ export class S3StorageAdapter implements StorageAdapter {
   async deletePrefix(prefix: string): Promise<void> {
     let token: string | undefined = undefined;
     do {
-      const list: Awaited<ReturnType<S3Client["send"]>> = await this.client.send(
+      const list = (await this.client.send(
         new ListObjectsV2Command({
           Bucket: this.bucket,
           Prefix: prefix,
           ContinuationToken: token,
           MaxKeys: 1000,
         }),
-      );
-      const contents = (list as { Contents?: { Key?: string }[] }).Contents ?? [];
+      )) as unknown as {
+        Contents?: { Key?: string }[];
+        IsTruncated?: boolean;
+        NextContinuationToken?: string;
+      };
+      const contents = list.Contents ?? [];
       if (contents.length > 0) {
         await this.client.send(
           new DeleteObjectsCommand({
@@ -104,10 +108,7 @@ export class S3StorageAdapter implements StorageAdapter {
           }),
         );
       }
-      const truncated = (list as { IsTruncated?: boolean }).IsTruncated;
-      token = truncated
-        ? (list as { NextContinuationToken?: string }).NextContinuationToken
-        : undefined;
+      token = list.IsTruncated ? list.NextContinuationToken : undefined;
     } while (token);
   }
 

@@ -45,10 +45,10 @@ export async function parseCsv(
         resolve(v);
       }
     };
-    const doReject = (e: Error) => {
+    const doReject = (e: unknown) => {
       if (!settled) {
         settled = true;
-        reject(e);
+        reject(e instanceof Error ? e : new Error(String(e)));
       }
     };
     const timer = setTimeout(() => {
