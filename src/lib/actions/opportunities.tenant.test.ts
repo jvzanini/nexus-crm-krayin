@@ -35,6 +35,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   (getCurrentUser as ReturnType<typeof vi.fn>).mockResolvedValue({
     id: "user-1",
+    platformRole: "admin",
     isSuperAdmin: false,
   });
   (prisma.userCompanyMembership.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({

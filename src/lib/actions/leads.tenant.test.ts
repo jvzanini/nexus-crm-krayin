@@ -53,6 +53,7 @@ const mockUser = {
   id: "user-1",
   email: "u@x.com",
   name: "User",
+  platformRole: "admin",
   isSuperAdmin: false,
 } as any;
 
