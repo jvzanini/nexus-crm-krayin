@@ -49,6 +49,8 @@ export const PERMISSIONS = [
   "marketing:manage",
   "marketing:send",
   "dsar:execute",
+  "custom-attributes:view",
+  "custom-attributes:manage",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -104,6 +106,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "marketing:manage",
     "marketing:send",
     "dsar:execute",
+    "custom-attributes:view",
+    "custom-attributes:manage",
   ],
 
   manager: [
@@ -124,6 +128,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "workflows:manage",
     "marketing:view",
     "marketing:send",
+    "custom-attributes:view",
   ],
 
   seller: [
@@ -158,6 +163,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "email:view",
     "workflows:view",
     "marketing:view",
+    "custom-attributes:view",
   ],
 };
 
