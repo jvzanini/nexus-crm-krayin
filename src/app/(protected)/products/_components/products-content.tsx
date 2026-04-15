@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useTransition, useRef } from "react";
+import { useState, useEffect, useTransition, useMemo } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Table,
@@ -63,7 +64,13 @@ import {
   currencyLabel,
 } from "@/lib/currency/allowlist";
 import { BulkActionBar } from "@/components/tables/bulk-action-bar";
+import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  ProductsFiltersSchema,
+  type ProductsFilters,
+} from "@/lib/actions/products-schemas";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -81,6 +88,8 @@ interface ProductsContentProps {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  initialFilters?: Record<string, string | undefined>;
+  categoryOptions?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -103,18 +112,6 @@ const itemVariants = {
     transition: { duration: 0.3, ease: "easeOut" as const },
   },
 };
-
-// ---------------------------------------------------------------------------
-// Status filter options
-// ---------------------------------------------------------------------------
-
-const STATUS_FILTERS = [
-  { value: "all", label: "Todos" },
-  { value: "active", label: "Ativos" },
-  { value: "archived", label: "Arquivados" },
-] as const;
-
-type StatusFilter = (typeof STATUS_FILTERS)[number]["value"];
 
 // ---------------------------------------------------------------------------
 // Skeleton
@@ -206,19 +203,22 @@ export function ProductsContent({
   canCreate,
   canEdit,
   canDelete,
+  initialFilters = {},
+  categoryOptions = [],
 }: ProductsContentProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+
   // --- Estado da lista ---
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // --- Filtros ---
-  const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-
-  // --- Debounce do search ---
-  const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  // --- Filtros URL (ProductsFilters) ---
+  const [filters, setFilters] = useState<ProductsFilters>(() => {
+    const parsed = ProductsFiltersSchema.safeParse(initialFilters);
+    return parsed.success ? parsed.data : {};
+  });
+  const debouncedQ = useDebouncedValue(filters.q ?? "", 300);
 
   // --- Dialogs ---
   const [createOpen, setCreateOpen] = useState(false);
@@ -280,9 +280,14 @@ export function ProductsContent({
   // Carregamento
   // ---------------------------------------------------------------------------
 
-  async function loadProducts() {
+  async function loadProducts(f: ProductsFilters = filters) {
     setLoading(true);
-    const result = await listProducts();
+    // Passa o shape URL direto — `listProducts` valida via Zod server-side.
+    const payload: Record<string, string> = {};
+    if (f.q) payload.q = f.q;
+    if (f.active) payload.active = f.active;
+    if (f.category) payload.category = f.category;
+    const result = await listProducts(payload);
     if (result.success && result.data) {
       setProducts(result.data);
     } else {
@@ -291,46 +296,90 @@ export function ProductsContent({
     setLoading(false);
   }
 
+  // Sincroniza URL + refaz listProducts quando filtros mudam (debounce em q).
   useEffect(() => {
-    loadProducts();
-  }, []);
-
-  // ---------------------------------------------------------------------------
-  // Debounce do search
-  // ---------------------------------------------------------------------------
-
-  useEffect(() => {
-    if (searchRef.current) clearTimeout(searchRef.current);
-    searchRef.current = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 300);
-    return () => {
-      if (searchRef.current) clearTimeout(searchRef.current);
+    const effective: ProductsFilters = {
+      ...filters,
+      q: debouncedQ ? debouncedQ : undefined,
     };
-  }, [search]);
+    const qs = new URLSearchParams();
+    if (effective.q) qs.set("q", effective.q);
+    if (effective.active) qs.set("active", effective.active);
+    if (effective.category) qs.set("category", effective.category);
+    const s = qs.toString();
+    router.replace(`${pathname}${s ? "?" + s : ""}`, { scroll: false });
+    loadProducts(effective);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQ, filters.active, filters.category]);
 
   // ---------------------------------------------------------------------------
-  // Filtragem client-side
+  // Filtros derivados
   // ---------------------------------------------------------------------------
 
-  const categories = Array.from(
-    new Set(products.map((p) => p.category).filter(Boolean))
-  ) as string[];
+  const categories = categoryOptions;
 
-  const filtered = products.filter((p) => {
-    if (statusFilter === "active" && !p.active) return false;
-    if (statusFilter === "archived" && p.active) return false;
-    if (categoryFilter !== "all" && p.category !== categoryFilter) return false;
-    if (debouncedSearch) {
-      const q = debouncedSearch.toLowerCase();
-      if (
-        !p.name.toLowerCase().includes(q) &&
-        !p.sku.toLowerCase().includes(q)
-      )
-        return false;
-    }
-    return true;
-  });
+  // Tudo que voltar do servidor já vem filtrado; exposto como `filtered`
+  // para minimizar a quantidade de alterações no JSX abaixo.
+  const filtered = products;
+
+  const hasActiveFilters = useMemo(
+    () => Boolean(filters.q || filters.active || filters.category),
+    [filters.q, filters.active, filters.category],
+  );
+
+  function updateFilter(key: string, value: string) {
+    setFilters((prev) => {
+      const next: ProductsFilters = { ...prev };
+      if (key === "q") {
+        next.q = value.trim() === "" ? undefined : value;
+      } else if (key === "active") {
+        next.active =
+          value === "active" || value === "inactive" ? value : undefined;
+      } else if (key === "category") {
+        next.category = value === "" ? undefined : value;
+      }
+      return next;
+    });
+    setSelectedIds(new Set());
+  }
+
+  function clearFilters() {
+    setFilters({});
+    setSelectedIds(new Set());
+  }
+
+  const filterConfigs: FilterConfig[] = [
+    {
+      type: "input",
+      key: "q",
+      label: "Buscar",
+      value: filters.q ?? "",
+      placeholder: "Buscar nome ou SKU...",
+    },
+    {
+      type: "select",
+      key: "active",
+      label: "Status",
+      value: filters.active ?? "",
+      placeholder: "Todos",
+      options: [
+        { value: "", label: "Todos" },
+        { value: "active", label: "Ativos" },
+        { value: "inactive", label: "Inativos" },
+      ],
+    },
+    {
+      type: "select",
+      key: "category",
+      label: "Categoria",
+      value: filters.category ?? "",
+      placeholder: "Todas",
+      options: [
+        { value: "", label: "Todas" },
+        ...categories.map((c) => ({ value: c, label: c })),
+      ],
+    },
+  ];
 
   // ---------------------------------------------------------------------------
   // Helpers de dialog
@@ -778,47 +827,13 @@ export function ProductsContent({
       </motion.div>
 
       {/* Filtros */}
-      <motion.div variants={itemVariants} className="space-y-3">
-        {/* Search + categoria */}
-        <div className="flex gap-2 flex-wrap">
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nome ou SKU..."
-            className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground max-w-xs"
-          />
-          {categories.length > 0 && (
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="flex h-9 rounded-md border bg-muted/50 border-border px-3 py-1 text-sm text-foreground shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="all">Todas as categorias</option>
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-
-        {/* Pills de status */}
-        <div className="flex gap-2 flex-wrap">
-          {STATUS_FILTERS.map((s) => (
-            <button
-              key={s.value}
-              onClick={() => setStatusFilter(s.value)}
-              className={`px-3 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${
-                statusFilter === s.value
-                  ? "bg-violet-500/10 text-violet-400 border-violet-500/30"
-                  : "border-border text-muted-foreground hover:border-muted-foreground/30"
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+      <motion.div variants={itemVariants}>
+        <FilterBar
+          filters={filterConfigs}
+          onChange={updateFilter}
+          onClear={clearFilters}
+          hasActive={hasActiveFilters}
+        />
       </motion.div>
 
       {/* Bulk action bar */}
@@ -842,23 +857,43 @@ export function ProductsContent({
             <TableSkeleton />
           </div>
         ) : filtered.length === 0 ? (
-          <EmptyState.Root>
-            <EmptyState.Icon icon={Package} color="blue" />
-            <EmptyState.Title>Nenhum produto cadastrado</EmptyState.Title>
-            <EmptyState.Description>
-              Adicione produtos ao seu catálogo para associar a oportunidades.
-            </EmptyState.Description>
-            {canCreate && (
+          hasActiveFilters ? (
+            <EmptyState.Root>
+              <EmptyState.Icon icon={Package} color="blue" />
+              <EmptyState.Title>
+                Nenhum resultado com os filtros aplicados
+              </EmptyState.Title>
+              <EmptyState.Description>
+                Ajuste ou limpe os filtros para ver mais produtos.
+              </EmptyState.Description>
               <EmptyState.Action>
                 <Button
-                  onClick={openCreate}
+                  onClick={clearFilters}
                   className="bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
                 >
-                  Novo produto
+                  Limpar filtros
                 </Button>
               </EmptyState.Action>
-            )}
-          </EmptyState.Root>
+            </EmptyState.Root>
+          ) : (
+            <EmptyState.Root>
+              <EmptyState.Icon icon={Package} color="blue" />
+              <EmptyState.Title>Nenhum produto cadastrado</EmptyState.Title>
+              <EmptyState.Description>
+                Adicione produtos ao seu catálogo para associar a oportunidades.
+              </EmptyState.Description>
+              {canCreate && (
+                <EmptyState.Action>
+                  <Button
+                    onClick={openCreate}
+                    className="bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
+                  >
+                    Novo produto
+                  </Button>
+                </EmptyState.Action>
+              )}
+            </EmptyState.Root>
+          )
         ) : (
           <Table>
             <TableHeader>

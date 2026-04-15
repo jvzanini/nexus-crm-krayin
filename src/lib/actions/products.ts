@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { requirePermission, PermissionDeniedError } from "@/lib/rbac";
 import { isSupportedCurrency } from "@/lib/currency/allowlist";
 import { logger } from "@/lib/logger";
+import { ProductsFiltersSchema } from "./products-schemas";
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -164,27 +165,56 @@ const updateProductSchema = z.object({
 // Queries
 // ---------------------------------------------------------------------------
 
-export async function listProducts(filter?: {
-  active?: boolean;
-  q?: string;
-  category?: string;
-}): Promise<ActionResult<ProductItem[]>> {
+export async function listProducts(
+  raw?: unknown,
+): Promise<ActionResult<ProductItem[]>> {
   try {
     const user = await requirePermission("products:view");
     const companyId = await resolveActiveCompanyId(user.id);
     if (!companyId) return { success: false, error: "Nenhuma empresa ativa encontrada" };
 
+    // Normaliza filtros: tenta shape URL (Zod) primeiro; fallback compat
+    // para o shape antigo `{ active?: boolean, q?, category? }`.
+    let filter: { active?: boolean; q?: string; category?: string } = {};
+    const zodParsed = ProductsFiltersSchema.safeParse(raw ?? {});
+    if (zodParsed.success) {
+      const v = zodParsed.data;
+      filter = {
+        q: v.q,
+        category: v.category,
+        active:
+          v.active === "active"
+            ? true
+            : v.active === "inactive"
+              ? false
+              : undefined,
+      };
+    } else if (raw && typeof raw === "object") {
+      const legacy = raw as {
+        active?: unknown;
+        q?: unknown;
+        category?: unknown;
+      };
+      filter = {
+        active:
+          typeof legacy.active === "boolean" ? legacy.active : undefined,
+        q: typeof legacy.q === "string" ? legacy.q : undefined,
+        category:
+          typeof legacy.category === "string" ? legacy.category : undefined,
+      };
+    }
+
     const where: Prisma.ProductWhereInput = { companyId };
 
-    if (filter?.active !== undefined) {
+    if (filter.active !== undefined) {
       where.active = filter.active;
     }
 
-    if (filter?.category) {
+    if (filter.category) {
       where.category = filter.category;
     }
 
-    if (filter?.q) {
+    if (filter.q) {
       where.OR = [
         { name: { contains: filter.q, mode: "insensitive" } },
         { sku: { contains: filter.q, mode: "insensitive" } },
@@ -225,6 +255,33 @@ export async function getProduct(id: string): Promise<ActionResult<ProductItem |
     return { success: true, data: serializeProduct(product) };
   } catch (err) {
     return handleError(err, "Erro ao buscar produto");
+  }
+}
+
+/**
+ * Lista categorias distintas de produtos do tenant ativo. Usado para popular
+ * o filtro "Categoria" da página /products. Filtra nulls defensivamente.
+ */
+export async function listDistinctCategories(): Promise<ActionResult<string[]>> {
+  try {
+    const user = await requirePermission("products:view");
+    const companyId = await resolveActiveCompanyId(user.id);
+    if (!companyId) return { success: false, error: "Nenhuma empresa ativa encontrada" };
+
+    const rows = await prisma.product.findMany({
+      where: { companyId, category: { not: null } },
+      distinct: ["category"],
+      select: { category: true },
+      orderBy: { category: "asc" },
+    });
+
+    const categories = rows
+      .map((r) => r.category)
+      .filter((c): c is string => typeof c === "string" && c.length > 0);
+
+    return { success: true, data: categories };
+  } catch (err) {
+    return handleError(err, "Erro ao listar categorias");
   }
 }
 
