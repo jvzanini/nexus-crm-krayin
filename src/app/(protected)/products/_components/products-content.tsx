@@ -863,6 +863,24 @@ export function ProductsContent({
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
+                {canDelete && (
+                  <TableHead className="text-muted-foreground w-10">
+                    <Checkbox
+                      checked={
+                        filtered.length > 0 &&
+                        filtered.every((p) => selectedIds.has(p.id))
+                      }
+                      indeterminate={
+                        selectedIds.size > 0 &&
+                        !filtered.every((p) => selectedIds.has(p.id))
+                      }
+                      onCheckedChange={() =>
+                        toggleAll(filtered.map((p) => p.id))
+                      }
+                      aria-label="Selecionar todos"
+                    />
+                  </TableHead>
+                )}
                 <TableHead className="text-muted-foreground">SKU</TableHead>
                 <TableHead className="text-muted-foreground">Nome</TableHead>
                 <TableHead className="text-muted-foreground hidden md:table-cell">
@@ -894,6 +912,15 @@ export function ProductsContent({
                   }}
                   className="border-border hover:bg-accent/30 transition-colors duration-200"
                 >
+                  {canDelete && (
+                    <TableCell className="w-10">
+                      <Checkbox
+                        checked={selectedIds.has(product.id)}
+                        onCheckedChange={() => toggleRow(product.id)}
+                        aria-label={`Selecionar ${product.name}`}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell className="font-mono text-sm text-foreground font-medium">
                     {product.sku}
                   </TableCell>
@@ -1074,6 +1101,41 @@ export function ProductsContent({
       {/* ------------------------------------------------------------------ */}
       {/* AlertDialog — Excluir produto                                        */}
       {/* ------------------------------------------------------------------ */}
+      <AlertDialog
+        open={bulkDeleteDialogOpen}
+        onOpenChange={setBulkDeleteDialogOpen}
+      >
+        <AlertDialogContent className="bg-card border border-border rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-foreground">
+              <AlertTriangle className="h-5 w-5 text-red-400" />
+              Excluir produtos selecionados
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Tem certeza que deseja excluir{" "}
+              <strong className="text-foreground">{selectedIds.size}</strong>{" "}
+              produto{selectedIds.size === 1 ? "" : "s"}? Esta ação é irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={bulkDeleting}
+              className="border-border text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer transition-all duration-200"
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
+              disabled={bulkDeleting}
+              className="bg-red-600 text-white hover:bg-red-700 cursor-pointer transition-all duration-200"
+            >
+              {bulkDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Excluir {selectedIds.size}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="bg-card border border-border rounded-2xl">
           <AlertDialogHeader>
