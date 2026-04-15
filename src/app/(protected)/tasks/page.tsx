@@ -4,6 +4,7 @@ import { userHasPermission } from "@/lib/rbac/check";
 import { requireActiveCompanyId } from "@/lib/tenant-scope";
 import { requireCompanyRole } from "@/lib/tenant";
 import { getCompanyAssignees } from "@/lib/actions/leads";
+import { getDefaultFilter } from "@/lib/actions/saved-filters";
 import { TasksContent } from "./_components/tasks-content";
 
 export const dynamic = "force-dynamic";
@@ -37,13 +38,19 @@ export default async function TasksPage({
     }
   }
 
+  let effective: Record<string, string | undefined> = params;
+  if (Object.keys(params).length === 0) {
+    const def = await getDefaultFilter("tasks");
+    if (def) effective = def.filters as Record<string, string>;
+  }
+
   return (
     <TasksContent
       canCreate={canCreate}
       canEdit={canEdit}
       canDelete={canDelete}
       canComplete={canComplete}
-      initialFilters={params}
+      initialFilters={effective}
       assigneeOptions={assigneeOptions}
       canViewAll={canViewAll}
     />

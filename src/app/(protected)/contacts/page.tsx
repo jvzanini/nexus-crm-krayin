@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { userHasPermission } from "@/lib/rbac";
 import { requireActiveCompanyId } from "@/lib/tenant-scope";
 import { listCustomAttributes } from "@/lib/custom-attributes/list";
+import { getDefaultFilter } from "@/lib/actions/saved-filters";
 import { ContactsContent } from "./_components/contacts-content";
 
 export default async function ContactsPage({
@@ -26,12 +27,18 @@ export default async function ContactsPage({
     customDefs = [];
   }
 
+  let effective: Record<string, string | undefined> = params;
+  if (Object.keys(params).length === 0) {
+    const def = await getDefaultFilter("contacts");
+    if (def) effective = def.filters as Record<string, string>;
+  }
+
   return (
     <ContactsContent
       canCreate={canCreate}
       canEdit={canEdit}
       canDelete={canDelete}
-      initialFilters={params}
+      initialFilters={effective}
       customDefs={customDefs}
     />
   );

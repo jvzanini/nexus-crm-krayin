@@ -8,6 +8,14 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, screen } from "@testing-library/react";
+
+// Fase 33 — saved-filters server action tem "use server" + next-auth import
+// indireto. Para manter este teste puramente client-side, stub do menu
+// renderiza nada (não é alvo deste spec).
+vi.mock("./saved-filters-menu", () => ({
+  SavedFiltersMenu: () => null,
+}));
+
 import { FilterBar, type FilterConfig } from "./filter-bar";
 import type { CustomAttribute } from "@/lib/custom-attributes/types";
 

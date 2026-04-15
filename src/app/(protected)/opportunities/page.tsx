@@ -4,6 +4,7 @@ import { userHasPermission } from "@/lib/rbac";
 import { requireActiveCompanyId } from "@/lib/tenant-scope";
 import { listCustomAttributes } from "@/lib/custom-attributes/list";
 import type { CustomAttribute } from "@/lib/custom-attributes/types";
+import { getDefaultFilter } from "@/lib/actions/saved-filters";
 import { OpportunitiesContent } from "./_components/opportunities-content";
 
 export default async function OpportunitiesPage({
@@ -28,12 +29,18 @@ export default async function OpportunitiesPage({
     // sem tenant ativo: renderiza sem customs (conteúdo trata erro).
   }
 
+  let effective: Record<string, string | undefined> = params;
+  if (Object.keys(params).length === 0) {
+    const def = await getDefaultFilter("opportunities");
+    if (def) effective = def.filters as Record<string, string>;
+  }
+
   return (
     <OpportunitiesContent
       canCreate={canCreate}
       canEdit={canEdit}
       canDelete={canDelete}
-      initialFilters={params}
+      initialFilters={effective}
       customDefs={customDefs}
     />
   );

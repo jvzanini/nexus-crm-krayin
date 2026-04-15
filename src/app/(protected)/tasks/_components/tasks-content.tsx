@@ -59,6 +59,7 @@ import {
 } from "@/lib/actions/activities-schemas";
 import { BulkActionBar } from "@/components/tables/bulk-action-bar";
 import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
+import { useSavedFilters } from "@/lib/hooks/use-saved-filters";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 
@@ -421,6 +422,24 @@ export function TasksContent({
 
   // --- Bulk selection ---
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const saved = useSavedFilters("tasks");
+  const currentFiltersAsRecord = useMemo<Record<string, string>>(() => {
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(filters)) {
+      if (v !== undefined && v !== null && String(v).length > 0) {
+        out[k] = String(v);
+      }
+    }
+    return out;
+  }, [filters]);
+  function onApplySavedTasksFilter(f: Record<string, string>) {
+    const parsed = TasksFiltersSchema.safeParse(f);
+    if (parsed.success) {
+      setFilters(parsed.data);
+      setQInput(parsed.data.q ?? "");
+      setSelectedIds(new Set());
+    }
+  }
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleting, startBulkDeleting] = useTransition();
   const [bulkStatusUpdating, startBulkStatusUpdating] = useTransition();
@@ -709,6 +728,13 @@ export function TasksContent({
           onChange={updateFilter}
           onClear={clearFilters}
           hasActive={hasActiveFilters}
+          savedFilters={{
+            moduleKey: "tasks",
+            current: currentFiltersAsRecord,
+            list: saved.list,
+            onApply: onApplySavedTasksFilter,
+            onListChange: saved.reload,
+          }}
         />
       </motion.div>
 

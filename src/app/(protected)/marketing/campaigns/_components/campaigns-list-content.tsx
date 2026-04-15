@@ -35,6 +35,7 @@ import {
 } from "@/lib/actions/marketing-campaigns-schemas";
 import { BulkActionBar } from "@/components/tables/bulk-action-bar";
 import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
+import { useSavedFilters } from "@/lib/hooks/use-saved-filters";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 
@@ -120,6 +121,24 @@ export function CampaignsListContent({
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const saved = useSavedFilters("campaigns");
+  const currentFiltersAsRecord = useMemo<Record<string, string>>(() => {
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(filters)) {
+      if (v !== undefined && v !== null && String(v).length > 0) {
+        out[k] = String(v);
+      }
+    }
+    return out;
+  }, [filters]);
+  function onApplySavedCampaignsFilter(f: Record<string, string>) {
+    const parsed = CampaignsFiltersSchema.safeParse(f);
+    if (parsed.success) {
+      setFilters(parsed.data);
+      setQInput(parsed.data.q ?? "");
+      setSelectedIds(new Set());
+    }
+  }
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleting, startBulkDeleting] = useTransition();
 
@@ -298,6 +317,13 @@ export function CampaignsListContent({
           onChange={updateFilter}
           onClear={clearFilters}
           hasActive={hasActiveFilters}
+          savedFilters={{
+            moduleKey: "campaigns",
+            current: currentFiltersAsRecord,
+            list: saved.list,
+            onApply: onApplySavedCampaignsFilter,
+            onListChange: saved.reload,
+          }}
         />
       </motion.div>
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
+import { useSavedFilters } from "@/lib/hooks/use-saved-filters";
 import { WorkflowsFiltersSchema, type WorkflowsFilters } from "@/lib/actions/workflows-schemas";
 import { motion } from "framer-motion";
 import {
@@ -164,6 +165,24 @@ export function WorkflowsListContent({
 
   // --- Bulk selection ---
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const saved = useSavedFilters("workflows");
+  const currentFiltersAsRecord = useMemo<Record<string, string>>(() => {
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(filters)) {
+      if (v !== undefined && v !== null && String(v).length > 0) {
+        out[k] = String(v);
+      }
+    }
+    return out;
+  }, [filters]);
+  function onApplySavedWorkflowsFilter(f: Record<string, string>) {
+    const parsed = WorkflowsFiltersSchema.safeParse(f);
+    if (parsed.success) {
+      setFilters(parsed.data);
+      setQInput(parsed.data.q ?? "");
+      setSelectedIds(new Set());
+    }
+  }
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleting, startBulkDeleting] = useTransition();
 
@@ -379,6 +398,13 @@ export function WorkflowsListContent({
           onChange={updateFilter}
           onClear={clearFilters}
           hasActive={hasActiveFilters}
+          savedFilters={{
+            moduleKey: "workflows",
+            current: currentFiltersAsRecord,
+            list: saved.list,
+            onApply: onApplySavedWorkflowsFilter,
+            onListChange: saved.reload,
+          }}
         />
       </motion.div>
 

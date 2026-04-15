@@ -65,6 +65,7 @@ import {
 } from "@/lib/currency/allowlist";
 import { BulkActionBar } from "@/components/tables/bulk-action-bar";
 import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
+import { useSavedFilters } from "@/lib/hooks/use-saved-filters";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   ProductsFiltersSchema,
@@ -244,6 +245,21 @@ export function ProductsContent({
 
   // --- Bulk selection ---
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const saved = useSavedFilters("products");
+  const currentFiltersAsRecord = useMemo<Record<string, string>>(() => {
+    const out: Record<string, string> = {};
+    if (filters.q) out.q = filters.q;
+    if (filters.active) out.active = filters.active;
+    if (filters.category) out.category = filters.category;
+    return out;
+  }, [filters]);
+  function onApplySavedProductsFilter(f: Record<string, string>) {
+    const parsed = ProductsFiltersSchema.safeParse(f);
+    if (parsed.success) {
+      setFilters(parsed.data);
+      setSelectedIds(new Set());
+    }
+  }
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleting, startBulkDeleting] = useTransition();
 
@@ -845,6 +861,13 @@ export function ProductsContent({
           onChange={updateFilter}
           onClear={clearFilters}
           hasActive={hasActiveFilters}
+          savedFilters={{
+            moduleKey: "products",
+            current: currentFiltersAsRecord,
+            list: saved.list,
+            onApply: onApplySavedProductsFilter,
+            onListChange: saved.reload,
+          }}
         />
       </motion.div>
 

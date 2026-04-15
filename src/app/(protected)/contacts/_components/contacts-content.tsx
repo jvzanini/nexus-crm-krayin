@@ -53,6 +53,7 @@ import type { ContactItem, ContactsFilters } from "@/lib/actions/contacts";
 import { ConsentFieldset, type ConsentValue } from "@/components/consent/consent-fieldset";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
+import { useSavedFilters } from "@/lib/hooks/use-saved-filters";
 import { BulkActionBar } from "@/components/tables/bulk-action-bar";
 import { CustomFieldsSection } from "@/components/custom-attributes/CustomFieldsSection";
 import { CustomColumnsRenderer } from "@/components/custom-attributes/CustomColumnsRenderer";
@@ -114,6 +115,24 @@ export function ContactsContent({
     to: initialFilters.to,
   });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const saved = useSavedFilters("contacts");
+  const currentFiltersAsRecord = useMemo<Record<string, string>>(() => {
+    const out: Record<string, string> = {};
+    if (filters.q) out.q = filters.q;
+    if (filters.from) out.from = filters.from;
+    if (filters.to) out.to = filters.to;
+    return out;
+  }, [filters]);
+  function onApplySavedContactsFilter(f: Record<string, string>) {
+    const VALID = new Set(["q", "from", "to"]);
+    const next: ContactsFilters = {};
+    for (const [k, v] of Object.entries(f)) {
+      if (!VALID.has(k) || typeof v !== "string" || v.length === 0) continue;
+      (next as Record<string, string>)[k] = v;
+    }
+    setFilters(next);
+    setSelectedIds(new Set());
+  }
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleting, startBulkDeleting] = useTransition();
 
@@ -391,6 +410,13 @@ export function ContactsContent({
           onChange={updateFilter}
           onClear={clearFilters}
           hasActive={hasActiveFilters}
+          savedFilters={{
+            moduleKey: "contacts",
+            current: currentFiltersAsRecord,
+            list: saved.list,
+            onApply: onApplySavedContactsFilter,
+            onListChange: saved.reload,
+          }}
         />
       </motion.div>
 

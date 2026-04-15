@@ -62,6 +62,7 @@ import { getContacts } from "@/lib/actions/contacts";
 import type { ContactItem } from "@/lib/actions/contacts";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
+import { useSavedFilters } from "@/lib/hooks/use-saved-filters";
 import { BulkActionBar } from "@/components/tables/bulk-action-bar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -153,6 +154,26 @@ export function OpportunitiesContent({
     to: initialFilters.to,
   });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const saved = useSavedFilters("opportunities");
+  const currentFiltersAsRecord = useMemo<Record<string, string>>(() => {
+    const out: Record<string, string> = {};
+    if (filters.stage) out.stage = filters.stage;
+    if (filters.minValue) out.minValue = String(filters.minValue);
+    if (filters.maxValue) out.maxValue = String(filters.maxValue);
+    if (filters.from) out.from = filters.from;
+    if (filters.to) out.to = filters.to;
+    return out;
+  }, [filters]);
+  function onApplySavedOpportunitiesFilter(f: Record<string, string>) {
+    const VALID = new Set(["stage", "minValue", "maxValue", "from", "to"]);
+    const next: OpportunitiesFilters = {};
+    for (const [k, v] of Object.entries(f)) {
+      if (!VALID.has(k) || typeof v !== "string" || v.length === 0) continue;
+      (next as Record<string, string>)[k] = v;
+    }
+    setFilters(next);
+    setSelectedIds(new Set());
+  }
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleting, startBulkDeleting] = useTransition();
 
@@ -496,6 +517,13 @@ export function OpportunitiesContent({
           onChange={updateFilter}
           onClear={clearFilters}
           hasActive={hasActiveFilters}
+          savedFilters={{
+            moduleKey: "opportunities",
+            current: currentFiltersAsRecord,
+            list: saved.list,
+            onApply: onApplySavedOpportunitiesFilter,
+            onListChange: saved.reload,
+          }}
         />
       </motion.div>
 

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { userHasPermission } from "@/lib/rbac/check";
 import { listDistinctCategories } from "@/lib/actions/products";
+import { getDefaultFilter } from "@/lib/actions/saved-filters";
 import { ProductsContent } from "./_components/products-content";
 
 export const dynamic = "force-dynamic";
@@ -25,12 +26,18 @@ export default async function ProductsPage({
     ? categoriesResult.data
     : [];
 
+  let effective: Record<string, string | undefined> = params;
+  if (Object.keys(params).length === 0) {
+    const def = await getDefaultFilter("products");
+    if (def) effective = def.filters as Record<string, string>;
+  }
+
   return (
     <ProductsContent
       canCreate={canCreate}
       canEdit={canEdit}
       canDelete={canDelete}
-      initialFilters={params}
+      initialFilters={effective}
       categoryOptions={categoryOptions}
     />
   );

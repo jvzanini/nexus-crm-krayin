@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useTransition } from "react";
+import { useState, useEffect, useRef, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -37,6 +37,7 @@ import {
 import { BulkActionBar } from "@/components/tables/bulk-action-bar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
+import { useSavedFilters } from "@/lib/hooks/use-saved-filters";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 
 // ---------------------------------------------------------------------------
@@ -93,6 +94,23 @@ export function SegmentsListContent({ canManage, initialFilters = {} }: Segments
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const saved = useSavedFilters("segments");
+  const currentFiltersAsRecord = useMemo<Record<string, string>>(() => {
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(filters)) {
+      if (v !== undefined && v !== null && String(v).length > 0) {
+        out[k] = String(v);
+      }
+    }
+    return out;
+  }, [filters]);
+  function onApplySavedSegmentsFilter(f: Record<string, string>) {
+    const parsed = SegmentsFiltersSchema.safeParse(f);
+    if (parsed.success) {
+      setFilters(parsed.data);
+      setSelectedIds(new Set());
+    }
+  }
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleting, startBulkDeleting] = useTransition();
 
@@ -266,6 +284,13 @@ export function SegmentsListContent({ canManage, initialFilters = {} }: Segments
           onChange={updateFilter}
           onClear={clearFilters}
           hasActive={hasActiveFilters}
+          savedFilters={{
+            moduleKey: "segments",
+            current: currentFiltersAsRecord,
+            list: saved.list,
+            onApply: onApplySavedSegmentsFilter,
+            onListChange: saved.reload,
+          }}
         />
       </motion.div>
 
