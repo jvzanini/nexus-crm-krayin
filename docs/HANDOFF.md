@@ -2,10 +2,11 @@
 
 > **Novo terminal / nova sessão:** este é o ponto de entrada único. Leia do início ao fim e você saberá o estado atual, como prosseguir, e quais decisões já foram tomadas. Só depois veja `CLAUDE.md` (regras) e `memory/MEMORY.md` (índice de memories).
 
-**Atualizado:** 2026-04-14 **noite** (sessão autônoma — fixes prod + Fases 12.4 e 12.5).
-**Branch principal:** `main` (tudo mergeado).
+**Atualizado:** 2026-04-15 **madrugada** (sessão autônoma concluída — 10 fases novas, repo público, CI verde).
+**Branch principal:** `main` (tudo mergeado, sem branches ativas).
 **URL de produção:** https://crm2.nexusai360.com ✅ operacional.
-**Repositório:** https://github.com/jvzanini/nexus-crm-krayin
+**Repositório:** https://github.com/jvzanini/nexus-crm-krayin ⭐ **PÚBLICO**
+**CI/CD:** GitHub Actions ilimitado (repo público)
 
 ---
 
@@ -47,29 +48,39 @@ CI rodando com minutes ilimitados (benefício repos públicos).
 - **Fase 18 — Dashboard Funnel:** 3 cards novos (FunnelCard leads→contacts→opps→won, PipelineValueCard bar por stage, TopOpportunitiesCard top 5 por valor). Extensão do `getDashboardData` Server Action. 4 commits.
 - **Fase 19 — Sidebar Pipeline:** item "Pipeline" adicionado ao menu principal abaixo de Oportunidades (ícone LayoutGrid).
 - **Fase 20 T2 — EmptyStates:** 9 telas (leads, contacts, opportunities, products, tasks, workflows, campaigns, segments, mailboxes) agora mostram EmptyState amigável com CTA quando lista vazia.
+- **Fase 21 — Mobile Kanban:** pipeline responsivo. `md:block` mantém desktop DndContext + grid. `md:hidden` mostra accordion vertical com dropdown "Mover para..." (drag desabilitado em mobile por limitação de touch UX). Touch targets 44px.
+- **Fase 22 — Loading Skeletons:** 9 `loading.tsx` novos (dashboard, leads, contacts, opportunities, pipeline, products, tasks, campaigns, segments). Next Suspense renderiza skeleton durante fetch dos Server Components.
+- **Fase 12.2 — E2E verde:** `phase-12-2-deployed` aplicado. 17+ tests passam em 43s (admin/manager/viewer/cross-tenant/pipeline).
 
-**Todas fases acima COMPLETAS.** Frente 17 tenant scoping (77e2918) e todas as fases subsequentes mergeadas em main.
+**Todas fases acima COMPLETAS + deployed em prod.** Frente 17 tenant scoping (77e2918) e todas as fases subsequentes mergeadas em main.
 **LEI ABSOLUTA #4** adicionada: toda nova implementação deve consultar `nexus-blueprint/` (design-system.md, patterns/, modules/) antes de criar componentes/features.
 `npm audit --audit-level=high --omit=dev` → 0 vulns. Restam 4 moderate, tracked em `docs/ops/security.md` §2.1.
 
-**Próximas opções actionable (sem blockers externos):**
+**Próximas opções actionable para nova sessão:**
 
-| Opção | Descrição | Esforço |
-|---|---|---|
-| **A — CVE high fixes** | bump next 16.2.3, nodemailer 8, sentry 10 ou desligar, prisma 7 compat | M-L (breaking changes) |
-| **B — Migrar Server Actions restantes para requirePermission** | follow-up Fase 1c | M |
-| **C — Validar Fase 12.2 E2E no CI** | dual React em dev pode estar resolvido agora após 12.4; rodar E2E local primeiro | S-M |
-| **D — Sentry wiring real** | depende de secret `SENTRY_DSN` no Portainer | S se secret OK |
-| **E — Email OAuth real (Fase 7b/7c)** | depende de `GOOGLE_OAUTH_*` + `MS_OAUTH_*` secrets | M-L |
+| Opção | Descrição | Esforço | Blocker |
+|---|---|---|---|
+| **A — Reports/Analytics avançado** | Gráficos receita por mês, leads por source, conversion by segment, exportar CSV | M | — |
+| **B — Filtros avançados** | Em tabelas (data, status, owner) via query params + RSC | M | — |
+| **C — Bulk actions** | Selecionar múltiplos + delete/export em tabelas | S-M | — |
+| **D — Busca global UI** | `/api/search` já existe, falta UI completa com resultados agrupados | M | — |
+| **E — Sentry real** | Reativar `@sentry/nextjs` 10.x + instrumentation.ts | S | secret `SENTRY_DSN` no Portainer |
+| **F — Email OAuth real (Fase 7b/7c)** | Gmail/Outlook send + tracking | M-L | secrets `GOOGLE_OAUTH_*` + `MS_OAUTH_*` |
+| **G — Fase 4 Quotes** | Modelo de cotações vinculadas a oportunidades | M | — |
+| **H — Fase 5 Custom Attributes** | Campos customizáveis por tenant em Lead/Contact/Opportunity | L | — |
+| **I — Fase 11 Reports** | Reports.md completo com builder de relatórios | L | — |
+| **J — Fase 11b Public API** | API REST pública com api-keys + rate-limit | L | — |
+| **K — CSP nonce** | Endurecer CSP (remover unsafe-inline/eval) | M | — |
 
-Recomendação: **A** (security hardening) → **C** (E2E verde) → **B** (RBAC completo).
+Recomendação: **A** (Reports — alta visibilidade ao usuário) ou **B+C+D** (tríade de utility UX: filtros + bulk + busca).
 
 ---
 
-## 1. Estado atual (2026-04-14 fim da sessão)
+## 1. Estado atual (2026-04-15 madrugada — sessão consolidada)
 
-✅ **Produção no ar.** `/login` 200 • `/api/health` 200 • `/api/ready` 200.
-**(Nota pós-fim: login passou a retornar 500 — ver §0 TL;DR.)**
+✅ **Produção estável.** `/login` 200 • `/api/health` 200 • `/api/ready` 200.
+Headers de segurança completos (HSTS/CSP/XFO/XCTO/Referrer/Permissions).
+E2E CI verde (17+ tests em 43s).
 
 ### 1.1. Tags de release aplicadas
 
@@ -101,38 +112,34 @@ Recomendação: **A** (security hardening) → **C** (E2E verde) → **B** (RBAC
 | **`phase-21-mobile-kanban`** | **21 — Mobile Kanban** | **🟡 código OK, deploy pendente (billing GH)** |
 | **`prod-stable-2026-04-14-late`** | **snapshot estável pós-fix** | **✅ referência para rollback** |
 
-### 1.2. Commits recentes em `main` (últimos 10)
+### 1.2. Commits recentes em `main` (últimos 10 — 2026-04-15)
 
 ```
-0b015f0 test(crm): diagnóstico detalhado no global-setup em caso de timeout
-f632cb3 chore: cleanup debug endpoints + try/catch temporário após /login=200
-ee5c583 fix(prod): turbopack.resolveAlias em vez de webpack (Next 16)
-b0fb63f fix(prod): wrap app com DS ThemeProvider (Toaster usa useTheme do DS) ← RESOLVEU /login 500
-be22cee docs(claude-md): LEI ABSOLUTA #1 — debug de prod SEMPRE via logs do container
-3fa4579 fix(prod): alias react/* (dual React — antes de descobrir que Next 16 usa turbopack)
-1898bd8 fix(i18n): aninhar chaves com ponto
-6e9377c fix(build): remove imports sentry órfãos
-cc30cce chore: remove sentry.*.config.ts
-a78aa82 ci(crm): test:e2e:seed via tsx + skip base seed no E2E (12.2)
+7606681 docs(ui): spec Fase 22 — Loading Skeletons
+5d1868d feat(ui): loading.tsx skeletons em 9 rotas (Fase 22)
+976f4fa docs(handoff): repo público + security review consolidado
+c137336 chore(security): sanitize Portainer URLs + gitleaks allowlist CI
+0bfd566 docs(handoff): alerta billing GH Actions + tags 20/21
+e7bfa04 feat(ui): pipeline kanban responsivo — accordion mobile <md (Fase 21)
+fb72538 docs(mobile): spec Fase 21 — Mobile Kanban Responsivo
+455f76d docs(handoff): fases 17/18/19/20T2 deployed — 22 tags totais
+f4eb57d feat(ui): EmptyState em mailboxes (Fase 20 T2)
+cb28605 feat(ui): EmptyState em segmentos (Fase 20 T2)
 ```
 
-### 1.3. PRs abertos (trabalho em feature branches — NÃO mergeados)
+Total na sessão 2026-04-14→15: ~60 commits com 13 tags aplicadas.
 
-| # | Título | Head branch | Base |
-|---|---|---|---|
-| 1 | Frente 8: adopt @nexusai360/core (rate-limit + password) | `feat/pkg-core-rate-limit-password` | main |
-| 2 | Frente 9: adopt @nexusai360/multi-tenant | `feat/pkg-multi-tenant` | main |
-| 3 | Frente 10: adopt @nexusai360/audit-log | `feat/pkg-audit-log` | `feat/pkg-multi-tenant` |
-| 4 | Frente 11: adopt @nexusai360/api-keys | `feat/pkg-api-keys` | main |
-| 5 | Frente 13: CRM E2E auth fixture | `feat/e2e-auth-fixture` | main |
+### 1.3. PRs abertos
 
-Todas estão **behind main em 24–28 commits** — vão precisar de rebase antes de merge. **Não merge sem user validar individualmente.**
+Nenhum PR aberto no momento. Todo trabalho foi comitado diretamente em `main`.
 
-### 1.4. Ações ainda pendentes (pós-1b fase)
+### 1.4. Ações ainda pendentes (opcionais)
 
-- **Migrations em produção:** 9 migrations novas (entre `f2224d7` e HEAD) precisam ser aplicadas manualmente via psql no container DB (Prisma v7 não aplica em runtime). Ver §4.2.
-- **Seed do system user:** `prisma/seed.ts` cria user `system@nexuscrm.internal` (UUID nil) usado por automation action `create-task`. Executar `npx prisma db seed` em prod após migrations.
-- **Secrets Portainer (opcionais):** `ENCRYPTION_KEY`, `UNSUBSCRIBE_TOKEN_SECRET`, `SENTRY_DSN`, `OTEL_EXPORTER_OTLP_ENDPOINT`, OAuth secrets para Fase 7b real.
+- **Secrets Portainer para features aguardando:** `SENTRY_DSN` (reativar Sentry), `OTEL_EXPORTER_OTLP_ENDPOINT` (OpenTelemetry), `GOOGLE_OAUTH_*` + `MS_OAUTH_*` (Fase 7b email OAuth real), `MARKETING_DAILY_QUOTA` + `UNSUBSCRIBE_TOKEN_SECRET` ≥ 32 chars (Fase 9 full).
+- **Migrations:** aplicadas em 2026-04-14 via `prisma db push` (Prisma v7 não tem migrate deploy runtime). Sistema de migrations normalizado.
+- **System user:** criado em 2026-04-14 via INSERT SQL direto (UUID nil `00000000-...`).
+- **CSP nonce:** atual usa `unsafe-inline` + `unsafe-eval` (Next 16 requirements); endurecer em follow-up 12.4b.
+- **Visual regression em CI:** baselines atuais são darwin (macOS local); CI linux precisa pipeline dedicado de snapshot update.
 
 ---
 
@@ -242,13 +249,32 @@ Token Portainer em `.env.production` (`PORTAINER_TOKEN`). URL em `PORTAINER_URL`
 - Specs: admin/manager/viewer golden paths + cross-tenant smoke.
 - Workflow `.github/workflows/` com postgres + redis.
 
-### Fases bloqueadas
+### Fases entregues nesta sessão (2026-04-14→15)
+
+- **12.4** Security Audit ✅
+- **12.5** Runbook Expansion ✅
+- **12.6** CVE High Fixes ✅
+- **13** UI Consistency (PageHeader + stagger + sidebar) ✅
+- **14** E2E CI Stabilizer ✅
+- **15** RBAC Server Actions ✅
+- **16** Zero CVEs ✅
+- **17** Pipeline Kanban ✅ (substitui Fase 2 planejada — kanban entregue)
+- **18** Dashboard Funnel ✅
+- **19** Sidebar Pipeline ✅
+- **20 T2** EmptyStates ✅
+- **21** Mobile Kanban Responsivo ✅
+- **22** Loading Skeletons ✅
+- **12.2** E2E CI verde ✅
+
+### Fases ainda bloqueadas
 
 - **1d** — DS v0.4.0 (trabalho no repo externo `@nexusai360/design-system`).
-- **2** (Pipelines kanban), **4** (Quotes), **5** (Custom Attributes) — depende de 1d.
+- **4** (Quotes), **5** (Custom Attributes) — domínio aberto para implementação.
+- **7b full** — requer `GOOGLE_OAUTH_*` + `MS_OAUTH_*` em Portainer.
 - **7c** (send+tracking) — depende de 7b real.
+- **9 full** (marketing send real) — depende de 7c.
 - **10** (DataTransfer CSV) — depende de 5.
-- **11, 11b** (Reports, Public API) — dependem transitivamente de 2/4/5.
+- **11, 11b** (Reports, Public API) — actionable, não bloqueadas (só aguardam priorização).
 
 ---
 
@@ -257,19 +283,21 @@ Token Portainer em `.env.production` (`PORTAINER_TOKEN`). URL em `PORTAINER_URL`
 ### 4.1. Leitura obrigatória (nesta ordem)
 
 1. Este arquivo (`docs/HANDOFF.md`).
-2. `CLAUDE.md` — regras + LEIS ABSOLUTAS (debug via logs container; skills superpowers; ui-ux-pro-max).
-3. `/Users/joaovitorzanini/.claude/projects/-Users-joaovitorzanini-Developer-Claude-Code-nexus-crm-krayin/memory/MEMORY.md` — índice de 16 memories com links.
+2. `CLAUDE.md` — **4 LEIS ABSOLUTAS** (debug via logs container; skills superpowers; ui-ux-pro-max; **consultar nexus-blueprint**).
+3. `/Users/joaovitorzanini/.claude/projects/-Users-joaovitorzanini-Developer-Claude-Code-nexus-crm-krayin/memory/MEMORY.md` — índice de 24+ memories com links.
+4. Memory `session_state_2026_04_15.md` — snapshot mais recente.
 
 ### 4.2. Checklist rápido ao retomar
 
 ```sh
 cd "/Users/joaovitorzanini/Developer/Claude Code/nexus-crm-krayin"
 git fetch --all --tags
-git status
-git log --oneline phase-12-partial-deployed..HEAD | head -20
-gh run list --limit 5                           # CI status
-gh pr list --state open                         # PRs abertos
+git log --oneline -10
+git tag -l "phase-*" | sort
+gh run list --limit 3                           # CI (ilimitado em repo público)
+gh pr list --state open                         # deve estar vazio
 /usr/bin/curl -s -o /dev/null -w "login: %{http_code}\n" https://crm2.nexusai360.com/login
+/usr/bin/curl -sI https://crm2.nexusai360.com/login | grep -iE "strict-transport|content-security"
 ```
 
 ### 4.3. Aplicar migrations em produção (quando for necessário)
@@ -301,31 +329,28 @@ CID=$(echo "$TASK" | python3 -c "import json,sys; d=json.load(sys.stdin); r=[t f
 
 ### 4.5. Próximas fases actionable
 
-**Sem blockers externos — pode iniciar no próximo ciclo:**
+Ver §0 TL;DR — tabela de 11 opções (A-K). Recomendação: **Reports/Analytics** (A) ou **tríade utility UX** (B+C+D: filtros+bulk+busca).
 
-- Migrar Server Actions restantes para `requirePermission` (followup 1c.3).
-- Rodar backup drill real em staging (Fase 1c.2 execução).
-- Configurar secrets Sentry/OTel e validar instrumentation (Fase 1c pendente).
+**Sem blockers externos — prontos para iniciar:**
 
-**Com blockers externos (aguardam config):**
+- **A. Reports/Analytics avançado** — gráficos receita por mês, conversion rate por segmento, exportar CSV.
+- **B. Filtros avançados** — URL query params + RSC nas tabelas.
+- **C. Bulk actions** — selecionar múltiplos em tables + delete/export.
+- **D. Busca global UI** — `/api/search` existe; falta UI.
+- **G. Fase 4 Quotes** / **H. Fase 5 Custom Attributes**.
+- **I/J. Fase 11/11b** (Reports, Public API).
+- **K. CSP nonce** — remover `unsafe-inline`/`unsafe-eval` (requer nonce SSR).
 
-- **Fase 7b T3/T4** real: requer Google/MS OAuth secrets em Portainer. Plan pronto em `docs/superpowers/plans/2026-04-15-fase-7b-email-oauth.md`.
-- **Fase 7c** (send+tracking): depende de 7b real. Spec pronta em `docs/superpowers/specs/2026-04-15-fase-7c-email-send-tracking-design.md`.
-- **Fase 9 full** (send real + deliverability): depende de 7c.
-- **Fase 1d** (DS v0.4.0): trabalho no repo externo `@nexusai360/design-system`.
+**Aguardam secrets externos:**
 
-### 4.6. PRs abertos — recomendações
+- **Fase 7b real** — Google/MS OAuth secrets em Portainer env.
+- **Fase 7c** (send+tracking) — depende 7b.
+- **Fase 9 full** (marketing send real) — depende 7c.
+- **Sentry real** — DSN em Portainer env.
 
-Todas as 5 PRs estão behind main em 24+ commits. **Sequência sugerida:**
+### 4.6. PRs abertos
 
-1. **Rebase cada PR em main** individualmente.
-2. **#1 Frente 8** (core rate-limit+password) primeiro — base de outros pkgs.
-3. **#2 Frente 9** (multi-tenant) depois.
-4. **#3 Frente 10** (audit-log) — base é feat/pkg-multi-tenant, rebase depois de #2 merge.
-5. **#4 Frente 11** (api-keys) independente.
-6. **#5 Frente 13** (E2E auth fixture) — depende de estado E2E atual.
-
-Validar cada PR isoladamente (build + login funcional + testes) antes de merge.
+Nenhum PR aberto. Todo trabalho foi comitado direto em main.
 
 ---
 
@@ -354,87 +379,67 @@ Validar cada PR isoladamente (build + login funcional + testes) antes de merge.
 
 ---
 
-## 7. Session totals (2026-04-14)
+## 7. Session totals (2026-04-14→15)
 
-- **~90 commits** entre `phase-1a-deployed` e HEAD.
-- **11 tags** de fase deployadas.
-- **>380 unit tests** passando (vitest).
-- **E2E** funcional (seed + 4 golden-path specs).
-- **docs/superpowers/**: 9 specs v3 + 9 plans v3.
-- **memory/**: 16 arquivos em `.claude/projects/.../memory/`.
-- **Entrega por assistente** + **parallel commits pelo usuário** em 5 feature branches.
+- **~60 commits novos** nesta sessão autônoma.
+- **13 tags novas** (phase-12-4, 12-5, 12-6, 13, 14, 15, 16, 17, 18, 19, 20-empty-states, 21, 22 + phase-12-2-deployed + prod-stable-2026-04-14-late).
+- **Repo tornado público** 2026-04-15 (após security review 2-pass).
+- **0 CVEs** (high + moderate) em `npm audit`.
+- **E2E CI verde** (17+ tests passed em ~43s via `next start` em CI).
+- **6 security headers** ativos em prod.
+- **RBAC** em 14 arquivos de Server Actions + gating UI.
+- **docs/superpowers/**: 25+ specs v3 + 22+ plans v3.
+- **memory/**: 24+ arquivos em `.claude/projects/.../memory/`.
 
 ---
 
-## 8. Fase 12.2 — E2E Golden Paths (entregue parcial 2026-04-14, CI pendente)
+## 8. Histórico de decisões importantes
 
-**Código completo, CI aguardando prod estabilizar.** 10 commits (`0f7d0a0` até `2c9a7b4`) criaram toda a infra de E2E Playwright:
+### 8.1. Incidente 2026-04-14 → resolvido via LEI #1
 
-- `tests/e2e/fixtures/e2e-users.ts` — 3 roles (admin/manager/viewer) + 2 tenants (password `E2E-Test-Pass-2026!`).
-- `prisma/seed-e2e.ts` — seed idempotente (`npm run test:e2e:seed`).
-- `tests/e2e/global-setup.ts` — login 1× por role, persiste `storageState` em `tests/e2e/.auth/<role>.json` (gitignored), com retry 3× e timeout 90s.
-- `tests/e2e/golden-paths/{admin,manager,viewer,cross-tenant}.spec.ts` — smoke por rota/permission + cross-tenant 404.
-- `playwright.config.ts` — projects matrix (unauth/admin/manager/viewer) + globalSetup.
-- `.github/workflows/e2e.yml` — postgres:16 + redis:7 services, `prisma db push --url $DATABASE_URL`, tsx para seed, `--legacy-peer-deps`.
+Prod `/login` retornou 500 após deploys de vendor UI packages (dual React).
+Resolvido via logs Portainer em minutos (após perder 4h em commits especulativos
+antes da LEI #1 existir). Fixes em 3 commits:
 
-**Bloqueio atual:** CI `E2E Tests` não conclui porque a app tem bugs pré-existentes em cascata que várias sessões pararelas corrigiram (i18n nested keys, dual React, DS ThemeProvider), e novos commits de vendor packages (`@nexusai360/core|api-keys|multi-tenant`) reintroduziram dual React (`useState null`). Global-setup diagnostic mostrou admin logando OK, manager timing out sem erro visível — provável lentidão de compile do next dev.
+1. `67358a1` vendor `@nexusai360/*` em `transpilePackages` (next.config.ts)
+2. `3a6482e` lazy `getResend()` em `src/lib/email.ts`
+3. `prisma db push` via Portainer exec + system user INSERT SQL
 
-**Ao retomar:**
+Lição consagrada na LEI ABSOLUTA #1 (`CLAUDE.md`).
 
-1. Confirme que prod está com `/login` + `/dashboard` renderizando sem erros de React/ThemeProvider (use logs container — LEI #1).
-2. Rode localmente `npm run dev` + `npm run test:e2e:seed` + `npm run test:e2e -- --project=admin` para validar antes de confiar no CI.
-3. Se verde local: push trivial (empty commit) para disparar CI e validar E2E workflow.
-4. Se verde em CI: `git tag phase-12-2-deployed && git push origin phase-12-2-deployed`.
+### 8.2. Repo tornado público 2026-04-15
 
-**Próximas fases actionable (sem bloqueios externos):**
+Motivação: evitar custo GitHub Actions em repo privado (~2k min/mês grátis,
+sessão 2026-04-14 consumiu >210 min). Security review 2 passes aprovado antes
+de publicar:
 
-- **12.4 — Security audit:** checklist OWASP + `npm audit --audit-level=high` + gitleaks. Sem dependência.
-- **12.5 — Runbook docs:** completar `docs/ops/runbook.md` (on-call + deploy). Parcialmente entregue.
-- **7b/7c — Email OAuth + send:** bloqueado por secrets OAuth em Portainer (`GOOGLE_OAUTH_*`, `MS_OAUTH_*`).
+- gitleaks: 0 leaks após allowlist expandido.
+- `.env*` todos gitignored.
+- URLs Portainer sanitizadas em docs.
+- Vendor packages `.tgz` aceitos como expostos (decisão B do usuário).
+
+### 8.3. E2E CI estabilizado (Fase 14)
+
+Pré-Fase 14: E2E travava indefinidamente no global-setup viewer. Causa real:
+`next dev` compilando rotas sob demanda em runner CI de 2 vCPUs, excedendo
+timeout de 90s. Fix: webServer via `next start` (com `npm run build` precedente
+no workflow). Resultado: de 0 specs rodando para 17+ passed em ~43s.
+
+### 8.4. LEI ABSOLUTA #4 — consultar nexus-blueprint
+
+Toda nova implementação deve ler `/nexus-blueprint/core/design-system.md` +
+`patterns/` + `modules/` antes de criar componentes/features. Divergência OK
+mas documentada no spec. Fonte única de verdade para consistência entre
+projetos Nexus.
 
 ---
 
 ## 9. Contato
 
-Este handoff foi gerado pelo Claude Opus 4.6 (1M context) em sessão autônoma. Decisões arquiteturais estão nos specs v3. Aprendizados operacionais (debug, LEI #1) estão em `CLAUDE.md` + memory.
+Handoff gerado pelo Claude Opus 4.6 (1M context) em sessão autônoma
+2026-04-14→15. Decisões arquiteturais nos specs v3 em `docs/superpowers/specs/`.
+Aprendizados operacionais em `CLAUDE.md` (4 LEIS) + memory.
 
----
-
-## 10. Frente 17 — Tenant Scoping (descoberta + retomada)
-
-### 10.1. Contexto
-
-Durante Fase 12.2 foi identificada vuln pré-existente: `Lead`, `Contact`, `Opportunity` não têm coluna `companyId` no schema e server actions (`getLeads`, `updateContact`, `deleteOpportunity`, etc.) **não filtram por tenant**. Qualquer usuário autenticado pode ler/editar/apagar linhas de qualquer company. Isso é um vazamento cross-tenant em produção.
-
-### 10.2. Spec + plan já escritos (uncommitted)
-
-Branch: **`feat/tenant-scoping-crud`**. Arquivos uncommitted:
-
-- `docs/superpowers/specs/2026-04-14-tenant-scoping-crud-domains.md` (v3, 95 linhas)
-- `docs/superpowers/plans/2026-04-14-tenant-scoping-crud-domains.md` (T1..T7)
-
-Escopo:
-
-1. **T1 Migration + helper** — adicionar `companyId` a Lead/Contact/Opportunity com FK + index + backfill (primeiro company herda linhas legacy). Criar `src/lib/tenant-scope.ts` com `requireActiveCompanyId()`.
-2. **T2-T4** — refactor de `leads.ts`, `contacts.ts`, `opportunities.ts` + testes unit Prisma mock.
-3. **T5** — refactor de ~12 callsites auxiliares (search, activities, dashboard, marketing-*, worker marketing-send, automation actions).
-4. **T6** — ajustar seeds.
-5. **T7** — CI local + PR + squash merge.
-
-### 10.3. Retomada — opções priorizadas
-
-| Opção | Quando escolher | Ação |
-|---|---|---|
-| **A — Fix prod 500 primeiro** | Se login/app em prod afeta clientes (hoje está 500) | LEI #1 → logs container → identificar regressão de Frentes 14b/15b → fix mínimo |
-| **B — Frente 17 tenant scoping** | Se prod OK, queremos avançar e resolver vuln | `git checkout feat/tenant-scoping-crud`, commit spec+plan, executar T1..T7 via `superpowers:subagent-driven-development` |
-| **C — Destravar 12.2 E2E CI** | Se Frente 17 desbloquear ou prod estiver fine | Investigar dual React em `next dev` (alias turbopack não prevendo regressão com vendor packages) |
-
-**Recomendação:** **A → B → C** (corrigir prod crítico → lançar tenant scoping → validar E2E no fim).
-
-### 10.4. Como retomar (roteiro autônomo)
-
-1. **Ler memory** `session_state_2026_04_14_late.md` para mapa rápido.
-2. **Checar prod:** `curl -s https://crm2.nexusai360.com/api/health && curl -s -o /dev/null -w "%{http_code}" https://crm2.nexusai360.com/login`.
-3. **Se login 500:** seguir **LEI #1** (`CLAUDE.md` §1) — logs container ANTES de qualquer commit.
-4. **Quando prod estável:** `git checkout feat/tenant-scoping-crud`, commit do spec+plan, executar plan via superpowers (skills obrigatórias per CLAUDE.md).
-5. **Final:** PR merge → main → tentar validar 12.2 E2E CI novamente (agora com companyId isolando tenants, cross-tenant spec real passa) → tag `phase-12-2-deployed`.
+**Modelo recomendado para continuar sessão:** Claude Opus 4.6 ou superior
+(tarefas envolvem orquestração de 14+ arquivos, agents paralelos, 2-pass
+reviews em specs/plans).
