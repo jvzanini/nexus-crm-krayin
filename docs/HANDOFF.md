@@ -2,7 +2,9 @@
 
 > **Novo terminal / nova sessão:** este é o ponto de entrada único. Leia do início ao fim e você saberá o estado atual, como prosseguir, e quais decisões já foram tomadas. Só depois veja `CLAUDE.md` (regras) e `memory/MEMORY.md` (índice de memories).
 
-**Atualizado:** 2026-04-15 **tarde** (Fase 5 Custom Attributes completa — 29 commits, 676/676 Vitest verde, deployed main).
+**Atualizado:** 2026-04-15 **tarde/noite** (Fase 32 filtros URL em 5 módulos completa — 9 commits, 706/706 Vitest verde, deployed main).
+
+> **Fase 32 — Filtros URL em products/tasks/campaigns/segments/workflows (commits 33f0037..953b134):** fecha opção G do HANDOFF. Estende padrão canônico da Fase 24 (URL-based filters) para os 5 módulos restantes com bulk delete já entregue. Novo hook `useDebouncedValue` (300ms) compartilhado + guard `didMount` em useEffect de sync URL (não dispara `router.replace` no primeiro render — page SSR já entregou dados). 5 schemas Zod (`<module>-schemas.ts`, sem "use server") com `safeParse` que degrada graciosamente URL adulterada. Tasks: novo `listTasks` com gating `assigneeScope=all` via `requireCompanyRole(manager)` + graceful clamp+`logger.warn` para não-manager; `listMyTasks` vira wrapper. Products: `listDistinctCategories()` novo. 5 novos test files Vitest (+30 casos → 706). E2E `filters-bulk.spec.ts` estendido com 5 cases (URL assertion padrão). Reviews: spec-reviewer + code-quality-reviewer por grupo (skill `subagent-driven-development`). 3 fixes pós-review aplicados (useCallback loadProducts, `Prisma.ActivityWhereInput` typing, guard didMount transversal). Docs: `docs/superpowers/{specs,plans}/2026-04-15-fase-32-filtros-url-5-modulos-v3.md`.
 
 > **Fase 5 — Custom Attributes (commits 05160c4..b400dfb):** JSONB custom por tenant em Lead/Contact/Opportunity. 8 tipos, 30 attrs/entity cap, 32KB/row cap, unique partial index shared via refcount, purge→drop→finalize chain BullMQ, RBAC `custom-attributes:view|manage`, feature flag `feature.custom_attributes` (OFF default), DSAR export/erase+logger respeitando `piiMasked`, settings UI + integração leads/contacts/opps + FilterBar extension + E2E spec (4 ativos + 3 skip). Testes 464→676 (+212). Docs em `docs/HANDOFF-FASE-5-VERIFICATION.md` + `docs/superpowers/{specs,plans}/2026-04-15-fase-5-custom-attributes-v3.md`.
 **Branch principal:** `main` (tudo mergeado, sem branches ativas).
@@ -86,13 +88,13 @@ CI rodando com minutes ilimitados (benefício repos públicos).
 | **D — Fase 4 Quotes** | Modelo de cotações vinculadas a oportunidades | M | — |
 | **E — Fase 5 Custom Attributes** | Campos customizáveis por tenant em Lead/Contact/Opportunity | L | — |
 | **F — CSP nonce** | Endurecer CSP (remover unsafe-inline/eval) | M | — |
-| **G — Filtros + Bulk em products/tasks/campaigns** | Estender Fase 24 para 5 módulos restantes | M | — |
+| ~~**G — Filtros + Bulk em products/tasks/campaigns**~~ ✅ | Entregue na **Fase 32** (filtros URL em 5 módulos restantes) | — | — |
 | **H — Pipeline snapshots reais (23b)** | Cronjob semanal salvando pipeline evolution no DB | M | — |
 | **I — Saved filters** | Persistir filtros preferidos por user | M | — |
 | **J — Bulk edit** | Mudar status/stage de N items de uma vez | M | — |
 | **K — Dark mode audit** | Passar pente fino contraste dark mode em todas telas | S | — |
 
-Recomendação pós-Fase 25: avançar para **G** (Filtros + Bulk em products/tasks/campaigns/segments/workflows) → **I** (Saved filters) → **J** (Bulk edit) → **D** (Quotes) → **E** (Custom Attributes) → **H** (Pipeline snapshots reais) → **F** (CSP nonce) → **K** (Dark mode audit). Bloqueadas: B/C aguardam secrets externos.
+Recomendação pós-Fase 32: avançar para **I** (Saved filters) → **J** (Bulk edit adicional — status em contacts, tags em leads, etc.) → **D** (Quotes) → **H** (Pipeline snapshots reais) → **F** (CSP nonce) → **K** (Dark mode audit). Bloqueadas: B/C aguardam secrets externos. Obs.: Fase 5 (Custom Attributes) e Fase 32 (G) ✅ entregues.
 
 **Já entregue (não listar):** Busca global ✅ (25), Reports ✅ (23), Filtros URL + Bulk Delete ✅ (24), Mobile kanban ✅ (21), Empty states ✅ (20), Loading skeletons ✅ (22).
 
