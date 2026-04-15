@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Table,
@@ -48,10 +49,17 @@ import {
   createOpportunity,
   updateOpportunity,
   deleteOpportunity,
+  deleteOpportunitiesBulk,
 } from "@/lib/actions/opportunities";
-import type { OpportunityItem } from "@/lib/actions/opportunities";
+import type {
+  OpportunityItem,
+  OpportunitiesFilters,
+} from "@/lib/actions/opportunities";
 import { getContacts } from "@/lib/actions/contacts";
 import type { ContactItem } from "@/lib/actions/contacts";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
+import { BulkActionBar } from "@/components/tables/bulk-action-bar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -112,13 +120,29 @@ interface OpportunitiesContentProps {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  initialFilters?: Record<string, string | undefined>;
 }
 
-export function OpportunitiesContent({ canCreate, canEdit, canDelete }: OpportunitiesContentProps) {
+export function OpportunitiesContent({
+  canCreate,
+  canEdit,
+  canDelete,
+  initialFilters = {},
+}: OpportunitiesContentProps) {
+  const router = useRouter();
   const [opportunities, setOpportunities] = useState<OpportunityItem[]>([]);
   const [contacts, setContacts] = useState<ContactItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<string>("all");
+  const [filters, setFilters] = useState<OpportunitiesFilters>({
+    stage: initialFilters.stage,
+    minValue: initialFilters.minValue,
+    maxValue: initialFilters.maxValue,
+    from: initialFilters.from,
+    to: initialFilters.to,
+  });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [bulkDeleting, startBulkDeleting] = useTransition();
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
@@ -143,8 +167,8 @@ export function OpportunitiesContent({ canCreate, canEdit, canDelete }: Opportun
   const [oppToDelete, setOppToDelete] = useState<OpportunityItem | null>(null);
   const [deleting, startDeleting] = useTransition();
 
-  async function loadOpportunities() {
-    const result = await getOpportunities();
+  async function loadOpportunities(f: OpportunitiesFilters = filters) {
+    const result = await getOpportunities(f);
     if (result.success && result.data) {
       setOpportunities(result.data);
     } else {
@@ -161,12 +185,109 @@ export function OpportunitiesContent({ canCreate, canEdit, canDelete }: Opportun
   }
 
   useEffect(() => {
-    loadOpportunities();
     loadContacts();
   }, []);
 
-  const filtered =
-    filter === "all" ? opportunities : opportunities.filter((o) => o.stage === filter);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    loadOpportunities(filters);
+  }, [
+    filters.stage,
+    filters.minValue,
+    filters.maxValue,
+    filters.from,
+    filters.to,
+  ]);
+
+  const hasActiveFilters = useMemo(
+    () => Object.values(filters).some((v) => v !== undefined && v !== ""),
+    [filters]
+  );
+
+  function updateFilter(key: string, value: string) {
+    const next: OpportunitiesFilters = {
+      ...filters,
+      [key]: value === "" || value === "all" ? undefined : value,
+    };
+    setFilters(next);
+    setSelectedIds(new Set());
+    const qs = new URLSearchParams();
+    Object.entries(next).forEach(([k, v]) => {
+      if (v !== undefined && v !== "") qs.set(k, String(v));
+    });
+    const s = qs.toString();
+    router.replace(`/opportunities${s ? "?" + s : ""}`);
+  }
+
+  function clearFilters() {
+    setFilters({});
+    setSelectedIds(new Set());
+    router.replace("/opportunities");
+  }
+
+  const filterConfigs: FilterConfig[] = [
+    {
+      type: "select",
+      key: "stage",
+      label: "Stage",
+      value: filters.stage ?? "all",
+      options: [{ value: "all", label: "Todos" }, ...STAGE_OPTIONS],
+    },
+    {
+      type: "input",
+      key: "minValue",
+      label: "Valor mínimo",
+      value: filters.minValue ?? "",
+      placeholder: "0",
+      inputType: "number",
+    },
+    {
+      type: "input",
+      key: "maxValue",
+      label: "Valor máximo",
+      value: filters.maxValue ?? "",
+      placeholder: "0",
+      inputType: "number",
+    },
+    { type: "date", key: "from", label: "De", value: filters.from ?? "" },
+    { type: "date", key: "to", label: "Até", value: filters.to ?? "" },
+  ];
+
+  function toggleRow(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    if (selectedIds.size === opportunities.length && opportunities.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(opportunities.map((o) => o.id)));
+    }
+  }
+
+  function confirmBulkDelete() {
+    const ids = Array.from(selectedIds);
+    startBulkDeleting(async () => {
+      const result = await deleteOpportunitiesBulk(ids);
+      if (result.success && result.data) {
+        toast.success(
+          `${result.data.deletedCount} excluída${result.data.deletedCount === 1 ? "" : "s"}`
+        );
+        setOpportunities((prev) =>
+          prev.filter((o) => !selectedIds.has(o.id))
+        );
+        setSelectedIds(new Set());
+      } else {
+        toast.error(result.error ?? "Erro ao excluir");
+      }
+      setBulkDeleteDialogOpen(false);
+    });
+  }
 
   function openCreate() {
     setCreateTitle("");
@@ -302,22 +423,26 @@ export function OpportunitiesContent({ canCreate, canEdit, canDelete }: Opportun
         </PageHeader.Root>
       </motion.div>
 
-      {/* Stage Filters */}
-      <motion.div variants={itemVariants} className="flex gap-2 flex-wrap">
-        {[{ value: "all", label: "Todos" }, ...STAGE_OPTIONS].map((s) => (
-          <button
-            key={s.value}
-            onClick={() => setFilter(s.value)}
-            className={`px-3 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${
-              filter === s.value
-                ? "bg-violet-500/10 text-violet-400 border-violet-500/30"
-                : "border-border text-muted-foreground hover:border-muted-foreground/30"
-            }`}
-          >
-            {s.label}
-          </button>
-        ))}
+      {/* Filter Bar */}
+      <motion.div variants={itemVariants}>
+        <FilterBar
+          filters={filterConfigs}
+          onChange={updateFilter}
+          onClear={clearFilters}
+          hasActive={hasActiveFilters}
+        />
       </motion.div>
+
+      {/* Bulk Action Bar */}
+      {canDelete && (
+        <BulkActionBar
+          count={selectedIds.size}
+          onCancel={() => setSelectedIds(new Set())}
+          onDelete={() => setBulkDeleteDialogOpen(true)}
+          entityLabel="oportunidade"
+          entityPlural="oportunidades"
+        />
+      )}
 
       {/* Table */}
       <motion.div
@@ -328,7 +453,7 @@ export function OpportunitiesContent({ canCreate, canEdit, canDelete }: Opportun
           <div className="p-6">
             <TableSkeleton />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : opportunities.length === 0 ? (
           <EmptyState.Root>
             <EmptyState.Icon icon={TrendingUp} color="amber" />
             <EmptyState.Title>Nenhuma oportunidade aberta</EmptyState.Title>
@@ -350,6 +475,22 @@ export function OpportunitiesContent({ canCreate, canEdit, canDelete }: Opportun
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
+                {canDelete && (
+                  <TableHead className="text-muted-foreground w-10">
+                    <Checkbox
+                      checked={
+                        opportunities.length > 0 &&
+                        selectedIds.size === opportunities.length
+                      }
+                      indeterminate={
+                        selectedIds.size > 0 &&
+                        selectedIds.size < opportunities.length
+                      }
+                      onCheckedChange={() => toggleAll()}
+                      aria-label="Selecionar todos"
+                    />
+                  </TableHead>
+                )}
                 <TableHead className="text-muted-foreground">T\u00edtulo</TableHead>
                 <TableHead className="text-muted-foreground">Contato</TableHead>
                 <TableHead className="text-muted-foreground">Valor</TableHead>
@@ -362,7 +503,7 @@ export function OpportunitiesContent({ canCreate, canEdit, canDelete }: Opportun
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((opp, index) => {
+              {opportunities.map((opp, index) => {
                 const stageConfig = STAGE_CONFIG[opp.stage] || STAGE_CONFIG.prospecting;
                 return (
                   <motion.tr
@@ -376,6 +517,15 @@ export function OpportunitiesContent({ canCreate, canEdit, canDelete }: Opportun
                     }}
                     className="border-border hover:bg-accent/30 transition-colors duration-200"
                   >
+                    {canDelete && (
+                      <TableCell className="w-10">
+                        <Checkbox
+                          checked={selectedIds.has(opp.id)}
+                          onCheckedChange={() => toggleRow(opp.id)}
+                          aria-label={`Selecionar ${opp.title}`}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell className="font-medium text-foreground">
                       {opp.title}
                     </TableCell>
@@ -636,6 +786,43 @@ export function OpportunitiesContent({ canCreate, canEdit, canDelete }: Opportun
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog
+        open={bulkDeleteDialogOpen}
+        onOpenChange={setBulkDeleteDialogOpen}
+      >
+        <AlertDialogContent className="bg-card border border-border rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-foreground">
+              <AlertTriangle className="h-5 w-5 text-red-400" />
+              Excluir oportunidades selecionadas
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Tem certeza que deseja excluir{" "}
+              <strong className="text-foreground">{selectedIds.size}</strong>{" "}
+              oportunidade{selectedIds.size === 1 ? "" : "s"}? Esta ação é
+              irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={bulkDeleting}
+              className="border-border text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer transition-all duration-200"
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
+              disabled={bulkDeleting}
+              className="bg-red-600 text-white hover:bg-red-700 cursor-pointer transition-all duration-200"
+            >
+              {bulkDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Excluir {selectedIds.size}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

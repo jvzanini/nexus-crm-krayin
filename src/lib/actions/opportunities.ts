@@ -30,7 +30,26 @@ type ActionResult<T = unknown> = {
   error?: string;
 };
 
-export async function getOpportunities(): Promise<ActionResult<OpportunityItem[]>> {
+export interface OpportunitiesFilters {
+  stage?: string;
+  minValue?: string;
+  maxValue?: string;
+  from?: string;
+  to?: string;
+}
+
+const VALID_OPP_STAGES = [
+  "prospecting",
+  "qualification",
+  "proposal",
+  "negotiation",
+  "closed_won",
+  "closed_lost",
+] as const;
+
+export async function getOpportunities(
+  filters?: OpportunitiesFilters
+): Promise<ActionResult<OpportunityItem[]>> {
   try {
     await requirePermission("opportunities:view");
 
@@ -41,8 +60,40 @@ export async function getOpportunities(): Promise<ActionResult<OpportunityItem[]
       return { success: false, error: "Empresa ativa não encontrada" };
     }
 
+    const where: Record<string, unknown> = { companyId };
+    if (
+      filters?.stage &&
+      (VALID_OPP_STAGES as readonly string[]).includes(filters.stage)
+    ) {
+      where.stage = filters.stage;
+    }
+    if (filters?.minValue || filters?.maxValue) {
+      const range: Record<string, number> = {};
+      if (filters.minValue) {
+        const n = Number(filters.minValue);
+        if (!isNaN(n)) range.gte = n;
+      }
+      if (filters.maxValue) {
+        const n = Number(filters.maxValue);
+        if (!isNaN(n)) range.lte = n;
+      }
+      if (Object.keys(range).length > 0) where.value = range;
+    }
+    if (filters?.from || filters?.to) {
+      const range: Record<string, Date> = {};
+      if (filters.from) {
+        const d = new Date(filters.from);
+        if (!isNaN(d.getTime())) range.gte = d;
+      }
+      if (filters.to) {
+        const d = new Date(filters.to);
+        if (!isNaN(d.getTime())) range.lte = d;
+      }
+      if (Object.keys(range).length > 0) where.createdAt = range;
+    }
+
     const opportunities = await prisma.opportunity.findMany({
-      where: { companyId },
+      where,
       orderBy: { createdAt: "desc" },
       include: {
         contact: {
@@ -58,6 +109,37 @@ export async function getOpportunities(): Promise<ActionResult<OpportunityItem[]
     }
     throw err;
   }
+}
+
+export async function deleteOpportunitiesBulk(
+  ids: string[]
+): Promise<ActionResult<{ deletedCount: number }>> {
+  try {
+    await requirePermission("opportunities:delete");
+  } catch (err) {
+    if (err instanceof PermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
+  }
+
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return { success: false, error: "Nenhum id fornecido" };
+  }
+
+  const r = await prisma.opportunity.deleteMany({
+    where: { id: { in: ids }, companyId },
+  });
+
+  revalidatePath("/opportunities");
+  return { success: true, data: { deletedCount: r.count } };
 }
 
 export async function createOpportunity(data: {
