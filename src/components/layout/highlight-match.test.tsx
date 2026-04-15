@@ -40,4 +40,32 @@ describe("HighlightMatch", () => {
     const mark = container.querySelector("mark");
     expect(mark?.textContent).toBe("Ação");
   });
+
+  it("multiple matches highlighted (C4/I6)", () => {
+    const { container } = render(
+      <HighlightMatch text="Maria e Mariana" query="mari" />,
+    );
+    const marks = container.querySelectorAll("mark");
+    expect(marks.length).toBe(2);
+    expect(marks[0]?.textContent).toBe("Mari");
+    expect(marks[1]?.textContent).toBe("Mari");
+  });
+
+  it("NFD-decomposed source text offsets preserved (C4)", () => {
+    // "São" em forma NFD: S + a + \u0303 + o (4 code units)
+    const nfd = "Sa\u0303o Paulo".normalize("NFD");
+    const { container } = render(<HighlightMatch text={nfd} query="sao" />);
+    const mark = container.querySelector("mark");
+    // Deve destacar os 4 code units originais (S + a + combining + o), não
+    // 3 como seria no modo ingênuo de `text.slice(normalizedIdx, ...)`.
+    expect(mark?.textContent).toBe("Sa\u0303o");
+  });
+
+  it("no XSS via query with script tag (safe as text)", () => {
+    const { container } = render(
+      <HighlightMatch text="Hello <script>alert(1)</script>" query="script" />,
+    );
+    // O <script> é texto literal (React escapa), nenhum script real deve aparecer.
+    expect(container.querySelector("script")).toBeNull();
+  });
 });

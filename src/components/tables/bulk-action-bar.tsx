@@ -1,15 +1,26 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Trash2, X } from "lucide-react";
+import { Trash2, X, Pencil } from "lucide-react";
 import { Button } from "@nexusai360/design-system";
+
+export interface BulkEditOption {
+  /** Identificador da ação (ex: "change-status") */
+  key: string;
+  /** Texto exibido no botão */
+  label: string;
+  /** Handler quando clicado (opcional — ou render um menu externo) */
+  onClick: () => void;
+}
 
 interface BulkActionBarProps {
   count: number;
   onCancel: () => void;
   onDelete: () => void;
-  entityLabel: string; // "lead" | "contato" | "oportunidade"
-  entityPlural: string; // "leads" | "contatos" | "oportunidades"
+  entityLabel: string;
+  entityPlural: string;
+  /** Ações secundárias (ex: mudar status). Renderizadas entre "Cancelar" e "Excluir". */
+  editActions?: BulkEditOption[];
 }
 
 export function BulkActionBar({
@@ -18,6 +29,7 @@ export function BulkActionBar({
   onDelete,
   entityLabel,
   entityPlural,
+  editActions,
 }: BulkActionBarProps) {
   return (
     <AnimatePresence>
@@ -43,6 +55,16 @@ export function BulkActionBar({
               <X className="h-4 w-4 mr-1" />
               Cancelar
             </Button>
+            {editActions?.map((a) => (
+              <Button
+                key={a.key}
+                onClick={a.onClick}
+                className="h-8 bg-white/10 hover:bg-white/20 text-white border border-white/30 cursor-pointer"
+              >
+                <Pencil className="h-4 w-4 mr-1" />
+                {a.label}
+              </Button>
+            ))}
             <Button
               onClick={onDelete}
               className="h-8 bg-red-600 hover:bg-red-700 text-white cursor-pointer"

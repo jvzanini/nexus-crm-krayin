@@ -48,6 +48,7 @@ import {
   updateLead,
   deleteLead,
   deleteLeadsBulk,
+  updateLeadsStatusBulk,
 } from "@/lib/actions/leads";
 import type { LeadItem, LeadsFilters } from "@/lib/actions/leads";
 import { ConsentFieldset, type ConsentValue } from "@/components/consent/consent-fieldset";
@@ -129,6 +130,28 @@ export function LeadsContent({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleting, startBulkDeleting] = useTransition();
+
+  // Bulk edit status
+  const [bulkStatusDialogOpen, setBulkStatusDialogOpen] = useState(false);
+  const [bulkStatusValue, setBulkStatusValue] = useState<string>("new");
+  const [bulkUpdating, startBulkUpdating] = useTransition();
+
+  function confirmBulkStatus() {
+    const ids = Array.from(selectedIds);
+    startBulkUpdating(async () => {
+      const result = await updateLeadsStatusBulk(ids, bulkStatusValue);
+      if (result.success && result.data) {
+        toast.success(
+          `${result.data.updatedCount} lead${result.data.updatedCount === 1 ? "" : "s"} atualizado${result.data.updatedCount === 1 ? "" : "s"}`,
+        );
+        await loadLeads();
+        setSelectedIds(new Set());
+      } else {
+        toast.error(result.error ?? "Erro ao atualizar status");
+      }
+      setBulkStatusDialogOpen(false);
+    });
+  }
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
@@ -429,6 +452,17 @@ export function LeadsContent({
           onDelete={() => setBulkDeleteDialogOpen(true)}
           entityLabel="lead"
           entityPlural="leads"
+          editActions={
+            canEdit
+              ? [
+                  {
+                    key: "change-status",
+                    label: "Mudar status",
+                    onClick: () => setBulkStatusDialogOpen(true),
+                  },
+                ]
+              : undefined
+          }
         />
       )}
 
@@ -752,6 +786,46 @@ export function LeadsContent({
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               Salvar Alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Change Status Dialog */}
+      <Dialog open={bulkStatusDialogOpen} onOpenChange={setBulkStatusDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mudar status em massa</DialogTitle>
+            <DialogDescription>
+              Aplicar novo status a{" "}
+              <strong className="text-foreground">{selectedIds.size}</strong>{" "}
+              lead{selectedIds.size === 1 ? "" : "s"} selecionado{selectedIds.size === 1 ? "" : "s"}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground/80">
+              Novo status
+            </label>
+            <select
+              value={bulkStatusValue}
+              onChange={(e) => setBulkStatusValue(e.target.value)}
+              className="flex h-9 w-full rounded-md border bg-muted/50 border-border px-3 py-1 text-sm text-foreground shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={confirmBulkStatus}
+              disabled={bulkUpdating}
+              className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
+            >
+              {bulkUpdating && <Loader2 className="h-4 w-4 animate-spin" />}
+              Aplicar a {selectedIds.size}
             </Button>
           </DialogFooter>
         </DialogContent>

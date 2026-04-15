@@ -172,6 +172,55 @@ export async function deleteLeadsBulk(
   return { success: true, data: { deletedCount: r.count } };
 }
 
+const VALID_LEAD_STATUSES = [
+  "new",
+  "contacted",
+  "qualified",
+  "unqualified",
+  "converted",
+] as const;
+
+type LeadStatus = typeof VALID_LEAD_STATUSES[number];
+
+export async function updateLeadsStatusBulk(
+  ids: string[],
+  status: string,
+): Promise<ActionResult<{ updatedCount: number }>> {
+  try {
+    await requirePermission("leads:edit");
+  } catch (err) {
+    if (err instanceof PermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
+  }
+
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return { success: false, error: "Nenhum id fornecido" };
+  }
+  if (ids.length > 500) {
+    return { success: false, error: "Limite de 500 itens por operação" };
+  }
+  if (!VALID_LEAD_STATUSES.includes(status as LeadStatus)) {
+    return { success: false, error: "Status inválido" };
+  }
+
+  const r = await prisma.lead.updateMany({
+    where: { id: { in: ids }, companyId },
+    data: { status: status as LeadStatus },
+  });
+
+  revalidatePath("/leads");
+  return { success: true, data: { updatedCount: r.count } };
+}
+
 export async function createLead(data: {
   name: string;
   email?: string | null;
