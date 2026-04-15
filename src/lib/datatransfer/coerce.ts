@@ -52,7 +52,7 @@ function parseIso(s: string): Date | null {
  * do locale. Rejeita dias/meses inválidos explicitamente (não cai no
  * auto-rollover do `Date`).
  */
-export function dateCoerce(format: DateFormat): z.ZodType<Date, any, string> {
+export function dateCoerce(format: DateFormat): z.ZodType<Date, string> {
   return z.string().transform((s, ctx) => {
     const parser = format === "iso" ? parseIso : format === "br" ? parseBr : parseUs;
     const d = parser(s);
@@ -71,7 +71,7 @@ export function dateCoerce(format: DateFormat): z.ZodType<Date, any, string> {
  * Zod schema que aceita string monetária e converte para number. Remove
  * separador de milhar, normaliza decimal para `.`.
  */
-export function moneyCoerce(sep: DecimalSep): z.ZodType<number, any, string> {
+export function moneyCoerce(sep: DecimalSep): z.ZodType<number, string> {
   return z.string().transform((raw, ctx) => {
     const s = raw.trim();
     if (s.length === 0) {
