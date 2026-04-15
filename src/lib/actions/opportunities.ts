@@ -4,6 +4,34 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireActiveCompanyId } from "@/lib/tenant-scope";
 import { requirePermission, PermissionDeniedError } from "@/lib/rbac";
+import { listCustomAttributes } from "@/lib/custom-attributes/list";
+import { buildZodFromDefinitions } from "@/lib/custom-attributes/validator";
+import { assertCustomBytes } from "@/lib/custom-attributes/limits";
+import { parseP2002IndexName } from "@/lib/custom-attributes/p2002-parser";
+import {
+  buildPrismaWhereFromCustomFilters,
+  type CustomFilter,
+} from "@/lib/custom-attributes/query-builder";
+
+/**
+ * Valida payload `custom` contra definitions ativas e asserta 32KB cap.
+ * Retorna o objeto validado (ou `null` se input for nulo/undefined).
+ * Lança com mensagem amigável se falhar.
+ */
+async function validateOpportunityCustom(
+  companyId: string,
+  raw: Record<string, unknown> | undefined | null,
+): Promise<Record<string, unknown> | null> {
+  if (raw === undefined || raw === null) return null;
+  const defs = await listCustomAttributes(companyId, "opportunity");
+  const schema = buildZodFromDefinitions(defs);
+  const parsed = schema.safeParse(raw);
+  if (!parsed.success) {
+    throw new Error(`custom payload inválido: ${parsed.error.message}`);
+  }
+  assertCustomBytes(parsed.data);
+  return parsed.data as Record<string, unknown>;
+}
 
 export interface OpportunityItem {
   id: string;
@@ -36,6 +64,11 @@ export interface OpportunitiesFilters {
   maxValue?: string;
   from?: string;
   to?: string;
+  /**
+   * Filtros custom estruturados (cf[key][op]=value). O caller parseia a URL
+   * via `parseCustomFiltersFromSearchParams` e passa a lista aqui.
+   */
+  custom?: Array<{ key: string; op: string; value: unknown }>;
 }
 
 const VALID_OPP_STAGES = [
@@ -78,6 +111,14 @@ export async function getOpportunities(
         if (!isNaN(n)) range.lte = n;
       }
       if (Object.keys(range).length > 0) where.value = range;
+    }
+    if (filters?.custom && filters.custom.length > 0) {
+      const defs = await listCustomAttributes(companyId, "opportunity");
+      const customWhere = buildPrismaWhereFromCustomFilters(
+        filters.custom as CustomFilter[],
+        defs,
+      );
+      if (customWhere) where.custom = customWhere;
     }
     if (filters?.from || filters?.to) {
       const range: Record<string, Date> = {};
@@ -237,6 +278,7 @@ export async function createOpportunity(data: {
   closeDate?: string;
   notes?: string;
   assignedTo?: string;
+  custom?: Record<string, unknown> | null;
 }): Promise<ActionResult<{ id: string }>> {
   try {
     await requirePermission("opportunities:create");
@@ -265,23 +307,47 @@ export async function createOpportunity(data: {
     }
   }
 
-  const opportunity = await prisma.opportunity.create({
-    data: {
-      companyId,
-      title: data.title,
-      contactId: data.contactId ?? null,
-      stage: (data.stage as any) ?? "prospecting",
-      value: data.value ?? null,
-      currency: data.currency ?? "BRL",
-      probability: data.probability ?? 0,
-      closeDate: data.closeDate ? new Date(data.closeDate) : null,
-      notes: data.notes ?? null,
-      assignedTo: data.assignedTo ?? null,
-    },
-  });
+  let customValidated: Record<string, unknown> | null = null;
+  try {
+    customValidated = await validateOpportunityCustom(companyId, data.custom);
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "custom payload inválido",
+    };
+  }
 
-  revalidatePath("/opportunities");
-  return { success: true, data: { id: opportunity.id } };
+  try {
+    const opportunity = await prisma.opportunity.create({
+      data: {
+        companyId,
+        title: data.title,
+        contactId: data.contactId ?? null,
+        stage: (data.stage as any) ?? "prospecting",
+        value: data.value ?? null,
+        currency: data.currency ?? "BRL",
+        probability: data.probability ?? 0,
+        closeDate: data.closeDate ? new Date(data.closeDate) : null,
+        notes: data.notes ?? null,
+        assignedTo: data.assignedTo ?? null,
+        ...(customValidated !== null
+          ? { custom: customValidated as never }
+          : {}),
+      },
+    });
+
+    revalidatePath("/opportunities");
+    return { success: true, data: { id: opportunity.id } };
+  } catch (err) {
+    const p2002 = parseP2002IndexName(err);
+    if (p2002 && p2002.entity === "opportunity") {
+      return {
+        success: false,
+        error: `valor duplicado para campo unique "${p2002.key}"`,
+      };
+    }
+    throw err;
+  }
 }
 
 export async function updateOpportunity(
@@ -296,6 +362,7 @@ export async function updateOpportunity(
     closeDate?: string;
     notes?: string;
     assignedTo?: string;
+    custom?: Record<string, unknown> | null;
   }
 ): Promise<ActionResult> {
   try {
@@ -336,16 +403,41 @@ export async function updateOpportunity(
     }
   }
 
-  const r = await prisma.opportunity.updateMany({
-    where: { id, companyId },
-    data: updateData,
-  });
-  if (r.count === 0) {
-    return { success: false, error: "Oportunidade não encontrada" };
+  if (data.custom !== undefined) {
+    try {
+      const validated = await validateOpportunityCustom(companyId, data.custom);
+      if (validated !== null) {
+        updateData.custom = validated;
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "custom payload inválido",
+      };
+    }
   }
 
-  revalidatePath("/opportunities");
-  return { success: true };
+  try {
+    const r = await prisma.opportunity.updateMany({
+      where: { id, companyId },
+      data: updateData,
+    });
+    if (r.count === 0) {
+      return { success: false, error: "Oportunidade não encontrada" };
+    }
+
+    revalidatePath("/opportunities");
+    return { success: true };
+  } catch (err) {
+    const p2002 = parseP2002IndexName(err);
+    if (p2002 && p2002.entity === "opportunity") {
+      return {
+        success: false,
+        error: `valor duplicado para campo unique "${p2002.key}"`,
+      };
+    }
+    throw err;
+  }
 }
 
 export async function deleteOpportunity(id: string): Promise<ActionResult> {

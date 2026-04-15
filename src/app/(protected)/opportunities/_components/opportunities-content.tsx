@@ -124,6 +124,14 @@ interface OpportunitiesContentProps {
   canEdit: boolean;
   canDelete: boolean;
   initialFilters?: Record<string, string | undefined>;
+  /**
+   * T17 — definitions de custom attributes ativas para opportunity.
+   * Usado por CustomFieldsSection / CustomColumnsRenderer / CustomFiltersSection.
+   * NOTA: integração UI completa (form/table/filters) será feita em task futura
+   * — por ora esta prop apenas habilita a cadeia de dados (passthrough).
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  customDefs?: any[];
 }
 
 export function OpportunitiesContent({
@@ -131,6 +139,7 @@ export function OpportunitiesContent({
   canEdit,
   canDelete,
   initialFilters = {},
+  customDefs: _customDefs = [],
 }: OpportunitiesContentProps) {
   const router = useRouter();
   const [opportunities, setOpportunities] = useState<OpportunityItem[]>([]);
