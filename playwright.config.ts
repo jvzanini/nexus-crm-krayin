@@ -23,7 +23,7 @@ export default defineConfig({
     },
     {
       name: "admin",
-      testMatch: /golden-paths\/(admin|cross-tenant|pipeline|reports|filters-bulk|global-search)\.spec\.ts/,
+      testMatch: /golden-paths\/(admin|cross-tenant|pipeline|reports|filters-bulk|global-search|custom-attributes)\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         storageState: path.join(authDir, "admin.json"),
@@ -39,7 +39,7 @@ export default defineConfig({
     },
     {
       name: "viewer",
-      testMatch: /golden-paths\/viewer\.spec\.ts/,
+      testMatch: /golden-paths\/(viewer|custom-attributes)\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         storageState: path.join(authDir, "viewer.json"),
