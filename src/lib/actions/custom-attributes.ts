@@ -229,3 +229,54 @@ export async function createCustomAttribute(
     return handleError(err, "Erro ao criar custom attribute");
   }
 }
+
+/**
+ * Reordena custom attributes de uma entity no tenant ativo.
+ *
+ * Usa `prisma.$transaction` com `updateMany` por id — o `where` inclui
+ * `companyId` + `entity`, evitando qualquer leak cross-tenant ou cross-entity
+ * (ids de outro tenant simplesmente não afetam nenhuma row, count=0).
+ *
+ * Spec v3 §4: RBAC `custom-attributes:manage`, revalida tag do cache, auditLog.
+ */
+export async function reorderCustomAttributes(
+  entity: CustomAttributeEntity,
+  orderedIds: string[],
+): Promise<ActionResult> {
+  try {
+    const user = await requirePermission("custom-attributes:manage");
+    const companyId = await requireActiveCompanyId();
+
+    if (!Array.isArray(orderedIds)) {
+      return { success: false, error: "orderedIds must be array" };
+    }
+    if (orderedIds.length === 0) {
+      return { success: true, data: undefined };
+    }
+
+    await prisma.$transaction(
+      orderedIds.map((id, index) =>
+        prisma.customAttribute.updateMany({
+          where: { id, companyId, entity },
+          data: { position: index },
+        }),
+      ),
+    );
+
+    revalidateTag(`custom-attrs:${companyId}:${entity}`, "max");
+
+    await auditLog({
+      actorType: ActorType.user,
+      actorId: user.id,
+      actorLabel: user.email ?? user.name ?? user.id,
+      companyId,
+      action: "reordered",
+      resourceType: "custom_attribute",
+      details: { entity, orderedIds },
+    });
+
+    return { success: true, data: undefined };
+  } catch (err) {
+    return handleError(err, "Erro ao reordenar custom attributes");
+  }
+}

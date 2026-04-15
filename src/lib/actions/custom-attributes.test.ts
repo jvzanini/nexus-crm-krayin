@@ -15,7 +15,12 @@ vi.mock("@/lib/prisma", () => ({
       findMany: vi.fn(),
       count: vi.fn(),
       create: vi.fn(),
+      updateMany: vi.fn(),
     },
+    $transaction: vi.fn(async (ops: unknown[]) => {
+      // Resolve cada op (promise-like) e retorna array de resultados, mimicando prisma.
+      return Promise.all(ops.map((op) => Promise.resolve(op)));
+    }),
   },
 }));
 
@@ -70,6 +75,7 @@ import {
   listCustomAttributesAction,
   getCustomAttribute,
   createCustomAttribute,
+  reorderCustomAttributes,
 } from "./custom-attributes";
 
 type Mock = ReturnType<typeof vi.fn>;
@@ -284,5 +290,96 @@ describe("createCustomAttribute", () => {
     expect(res.success).toBe(false);
     expect(prisma.customAttribute.count).not.toHaveBeenCalled();
     expect(prisma.customAttribute.create).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// reorderCustomAttributes (T8c)
+// ---------------------------------------------------------------------------
+
+describe("reorderCustomAttributes", () => {
+  it("happy path — atualiza positions 0..N-1 via $transaction e revalida tag", async () => {
+    (prisma.customAttribute.updateMany as Mock).mockResolvedValue({ count: 1 });
+
+    const ids = ["id-a", "id-b", "id-c"];
+    const res = await reorderCustomAttributes("lead", ids);
+
+    expect(res.success).toBe(true);
+    expect(requirePermission).toHaveBeenCalledWith("custom-attributes:manage");
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    // Cada id mapeia para updateMany com position = index, scoped por companyId+entity.
+    expect(prisma.customAttribute.updateMany).toHaveBeenNthCalledWith(1, {
+      where: { id: "id-a", companyId: "company-A", entity: "lead" },
+      data: { position: 0 },
+    });
+    expect(prisma.customAttribute.updateMany).toHaveBeenNthCalledWith(2, {
+      where: { id: "id-b", companyId: "company-A", entity: "lead" },
+      data: { position: 1 },
+    });
+    expect(prisma.customAttribute.updateMany).toHaveBeenNthCalledWith(3, {
+      where: { id: "id-c", companyId: "company-A", entity: "lead" },
+      data: { position: 2 },
+    });
+    expect(revalidateTag).toHaveBeenCalledWith(
+      "custom-attrs:company-A:lead",
+      "max",
+    );
+    expect(auditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resourceType: "custom_attribute",
+        action: "reordered",
+        companyId: "company-A",
+      }),
+    );
+  });
+
+  it("id de outro tenant é ignorado silenciosamente (updateMany where inclui companyId)", async () => {
+    // updateMany de cross-tenant retorna {count:0} mas não lança. A ação continua verde.
+    (prisma.customAttribute.updateMany as Mock).mockResolvedValue({ count: 0 });
+
+    const res = await reorderCustomAttributes("lead", ["cross-tenant-id"]);
+
+    expect(res.success).toBe(true);
+    expect(prisma.customAttribute.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: "cross-tenant-id",
+        companyId: "company-A",
+        entity: "lead",
+      },
+      data: { position: 0 },
+    });
+  });
+
+  it("array vazio → no-op success sem tocar DB", async () => {
+    const res = await reorderCustomAttributes("lead", []);
+
+    expect(res.success).toBe(true);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.customAttribute.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("sem permissão manage — retorna 403 sem tocar DB", async () => {
+    (requirePermission as Mock).mockRejectedValue(
+      new PermissionDeniedError("custom-attributes:manage"),
+    );
+
+    const res = await reorderCustomAttributes("lead", ["id-a"]);
+
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/permiss/i);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.customAttribute.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("id inexistente é silenciosamente skipado — updateMany count=0 não falha", async () => {
+    (prisma.customAttribute.updateMany as Mock).mockResolvedValue({ count: 0 });
+
+    const res = await reorderCustomAttributes("contact", [
+      "ghost-1",
+      "ghost-2",
+    ]);
+
+    expect(res.success).toBe(true);
+    expect(prisma.customAttribute.updateMany).toHaveBeenCalledTimes(2);
   });
 });
