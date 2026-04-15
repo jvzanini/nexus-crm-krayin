@@ -15,6 +15,7 @@ vi.mock("@/lib/prisma", () => ({
       findMany: vi.fn(),
       count: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
       updateMany: vi.fn(),
     },
     $transaction: vi.fn(async (ops: unknown[]) => {
@@ -22,6 +23,12 @@ vi.mock("@/lib/prisma", () => ({
       return Promise.all(ops.map((op) => Promise.resolve(op)));
     }),
   },
+}));
+
+vi.mock("@/lib/worker/queues/custom-attr", () => ({
+  enqueueCreateIndex: vi.fn(async () => "ci:lead:mrr"),
+  enqueueDropIndex: vi.fn(async () => "di:lead:mrr"),
+  enqueuePurgeValues: vi.fn(async () => "purge:lead:mrr:company-A"),
 }));
 
 vi.mock("@/lib/rbac", () => {
@@ -72,10 +79,18 @@ import { revalidateTag } from "next/cache";
 import { auditLog } from "@/lib/audit-log";
 
 import {
+  enqueueCreateIndex,
+  enqueueDropIndex,
+  enqueuePurgeValues,
+} from "@/lib/worker/queues/custom-attr";
+
+import {
   listCustomAttributesAction,
   getCustomAttribute,
   createCustomAttribute,
   reorderCustomAttributes,
+  updateCustomAttribute,
+  deleteCustomAttribute,
 } from "./custom-attributes";
 
 type Mock = ReturnType<typeof vi.fn>;
@@ -381,5 +396,272 @@ describe("reorderCustomAttributes", () => {
 
     expect(res.success).toBe(true);
     expect(prisma.customAttribute.updateMany).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// updateCustomAttribute (T8b)
+// ---------------------------------------------------------------------------
+
+describe("updateCustomAttribute", () => {
+  const existingDef = {
+    id: "def-1",
+    companyId: "company-A",
+    entity: "lead" as const,
+    key: "mrr",
+    type: "number" as const,
+    label: "MRR",
+    required: false,
+    isUnique: false,
+    position: 0,
+    visibleInList: false,
+    status: "active" as const,
+  };
+
+  it("happy path — atualiza label/position/required/visibleInList, revalida e audita", async () => {
+    (prisma.customAttribute.findFirst as Mock).mockResolvedValue(existingDef);
+    (prisma.customAttribute.update as Mock).mockResolvedValue({
+      ...existingDef,
+      label: "MRR mensal",
+      position: 3,
+      required: true,
+      visibleInList: true,
+    });
+
+    const res = await updateCustomAttribute("def-1", {
+      label: "MRR mensal",
+      position: 3,
+      required: true,
+      visibleInList: true,
+    });
+
+    expect(res.success).toBe(true);
+    expect(requirePermission).toHaveBeenCalledWith("custom-attributes:manage");
+    expect(prisma.customAttribute.update).toHaveBeenCalledWith({
+      where: { id: "def-1", companyId: "company-A" },
+      data: expect.objectContaining({
+        label: "MRR mensal",
+        position: 3,
+        required: true,
+        visibleInList: true,
+      }),
+    });
+    expect(enqueueCreateIndex).not.toHaveBeenCalled();
+    expect(enqueueDropIndex).not.toHaveBeenCalled();
+    expect(revalidateTag).toHaveBeenCalledWith(
+      "custom-attrs:company-A:lead",
+      "max",
+    );
+    expect(auditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resourceType: "custom_attribute",
+        action: "updated",
+        resourceId: "def-1",
+        companyId: "company-A",
+      }),
+    );
+  });
+
+  it("def não encontrada no tenant — 404 sem tocar DB", async () => {
+    (prisma.customAttribute.findFirst as Mock).mockResolvedValue(null);
+
+    const res = await updateCustomAttribute("missing-id", { label: "X" });
+
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/n[aã]o encontrado/i);
+    expect(prisma.customAttribute.update).not.toHaveBeenCalled();
+  });
+
+  it("não permite mudar type — rejeita com erro sem update", async () => {
+    (prisma.customAttribute.findFirst as Mock).mockResolvedValue(existingDef);
+
+    const res = await updateCustomAttribute("def-1", {
+      type: "text",
+    } as never);
+
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/type|imut/i);
+    expect(prisma.customAttribute.update).not.toHaveBeenCalled();
+  });
+
+  it("não permite mudar key — rejeita com erro sem update", async () => {
+    (prisma.customAttribute.findFirst as Mock).mockResolvedValue(existingDef);
+
+    const res = await updateCustomAttribute("def-1", {
+      key: "other",
+    } as never);
+
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/key|imut/i);
+    expect(prisma.customAttribute.update).not.toHaveBeenCalled();
+  });
+
+  it("toggle isUnique false→true agenda create-index job", async () => {
+    (prisma.customAttribute.findFirst as Mock).mockResolvedValue({
+      ...existingDef,
+      isUnique: false,
+    });
+    (prisma.customAttribute.update as Mock).mockResolvedValue({
+      ...existingDef,
+      isUnique: true,
+    });
+
+    const res = await updateCustomAttribute("def-1", { isUnique: true });
+
+    expect(res.success).toBe(true);
+    expect(enqueueCreateIndex).toHaveBeenCalledWith(
+      expect.objectContaining({ entity: "lead", key: "mrr", defId: "def-1" }),
+    );
+    expect(enqueueDropIndex).not.toHaveBeenCalled();
+  });
+
+  it("toggle isUnique true→false agenda drop-index job", async () => {
+    (prisma.customAttribute.findFirst as Mock).mockResolvedValue({
+      ...existingDef,
+      isUnique: true,
+    });
+    (prisma.customAttribute.update as Mock).mockResolvedValue({
+      ...existingDef,
+      isUnique: false,
+    });
+
+    const res = await updateCustomAttribute("def-1", { isUnique: false });
+
+    expect(res.success).toBe(true);
+    expect(enqueueDropIndex).toHaveBeenCalledWith(
+      expect.objectContaining({ entity: "lead", key: "mrr", defId: "def-1" }),
+    );
+    expect(enqueueCreateIndex).not.toHaveBeenCalled();
+  });
+
+  it("sem permissão manage — retorna 403 sem tocar DB", async () => {
+    (requirePermission as Mock).mockRejectedValue(
+      new PermissionDeniedError("custom-attributes:manage"),
+    );
+
+    const res = await updateCustomAttribute("def-1", { label: "X" });
+
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/permiss/i);
+    expect(prisma.customAttribute.findFirst).not.toHaveBeenCalled();
+    expect(prisma.customAttribute.update).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// deleteCustomAttribute (T8b)
+// ---------------------------------------------------------------------------
+
+describe("deleteCustomAttribute", () => {
+  const activeDef = {
+    id: "def-1",
+    companyId: "company-A",
+    entity: "lead" as const,
+    key: "mrr",
+    isUnique: false,
+    status: "active" as const,
+  };
+  const uniqueDef = { ...activeDef, id: "def-2", isUnique: true };
+
+  it("happy path — marca status=deleting, enqueue purge com indexHandoff=false", async () => {
+    (prisma.customAttribute.findFirst as Mock).mockResolvedValue(activeDef);
+    (prisma.customAttribute.update as Mock).mockResolvedValue({
+      ...activeDef,
+      status: "deleting",
+    });
+
+    const res = await deleteCustomAttribute("def-1");
+
+    expect(res.success).toBe(true);
+    expect(res.data).toEqual({
+      jobId: "purge:lead:mrr:company-A",
+    });
+    expect(prisma.customAttribute.update).toHaveBeenCalledWith({
+      where: { id: "def-1", companyId: "company-A" },
+      data: { status: "deleting" },
+    });
+    expect(enqueuePurgeValues).toHaveBeenCalledWith({
+      entity: "lead",
+      key: "mrr",
+      companyId: "company-A",
+      defId: "def-1",
+      indexHandoff: false,
+    });
+    expect(revalidateTag).toHaveBeenCalledWith(
+      "custom-attrs:company-A:lead",
+      "max",
+    );
+  });
+
+  it("def isUnique=true passa indexHandoff=true no purge", async () => {
+    (prisma.customAttribute.findFirst as Mock).mockResolvedValue(uniqueDef);
+    (prisma.customAttribute.update as Mock).mockResolvedValue({
+      ...uniqueDef,
+      status: "deleting",
+    });
+
+    const res = await deleteCustomAttribute("def-2");
+
+    expect(res.success).toBe(true);
+    expect(enqueuePurgeValues).toHaveBeenCalledWith(
+      expect.objectContaining({ indexHandoff: true, defId: "def-2" }),
+    );
+  });
+
+  it("audit log action=delete_initiated", async () => {
+    (prisma.customAttribute.findFirst as Mock).mockResolvedValue(activeDef);
+    (prisma.customAttribute.update as Mock).mockResolvedValue({
+      ...activeDef,
+      status: "deleting",
+    });
+
+    await deleteCustomAttribute("def-1");
+
+    expect(auditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resourceType: "custom_attribute",
+        action: "delete_initiated",
+        resourceId: "def-1",
+        companyId: "company-A",
+      }),
+    );
+  });
+
+  it("def já em status=deleting — rejeita sem reprocessar", async () => {
+    (prisma.customAttribute.findFirst as Mock).mockResolvedValue({
+      ...activeDef,
+      status: "deleting",
+    });
+
+    const res = await deleteCustomAttribute("def-1");
+
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/delet/i);
+    expect(prisma.customAttribute.update).not.toHaveBeenCalled();
+    expect(enqueuePurgeValues).not.toHaveBeenCalled();
+  });
+
+  it("def não encontrada — 404 sem enqueue", async () => {
+    (prisma.customAttribute.findFirst as Mock).mockResolvedValue(null);
+
+    const res = await deleteCustomAttribute("missing");
+
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/n[aã]o encontrado/i);
+    expect(prisma.customAttribute.update).not.toHaveBeenCalled();
+    expect(enqueuePurgeValues).not.toHaveBeenCalled();
+  });
+
+  it("sem permissão manage — retorna 403 sem tocar DB", async () => {
+    (requirePermission as Mock).mockRejectedValue(
+      new PermissionDeniedError("custom-attributes:manage"),
+    );
+
+    const res = await deleteCustomAttribute("def-1");
+
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/permiss/i);
+    expect(prisma.customAttribute.findFirst).not.toHaveBeenCalled();
+    expect(enqueuePurgeValues).not.toHaveBeenCalled();
   });
 });
