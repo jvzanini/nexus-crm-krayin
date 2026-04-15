@@ -51,6 +51,8 @@ CI rodando com minutes ilimitados (benefício repos públicos).
 - **Fase 21 — Mobile Kanban:** pipeline responsivo. `md:block` mantém desktop DndContext + grid. `md:hidden` mostra accordion vertical com dropdown "Mover para..." (drag desabilitado em mobile por limitação de touch UX). Touch targets 44px.
 - **Fase 22 — Loading Skeletons:** 9 `loading.tsx` novos (dashboard, leads, contacts, opportunities, pipeline, products, tasks, campaigns, segments). Next Suspense renderiza skeleton durante fetch dos Server Components.
 - **Fase 12.2 — E2E verde:** `phase-12-2-deployed` aplicado. 17+ tests passam em 43s (admin/manager/viewer/cross-tenant/pipeline).
+- **Fase 23 — Reports/Analytics:** nova rota `/reports` (admin/manager only, `audit:view`). 4 cards: RevenueForecast (AreaChart stacked 6 meses × stage), LeadsBySource (BarChart horizontal com conversion rate qualified/converted), OwnerPerformance (table top 10 assignedTo), PipelineEvolution (LineChart 12 semanas — **dados estimados**, snapshot real em follow-up 23b). CSV export em cada card via `src/lib/reports/csv-export.ts`. Period filter 7/30/90/365d.
+- **Fase 24 — Filtros + Bulk Actions:** URL-based filters (`?status=...`, `?stage=...`, `?q=...`, `?from/to=...`) em /leads/contacts/opportunities. Shareable via share URL + restaurável via back navigation. Bulk checkbox selection + BulkActionBar sticky + AlertDialog confirm + server action `delete<Entity>Bulk(ids)` com RBAC `<módulo>:delete` + tenant scope `deleteMany where companyId`. Componentes compartilhados em `src/components/tables/{bulk-action-bar,filter-bar}.tsx`.
 
 **Todas fases acima COMPLETAS + deployed em prod.** Frente 17 tenant scoping (77e2918) e todas as fases subsequentes mergeadas em main.
 **LEI ABSOLUTA #4** adicionada: toda nova implementação deve consultar `nexus-blueprint/` (design-system.md, patterns/, modules/) antes de criar componentes/features.
@@ -60,19 +62,21 @@ CI rodando com minutes ilimitados (benefício repos públicos).
 
 | Opção | Descrição | Esforço | Blocker |
 |---|---|---|---|
-| **A — Reports/Analytics avançado** | Gráficos receita por mês, leads por source, conversion by segment, exportar CSV | M | — |
-| **B — Filtros avançados** | Em tabelas (data, status, owner) via query params + RSC | M | — |
-| **C — Bulk actions** | Selecionar múltiplos + delete/export em tabelas | S-M | — |
-| **D — Busca global UI** | `/api/search` já existe, falta UI completa com resultados agrupados | M | — |
-| **E — Sentry real** | Reativar `@sentry/nextjs` 10.x + instrumentation.ts | S | secret `SENTRY_DSN` no Portainer |
-| **F — Email OAuth real (Fase 7b/7c)** | Gmail/Outlook send + tracking | M-L | secrets `GOOGLE_OAUTH_*` + `MS_OAUTH_*` |
-| **G — Fase 4 Quotes** | Modelo de cotações vinculadas a oportunidades | M | — |
-| **H — Fase 5 Custom Attributes** | Campos customizáveis por tenant em Lead/Contact/Opportunity | L | — |
-| **I — Fase 11 Reports** | Reports.md completo com builder de relatórios | L | — |
-| **J — Fase 11b Public API** | API REST pública com api-keys + rate-limit | L | — |
-| **K — CSP nonce** | Endurecer CSP (remover unsafe-inline/eval) | M | — |
+| **A — Busca global UI** | `/api/search` existe, falta UI completa com resultados agrupados | M | — |
+| **B — Sentry real** | Reativar `@sentry/nextjs` 10.x + instrumentation.ts | S | secret `SENTRY_DSN` no Portainer |
+| **C — Email OAuth real (Fase 7b/7c)** | Gmail/Outlook send + tracking | M-L | secrets `GOOGLE_OAUTH_*` + `MS_OAUTH_*` |
+| **D — Fase 4 Quotes** | Modelo de cotações vinculadas a oportunidades | M | — |
+| **E — Fase 5 Custom Attributes** | Campos customizáveis por tenant em Lead/Contact/Opportunity | L | — |
+| **F — CSP nonce** | Endurecer CSP (remover unsafe-inline/eval) | M | — |
+| **G — Filtros + Bulk em products/tasks/campaigns** | Estender Fase 24 para 5 módulos restantes | M | — |
+| **H — Pipeline snapshots reais (23b)** | Cronjob semanal salvando pipeline evolution no DB | M | — |
+| **I — Saved filters** | Persistir filtros preferidos por user | M | — |
+| **J — Bulk edit** | Mudar status/stage de N items de uma vez | M | — |
+| **K — Dark mode audit** | Passar pente fino contraste dark mode em todas telas | S | — |
 
-Recomendação: **A** (Reports — alta visibilidade ao usuário) ou **B+C+D** (tríade de utility UX: filtros + bulk + busca).
+Recomendação: **A** (busca global — user visibility) + **B** (Sentry — observability crítica) em paralelo.
+
+**Já entregue (não listar):** Reports ✅ (23), Filtros URL + Bulk Delete ✅ (24), Mobile kanban ✅ (21), Empty states ✅ (20), Loading skeletons ✅ (22).
 
 ---
 
@@ -109,7 +113,10 @@ E2E CI verde (17+ tests em 43s).
 | **`phase-12-2-deployed`** | **12.2 — E2E CI verde** | **✅ 17+ tests passed em ~43s** |
 | **`phase-14-e2e-ci-stabilizer`** | **14 — E2E CI Stabilizer** | **✅ next start em CI resolveu timeout** |
 | **`phase-20-empty-states`** | **20 T2 — EmptyStates** | **✅ 9 telas com EmptyState amigável** |
-| **`phase-21-mobile-kanban`** | **21 — Mobile Kanban** | **🟡 código OK, deploy pendente (billing GH)** |
+| **`phase-21-mobile-kanban`** | **21 — Mobile Kanban** | **✅ accordion <md + dropdown "Mover para..."** |
+| **`phase-22-loading-skeletons`** | **22 — Loading Skeletons** | **✅ 9 loading.tsx em rotas críticas** |
+| **`phase-23-reports-deployed`** | **23 — Reports/Analytics** | **✅ /reports com 4 cards (RevenueForecast + LeadsBySource + OwnerPerformance + PipelineEvolution estimado) + CSV export** |
+| **`phase-24-filters-bulk-deployed`** | **24 — Filtros + Bulk Actions** | **✅ URL-based filters + bulk delete em /leads/contacts/opportunities** |
 | **`prod-stable-2026-04-14-late`** | **snapshot estável pós-fix** | **✅ referência para rollback** |
 
 ### 1.2. Commits recentes em `main` (últimos 10 — 2026-04-15)
@@ -381,8 +388,8 @@ Nenhum PR aberto. Todo trabalho foi comitado direto em main.
 
 ## 7. Session totals (2026-04-14→15)
 
-- **~60 commits novos** nesta sessão autônoma.
-- **13 tags novas** (phase-12-4, 12-5, 12-6, 13, 14, 15, 16, 17, 18, 19, 20-empty-states, 21, 22 + phase-12-2-deployed + prod-stable-2026-04-14-late).
+- **~75 commits novos** nesta sessão autônoma.
+- **16 tags novas** (phase-12-4, 12-5, 12-6, 13, 14, 15, 16, 17, 18, 19, 20-empty-states, 21, 22, 23-reports, 24-filters-bulk + phase-12-2-deployed + prod-stable-2026-04-14-late).
 - **Repo tornado público** 2026-04-15 (após security review 2-pass).
 - **0 CVEs** (high + moderate) em `npm audit`.
 - **E2E CI verde** (17+ tests passed em ~43s via `next start` em CI).
