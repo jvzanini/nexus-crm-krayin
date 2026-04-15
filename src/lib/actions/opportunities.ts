@@ -181,6 +181,52 @@ export async function updateOpportunitiesStageBulk(
   return { success: true, data: { updatedCount: r.count } };
 }
 
+export async function assignOpportunitiesBulk(
+  ids: string[],
+  assigneeId: string | null,
+): Promise<ActionResult<{ updatedCount: number }>> {
+  try {
+    await requirePermission("opportunities:edit");
+  } catch (err) {
+    if (err instanceof PermissionDeniedError) {
+      return { success: false, error: "Sem permissão para esta ação" };
+    }
+    throw err;
+  }
+
+  let companyId: string;
+  try {
+    companyId = await requireActiveCompanyId();
+  } catch {
+    return { success: false, error: "Empresa ativa não encontrada" };
+  }
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return { success: false, error: "Nenhum id fornecido" };
+  }
+  if (ids.length > 500) {
+    return { success: false, error: "Limite de 500 itens por operação" };
+  }
+
+  if (assigneeId) {
+    const member = await prisma.userCompanyMembership.findFirst({
+      where: { userId: assigneeId, companyId, isActive: true },
+      select: { userId: true },
+    });
+    if (!member) {
+      return { success: false, error: "Usuário não é membro ativo da empresa" };
+    }
+  }
+
+  const r = await prisma.opportunity.updateMany({
+    where: { id: { in: ids }, companyId },
+    data: { assignedTo: assigneeId },
+  });
+
+  revalidatePath("/opportunities");
+  return { success: true, data: { updatedCount: r.count } };
+}
+
 export async function createOpportunity(data: {
   title: string;
   contactId?: string;

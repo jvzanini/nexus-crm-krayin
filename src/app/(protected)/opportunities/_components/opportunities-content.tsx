@@ -51,7 +51,9 @@ import {
   deleteOpportunity,
   deleteOpportunitiesBulk,
   updateOpportunitiesStageBulk,
+  assignOpportunitiesBulk,
 } from "@/lib/actions/opportunities";
+import { getCompanyAssignees } from "@/lib/actions/leads";
 import type {
   OpportunityItem,
   OpportunitiesFilters,
@@ -149,6 +151,38 @@ export function OpportunitiesContent({
   const [bulkStageDialogOpen, setBulkStageDialogOpen] = useState(false);
   const [bulkStageValue, setBulkStageValue] = useState<string>("prospecting");
   const [bulkUpdating, startBulkUpdating] = useTransition();
+
+  // Bulk assign
+  const [bulkAssignDialogOpen, setBulkAssignDialogOpen] = useState(false);
+  const [bulkAssigneeValue, setBulkAssigneeValue] = useState<string>("");
+  const [bulkAssigning, startBulkAssigning] = useTransition();
+  const [assignees, setAssignees] = useState<{ id: string; name: string; email: string }[]>([]);
+
+  useEffect(() => {
+    if (bulkAssignDialogOpen && assignees.length === 0) {
+      getCompanyAssignees().then((r) => {
+        if (r.success && r.data) setAssignees(r.data);
+      });
+    }
+  }, [bulkAssignDialogOpen, assignees.length]);
+
+  function confirmBulkAssign() {
+    const ids = Array.from(selectedIds);
+    const assigneeId = bulkAssigneeValue === "" ? null : bulkAssigneeValue;
+    startBulkAssigning(async () => {
+      const result = await assignOpportunitiesBulk(ids, assigneeId);
+      if (result.success && result.data) {
+        toast.success(
+          `${result.data.updatedCount} oportunidade${result.data.updatedCount === 1 ? "" : "s"} ${assigneeId ? "atribuída" : "desatribuída"}${result.data.updatedCount === 1 ? "" : "s"}`,
+        );
+        await loadOpportunities();
+        setSelectedIds(new Set());
+      } else {
+        toast.error(result.error ?? "Erro ao atribuir oportunidades");
+      }
+      setBulkAssignDialogOpen(false);
+    });
+  }
 
   function confirmBulkStage() {
     const ids = Array.from(selectedIds);
@@ -471,6 +505,11 @@ export function OpportunitiesContent({
                     key: "change-stage",
                     label: "Mudar stage",
                     onClick: () => setBulkStageDialogOpen(true),
+                  },
+                  {
+                    key: "assign",
+                    label: "Atribuir a...",
+                    onClick: () => setBulkAssignDialogOpen(true),
                   },
                 ]
               : undefined
@@ -816,6 +855,47 @@ export function OpportunitiesContent({
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               Salvar Altera\u00e7\u00f5es
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Assign Dialog */}
+      <Dialog open={bulkAssignDialogOpen} onOpenChange={setBulkAssignDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Atribuir oportunidades a usuário</DialogTitle>
+            <DialogDescription>
+              Atribuir{" "}
+              <strong className="text-foreground">{selectedIds.size}</strong>{" "}
+              oportunidade{selectedIds.size === 1 ? "" : "s"} ao usuário escolhido. Deixar em branco para desatribuir.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground/80">
+              Responsável
+            </label>
+            <select
+              value={bulkAssigneeValue}
+              onChange={(e) => setBulkAssigneeValue(e.target.value)}
+              className="flex h-9 w-full rounded-md border bg-muted/50 border-border px-3 py-1 text-sm text-foreground shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="">— Sem responsável —</option>
+              {assignees.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name} ({u.email})
+                </option>
+              ))}
+            </select>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={confirmBulkAssign}
+              disabled={bulkAssigning}
+              className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
+            >
+              {bulkAssigning && <Loader2 className="h-4 w-4 animate-spin" />}
+              Aplicar a {selectedIds.size}
             </Button>
           </DialogFooter>
         </DialogContent>
