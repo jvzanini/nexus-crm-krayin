@@ -7,6 +7,9 @@ import {
   type CustomFilterValue,
 } from "@/components/custom-attributes/CustomFiltersSection";
 import type { CustomAttribute } from "@/lib/custom-attributes/types";
+import type { SavedFilter } from "@/generated/prisma/client";
+import type { SavedFilterModuleKey } from "@/lib/actions/saved-filters-schemas";
+import { SavedFiltersMenu } from "./saved-filters-menu";
 
 export interface FilterOption {
   value: string;
@@ -58,6 +61,17 @@ interface FilterBarProps {
     initialFilters?: CustomFilterValue[];
     onApply: (filters: CustomFilterValue[]) => void;
   };
+  /**
+   * Fase 33 — Saved filters. Quando presente, renderiza menu
+   * `SavedFiltersMenu` antes do botão "Limpar filtros".
+   */
+  savedFilters?: {
+    moduleKey: SavedFilterModuleKey;
+    current: Record<string, string>;
+    list: SavedFilter[];
+    onApply: (filters: Record<string, string>) => void;
+    onListChange: () => void;
+  };
 }
 
 export function FilterBar({
@@ -66,6 +80,7 @@ export function FilterBar({
   onClear,
   hasActive,
   customFilters,
+  savedFilters,
 }: FilterBarProps) {
   const showCustom =
     !!customFilters && customFilters.defs && customFilters.defs.length > 0;
@@ -115,9 +130,23 @@ export function FilterBar({
         }
         return null;
       })}
+      {savedFilters && (
+        <SavedFiltersMenu
+          moduleKey={savedFilters.moduleKey}
+          currentFilters={savedFilters.current}
+          savedList={savedFilters.list}
+          onApply={savedFilters.onApply}
+          onListChange={savedFilters.onListChange}
+        />
+      )}
       {hasActive && (
         <Button
           onClick={onClear}
+          title={
+            savedFilters && savedFilters.list.some((f) => f.isDefault)
+              ? "Limpa filtros e ignora o padrão até recarregar a página"
+              : undefined
+          }
           className="h-10 bg-transparent hover:bg-muted/50 text-muted-foreground border border-border cursor-pointer"
         >
           <X className="h-4 w-4 mr-1" />
