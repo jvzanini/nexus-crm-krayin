@@ -566,6 +566,54 @@ export async function deleteActivity(id: string): Promise<ActionResult> {
   }
 }
 
+export async function updateActivitiesStatusBulk(
+  ids: string[],
+  status: "completed" | "canceled",
+): Promise<ActionResult<{ updatedCount: number }>> {
+  try {
+    const user = await requirePermission("activities:edit");
+    const companyId = await resolveActiveCompanyId(user.id);
+    if (!companyId) return { success: false, error: "Nenhuma empresa ativa encontrada" };
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return { success: false, error: "Nenhuma atividade selecionada" };
+    }
+    if (ids.length > 500) {
+      return { success: false, error: "Limite de 500 itens por operação" };
+    }
+    if (status !== "completed" && status !== "canceled") {
+      return { success: false, error: "Status inválido (use completed ou canceled)" };
+    }
+
+    // Para reminders agendados, cancelar quando completed/canceled
+    const activities = await prisma.activity.findMany({
+      where: { id: { in: ids }, companyId, status: "pending" },
+      select: { id: true, reminderJobId: true },
+    });
+    const eligibleIds = activities.map((a) => a.id);
+    if (eligibleIds.length === 0) {
+      return { success: false, error: "Nenhuma atividade pendente encontrada" };
+    }
+
+    await Promise.all(
+      activities.map((a) => cancelReminder(a.reminderJobId).catch(() => undefined)),
+    );
+
+    const r = await prisma.activity.updateMany({
+      where: { id: { in: eligibleIds }, companyId },
+      data: {
+        status,
+        completedAt: status === "completed" ? new Date() : null,
+      },
+    });
+
+    revalidatePath("/tasks");
+    return { success: true, data: { updatedCount: r.count } };
+  } catch (err) {
+    return handleError(err, "Erro ao atualizar status em massa");
+  }
+}
+
 export async function deleteActivitiesBulk(
   ids: string[],
 ): Promise<ActionResult<{ deletedCount: number }>> {

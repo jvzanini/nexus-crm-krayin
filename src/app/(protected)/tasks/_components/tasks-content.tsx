@@ -47,6 +47,7 @@ import {
   cancelActivity,
   deleteActivity,
   deleteActivitiesBulk,
+  updateActivitiesStatusBulk,
   createActivity,
   updateActivity,
 } from "@/lib/actions/activities";
@@ -407,6 +408,24 @@ export function TasksContent({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleting, startBulkDeleting] = useTransition();
+  const [bulkStatusUpdating, startBulkStatusUpdating] = useTransition();
+
+  function bulkChangeStatus(status: "completed" | "canceled") {
+    const ids = Array.from(selectedIds);
+    startBulkStatusUpdating(async () => {
+      const result = await updateActivitiesStatusBulk(ids, status);
+      if (result.success && result.data) {
+        const verb = status === "completed" ? "concluída" : "cancelada";
+        toast.success(
+          `${result.data.updatedCount} tarefa${result.data.updatedCount === 1 ? "" : "s"} ${verb}${result.data.updatedCount === 1 ? "" : "s"}`,
+        );
+        await load();
+        setSelectedIds(new Set());
+      } else {
+        toast.error(result.error ?? "Erro ao atualizar status");
+      }
+    });
+  }
 
   function toggleRow(id: string) {
     setSelectedIds((prev) => {
@@ -623,6 +642,22 @@ export function TasksContent({
           onDelete={() => setBulkDeleteDialogOpen(true)}
           entityLabel="tarefa"
           entityPlural="tarefas"
+          editActions={
+            canComplete
+              ? [
+                  {
+                    key: "complete",
+                    label: bulkStatusUpdating ? "..." : "Concluir",
+                    onClick: () => bulkChangeStatus("completed"),
+                  },
+                  {
+                    key: "cancel",
+                    label: bulkStatusUpdating ? "..." : "Cancelar",
+                    onClick: () => bulkChangeStatus("canceled"),
+                  },
+                ]
+              : undefined
+          }
         />
       )}
 
