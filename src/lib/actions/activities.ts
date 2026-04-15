@@ -8,6 +8,7 @@ import { dispatch } from "@/lib/automation/dispatcher";
 import { getFileDriver, enforceMime, enforceSize } from "@/lib/files";
 import { scheduleReminder, cancelReminder } from "@/lib/worker/queues/activity-reminders";
 import type { ActivityType, ActivityStatus, ActivitySubjectType } from "@/generated/prisma/enums";
+import { Prisma } from "@/generated/prisma/client";
 import { randomUUID } from "crypto";
 import {
   createActivitySchema as _createSchema,
@@ -216,7 +217,7 @@ export async function listTasks(
     const parsed = TasksFiltersSchema.safeParse(raw ?? {});
     const filters = parsed.success ? parsed.data : {};
 
-    const where: Record<string, unknown> = {
+    const where: Prisma.ActivityWhereInput = {
       companyId,
       type: "task" as ActivityType,
     };
