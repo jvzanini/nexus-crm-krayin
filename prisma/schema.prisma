@@ -39,6 +39,32 @@ enum CompanyRole {
 }
 
 // ============================================================
+// ENUMS — CUSTOM ATTRIBUTES (Fase 5)
+// ============================================================
+
+enum CustomAttributeEntity {
+  lead
+  contact
+  opportunity
+}
+
+enum CustomAttributeType {
+  text
+  number
+  date
+  datetime
+  boolean
+  select
+  multi_select
+  url
+}
+
+enum CustomAttributeStatus {
+  active
+  deleting
+}
+
+// ============================================================
 // ENUMS — NOTIFICATIONS
 // ============================================================
 
@@ -158,6 +184,7 @@ model Company {
   leads               Lead[]
   contacts            Contact[]
   opportunities       Opportunity[]
+  customAttributes    CustomAttribute[]
 
   @@map("companies")
 }
@@ -343,6 +370,7 @@ model Lead {
   status      LeadStatus @default(new)
   notes       String?
   assignedTo  String?    @map("assigned_to") @db.Uuid
+  custom      Json       @default("{}")
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
 
@@ -372,6 +400,7 @@ model Contact {
   title        String?
   notes        String?
   avatarUrl    String?  @map("avatar_url")
+  custom       Json     @default("{}")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -403,6 +432,7 @@ model Opportunity {
   closeDate   DateTime?        @map("close_date")
   notes       String?
   assignedTo  String?          @map("assigned_to") @db.Uuid
+  custom      Json             @default("{}")
   createdAt   DateTime         @default(now()) @map("created_at")
   updatedAt   DateTime         @updatedAt @map("updated_at")
 
@@ -829,4 +859,53 @@ model CampaignRecipient {
   @@unique([campaignId, contactId], name: "uq_recipient_per_contact")
   @@index([campaignId, status], name: "idx_recipient_status")
   @@map("campaign_recipients")
+}
+
+// ============================================================
+// FASE 5 — CUSTOM ATTRIBUTES
+// ============================================================
+
+model CustomAttribute {
+  id            String                @id @default(uuid()) @db.Uuid
+  companyId     String                @map("company_id") @db.Uuid
+  entity        CustomAttributeEntity
+  key           String                @db.VarChar(80)
+  label         String                @db.VarChar(120)
+  type          CustomAttributeType
+  required      Boolean               @default(false)
+  isUnique      Boolean               @default(false) @map("is_unique")
+  options       Json?                 @default("[]")
+  defaultValue  Json?                 @map("default_value")
+  placeholder   String?               @db.VarChar(200)
+  helpText      String?               @map("help_text") @db.VarChar(500)
+  minLength     Int?                  @map("min_length")
+  maxLength     Int?                  @map("max_length")
+  minValue      Decimal?              @map("min_value") @db.Decimal(12, 4)
+  maxValue      Decimal?              @map("max_value") @db.Decimal(12, 4)
+  position      Int                   @default(0)
+  visibleInList Boolean               @default(false) @map("visible_in_list")
+  searchable    Boolean               @default(false)
+  sortable      Boolean               @default(false)
+  piiMasked     Boolean               @default(false) @map("pii_masked")
+  status        CustomAttributeStatus @default(active)
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, entity, key])
+  @@index([companyId, entity, position], name: "idx_custom_attr_form_order")
+  @@map("custom_attributes")
+}
+
+model CustomAttributeUniqueRef {
+  id        String                @id @default(uuid()) @db.Uuid
+  entity    CustomAttributeEntity
+  key       String                @db.VarChar(80)
+  refCount  Int                   @default(0) @map("ref_count")
+  indexName String                @map("index_name") @db.VarChar(128)
+  createdAt DateTime              @default(now()) @map("created_at")
+
+  @@unique([entity, key])
+  @@map("custom_attribute_unique_refs")
 }
