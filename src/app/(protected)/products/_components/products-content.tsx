@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition, useMemo } from "react";
+import { useState, useEffect, useCallback, useTransition, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -280,21 +280,24 @@ export function ProductsContent({
   // Carregamento
   // ---------------------------------------------------------------------------
 
-  async function loadProducts(f: ProductsFilters = filters) {
-    setLoading(true);
-    // Passa o shape URL direto — `listProducts` valida via Zod server-side.
-    const payload: Record<string, string> = {};
-    if (f.q) payload.q = f.q;
-    if (f.active) payload.active = f.active;
-    if (f.category) payload.category = f.category;
-    const result = await listProducts(payload);
-    if (result.success && result.data) {
-      setProducts(result.data);
-    } else {
-      toast.error(result.error ?? "Erro ao carregar produtos");
-    }
-    setLoading(false);
-  }
+  const loadProducts = useCallback(
+    async (f: ProductsFilters = filters) => {
+      setLoading(true);
+      // Passa o shape URL direto — `listProducts` valida via Zod server-side.
+      const payload: Record<string, string> = {};
+      if (f.q) payload.q = f.q;
+      if (f.active) payload.active = f.active;
+      if (f.category) payload.category = f.category;
+      const result = await listProducts(payload);
+      if (result.success && result.data) {
+        setProducts(result.data);
+      } else {
+        toast.error(result.error ?? "Erro ao carregar produtos");
+      }
+      setLoading(false);
+    },
+    [filters],
+  );
 
   // Sincroniza URL + refaz listProducts quando filtros mudam (debounce em q).
   useEffect(() => {
@@ -309,6 +312,9 @@ export function ProductsContent({
     const s = qs.toString();
     router.replace(`${pathname}${s ? "?" + s : ""}`, { scroll: false });
     loadProducts(effective);
+    // Deps intencionais: usamos `debouncedQ` em vez de `filters.q` para aplicar
+    // debounce de 300ms no input de busca; incluir `filters`/`loadProducts`
+    // dispararia refetch imediato a cada tecla, anulando o debounce.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQ, filters.active, filters.category]);
 
