@@ -115,6 +115,7 @@ model User {
   localeChangesApplied Company[]                   @relation("CompanyLocaleChangedBy")
   dataTransferJobs     DataTransferJob[]
   dataTransferPresets  DataTransferMappingPreset[]
+  savedFilters         SavedFilter[]
 
   @@map("users")
 }
@@ -188,6 +189,7 @@ model Company {
   opportunities       Opportunity[]
   customAttributes    CustomAttribute[]
   dataTransferJobs    DataTransferJob[]
+  savedFilters        SavedFilter[]
 
   @@map("companies")
 }
@@ -996,4 +998,39 @@ model DataTransferMappingPreset {
 
   @@id([userId, entity])
   @@map("data_transfer_mapping_presets")
+}
+
+// ============================================================
+// MÓDULO: SAVED FILTERS (Fase 33)
+// ============================================================
+
+enum SavedFilterModule {
+  leads
+  contacts
+  opportunities
+  products
+  tasks
+  campaigns
+  segments
+  workflows
+}
+
+model SavedFilter {
+  id        String            @id @default(uuid()) @db.Uuid
+  userId    String            @map("user_id") @db.Uuid
+  companyId String            @map("company_id") @db.Uuid
+  moduleKey SavedFilterModule @map("module_key")
+  name      String            @db.VarChar(80)
+  filters   Json              @default("{}") @db.JsonB
+  isDefault Boolean           @default(false) @map("is_default")
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, companyId, moduleKey, name], name: "uq_saved_filter_name")
+  @@index([userId, companyId, moduleKey], map: "idx_saved_filter_scope")
+  @@index([userId, companyId, moduleKey, isDefault], map: "idx_saved_filter_default")
+  @@map("saved_filters")
 }
