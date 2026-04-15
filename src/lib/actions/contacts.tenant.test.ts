@@ -23,7 +23,15 @@ vi.mock("@/lib/auth", () => ({
   getCurrentUser: vi.fn(),
 }));
 
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+  unstable_cache: (fn: any) => fn,
+}));
+vi.mock("@/lib/custom-attributes/list", () => ({
+  listCustomAttributes: vi.fn(async () => []),
+  invalidateCustomAttrsCache: vi.fn(),
+}));
 vi.mock("next/headers", () => ({
   headers: vi.fn(async () => new Map<string, string>()),
 }));

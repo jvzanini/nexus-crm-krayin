@@ -54,6 +54,9 @@ import { ConsentFieldset, type ConsentValue } from "@/components/consent/consent
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
 import { BulkActionBar } from "@/components/tables/bulk-action-bar";
+import { CustomFieldsSection } from "@/components/custom-attributes/CustomFieldsSection";
+import { CustomColumnsRenderer } from "@/components/custom-attributes/CustomColumnsRenderer";
+import type { CustomAttribute } from "@/lib/custom-attributes/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -92,6 +95,7 @@ interface ContactsContentProps {
   canEdit: boolean;
   canDelete: boolean;
   initialFilters?: Record<string, string | undefined>;
+  customDefs?: CustomAttribute[];
 }
 
 export function ContactsContent({
@@ -99,6 +103,7 @@ export function ContactsContent({
   canEdit,
   canDelete,
   initialFilters = {},
+  customDefs = [],
 }: ContactsContentProps) {
   const router = useRouter();
   const [contacts, setContacts] = useState<ContactItem[]>([]);
@@ -124,6 +129,7 @@ export function ContactsContent({
     marketing: false,
     tracking: false,
   });
+  const [createCustom, setCreateCustom] = useState<Record<string, unknown>>({});
   const [saving, startSaving] = useTransition();
 
   // Edit dialog
@@ -139,6 +145,7 @@ export function ContactsContent({
     marketing: false,
     tracking: false,
   });
+  const [editCustom, setEditCustom] = useState<Record<string, unknown>>({});
 
   // Delete dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -240,6 +247,7 @@ export function ContactsContent({
     setCreateOrganization("");
     setCreateTitle("");
     setCreateConsent({ marketing: false, tracking: false });
+    setCreateCustom({});
     setCreateOpen(true);
   }
 
@@ -255,6 +263,9 @@ export function ContactsContent({
       marketing: Boolean(contact.consentMarketing),
       tracking: Boolean(contact.consentTracking),
     });
+    setEditCustom(
+      (contact as unknown as { custom?: Record<string, unknown> }).custom ?? {},
+    );
     setEditOpen(true);
   }
 
@@ -278,6 +289,7 @@ export function ContactsContent({
         organization: createOrganization.trim() || undefined,
         title: createTitle.trim() || undefined,
         consent: createConsent,
+        custom: customDefs.length > 0 ? createCustom : undefined,
       });
 
       if (result.success) {
@@ -306,6 +318,7 @@ export function ContactsContent({
         organization: editOrganization.trim() || undefined,
         title: editTitle.trim() || undefined,
         consent: editConsent,
+        custom: customDefs.length > 0 ? editCustom : undefined,
       });
 
       if (result.success) {
@@ -444,6 +457,17 @@ export function ContactsContent({
                 <TableHead className="text-muted-foreground">Telefone</TableHead>
                 <TableHead className="text-muted-foreground">Empresa</TableHead>
                 <TableHead className="text-muted-foreground">Cargo</TableHead>
+                {customDefs
+                  .filter((d) => d.visibleInList)
+                  .map((def) => (
+                    <TableHead
+                      key={def.id}
+                      className="text-muted-foreground"
+                      data-key={def.key}
+                    >
+                      {def.label}
+                    </TableHead>
+                  ))}
                 <TableHead className="text-muted-foreground text-center hidden sm:table-cell">Criado em</TableHead>
                 {(canEdit || canDelete) && (
                   <TableHead className="text-muted-foreground text-center">Ações</TableHead>
@@ -487,6 +511,14 @@ export function ContactsContent({
                   <TableCell className="text-muted-foreground">
                     {contact.title || "-"}
                   </TableCell>
+                  <CustomColumnsRenderer
+                    defs={customDefs}
+                    customValues={
+                      ((contact as unknown as {
+                        custom?: Record<string, unknown>;
+                      }).custom) ?? {}
+                    }
+                  />
                   <TableCell className="text-center text-muted-foreground text-sm hidden sm:table-cell">
                     {format(new Date(contact.createdAt), "dd MMM yyyy", {
                       locale: ptBR,
@@ -609,6 +641,14 @@ export function ContactsContent({
               />
             </div>
             <ConsentFieldset value={createConsent} onChange={setCreateConsent} disabled={saving} />
+            {customDefs.length > 0 && (
+              <CustomFieldsSection
+                defs={customDefs}
+                values={createCustom}
+                onChange={setCreateCustom}
+                disabled={saving}
+              />
+            )}
           </div>
           <DialogFooter>
             <Button
@@ -707,6 +747,14 @@ export function ContactsContent({
               />
             </div>
             <ConsentFieldset value={editConsent} onChange={setEditConsent} disabled={saving} />
+            {customDefs.length > 0 && (
+              <CustomFieldsSection
+                defs={customDefs}
+                values={editCustom}
+                onChange={setEditCustom}
+                disabled={saving}
+              />
+            )}
           </div>
           <DialogFooter>
             <Button
