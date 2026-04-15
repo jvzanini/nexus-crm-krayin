@@ -1,5 +1,7 @@
 import pino from "pino";
 
+import { getPiiKeys } from "./custom-attributes/pii";
+
 /**
  * Logger estruturado central do Nexus CRM.
  *
@@ -65,4 +67,19 @@ export function maskEmail(email: string | null | undefined): string | null {
   if (!domain) return null;
   const visible = local[0] ?? "";
   return `${visible}${"*".repeat(Math.max(2, local.length - 1))}@${domain}`;
+}
+
+/**
+ * Gera `{ paths }` consumível pelo Pino `redact` a partir de defs de
+ * CustomAttribute com `piiMasked=true`. Cobre tanto payloads logados
+ * direto (`custom.<key>`) quanto request bodies (`req.body.custom.<key>`).
+ *
+ * Spec v3 §3.9 — pipeline PII: logger + DSAR + audit.
+ */
+export function redactCustomPii(
+  defs: readonly { key: string; piiMasked: boolean }[] | null | undefined,
+): { paths: string[] } {
+  const keys = getPiiKeys(defs ?? []);
+  const paths = keys.flatMap((key) => [`custom.${key}`, `req.body.custom.${key}`]);
+  return { paths };
 }

@@ -1,4 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
+import { getPiiKeys } from "@/lib/custom-attributes/pii";
 import type { SubjectType } from "./export";
 
 export const ERASED_NAME_MARKER = "[DSAR ERASED]";
@@ -28,6 +29,40 @@ export async function anonymizeSubject(
   const erasedEmail = buildErasedEmail(input.subjectId);
   const reasonTag = `erased_by_dsar${input.reason ? `:${input.reason.slice(0, 400)}` : ""}`;
 
+  // Spec v3 §3.9 — zera keys piiMasked=true no jsonb `custom`, preservando non-PII.
+  const subjectDelegate =
+    input.subjectType === "lead"
+      ? (tx as any).lead
+      : input.subjectType === "contact"
+        ? (tx as any).contact
+        : (tx as any).opportunity;
+  let customPatch: Record<string, unknown> | undefined;
+  const current =
+    typeof subjectDelegate?.findUnique === "function" && typeof (tx as any).customAttribute?.findMany === "function"
+      ? await subjectDelegate.findUnique({
+          where: { id: input.subjectId },
+          select: { companyId: true, custom: true },
+        })
+      : null;
+  if (current?.companyId) {
+    const defs = await (tx as any).customAttribute.findMany({
+      where: { companyId: current.companyId, entity: input.subjectType, status: "active" },
+      select: { key: true, piiMasked: true },
+    });
+    const piiKeys = getPiiKeys(defs);
+    if (piiKeys.length > 0) {
+      const base: Record<string, unknown> = { ...(current.custom ?? {}) };
+      for (const k of piiKeys) {
+        if (k in base) base[k] = null;
+      }
+      customPatch = base;
+    }
+  }
+
+  const customField = customPatch
+    ? { custom: customPatch as Prisma.InputJsonValue }
+    : {};
+
   if (input.subjectType === "lead") {
     await tx.lead.update({
       where: { id: input.subjectId },
@@ -42,6 +77,7 @@ export async function anonymizeSubject(
         consentTracking: false,
         consentTrackingAt: null,
         consentTrackingIpMask: null,
+        ...customField,
       },
     });
   } else if (input.subjectType === "contact") {
@@ -61,12 +97,13 @@ export async function anonymizeSubject(
         consentTracking: false,
         consentTrackingAt: null,
         consentTrackingIpMask: null,
+        ...customField,
       },
     });
   } else {
     await tx.opportunity.update({
       where: { id: input.subjectId },
-      data: { notes: null },
+      data: { notes: null, ...customField },
     });
   }
 

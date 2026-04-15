@@ -1,14 +1,22 @@
 import { describe, it, expect, vi } from "vitest";
 import { buildSubjectExport, type SubjectType } from "./export";
 
-function mkPrismaMock() {
+function mkPrismaMock(opts?: {
+  leadCustom?: Record<string, unknown>;
+  customAttrDefs?: Array<{ key: string; piiMasked: boolean; entity: string }>;
+  leadCompanyId?: string;
+}) {
+  const custom = opts?.leadCustom ?? {};
+  const defs = opts?.customAttrDefs ?? [];
   return {
     lead: {
       findUnique: vi.fn(async () => ({
         id: "l1",
+        companyId: opts?.leadCompanyId ?? "co1",
         name: "Joao",
         email: "joao@example.com",
         phone: "+5511999999999",
+        custom,
         createdAt: new Date("2025-01-01"),
       })),
     },
@@ -33,6 +41,9 @@ function mkPrismaMock() {
       findMany: vi.fn(async () => [
         { id: "au1", action: "lead.created", createdAt: new Date("2025-01-01") },
       ]),
+    },
+    customAttribute: {
+      findMany: vi.fn(async () => defs),
     },
   };
 }
@@ -62,5 +73,28 @@ describe("buildSubjectExport", () => {
     await expect(
       buildSubjectExport({} as any, "xyz" as SubjectType, "l1"),
     ).rejects.toThrow("INVALID_SUBJECT_TYPE");
+  });
+
+  it("custom com piiMasked=true é substituído por ***REDACTED*** no export", async () => {
+    const prismaMock = mkPrismaMock({
+      leadCustom: { cpf: "123.456.789-00", mrr: 5000 },
+      customAttrDefs: [
+        { key: "cpf", piiMasked: true, entity: "lead" },
+        { key: "mrr", piiMasked: false, entity: "lead" },
+      ],
+    });
+    const result = await buildSubjectExport(prismaMock as any, "lead", "l1");
+    const subjectCustom = (result.subject as any).custom;
+    expect(subjectCustom.cpf).toBe("***REDACTED***");
+    expect(subjectCustom.mrr).toBe(5000);
+  });
+
+  it("sem defs piiMasked o custom do subject é mantido inalterado", async () => {
+    const prismaMock = mkPrismaMock({
+      leadCustom: { foo: "bar", mrr: 1000 },
+      customAttrDefs: [{ key: "mrr", piiMasked: false, entity: "lead" }],
+    });
+    const result = await buildSubjectExport(prismaMock as any, "lead", "l1");
+    expect((result.subject as any).custom).toEqual({ foo: "bar", mrr: 1000 });
   });
 });

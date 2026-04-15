@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Writable } from "node:stream";
 import pino from "pino";
-import { maskEmail } from "./logger";
+import { maskEmail, redactCustomPii } from "./logger";
 
 function makeCapturingLogger() {
   const lines: string[] = [];
@@ -62,5 +62,30 @@ describe("maskEmail", () => {
     expect(maskEmail(undefined)).toBeNull();
     expect(maskEmail("nope")).toBeNull();
     expect(maskEmail("@nope.com")).toBeNull();
+  });
+});
+
+describe("redactCustomPii", () => {
+  it("gera paths para keys piiMasked=true em custom.* e req.body.custom.*", () => {
+    const defs = [
+      { key: "cpf", piiMasked: true },
+      { key: "mrr", piiMasked: false },
+      { key: "passport", piiMasked: true },
+    ];
+    const result = redactCustomPii(defs as any);
+    expect(result.paths).toEqual(
+      expect.arrayContaining([
+        "custom.cpf",
+        "custom.passport",
+        "req.body.custom.cpf",
+        "req.body.custom.passport",
+      ]),
+    );
+    expect(result.paths).not.toContain("custom.mrr");
+  });
+
+  it("defs vazio ou sem piiMasked retorna paths=[]", () => {
+    expect(redactCustomPii([] as any).paths).toEqual([]);
+    expect(redactCustomPii([{ key: "mrr", piiMasked: false }] as any).paths).toEqual([]);
   });
 });

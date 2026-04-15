@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@/generated/prisma/client";
+import { stripPii } from "@/lib/custom-attributes/pii";
 
 export type SubjectType = "lead" | "contact" | "opportunity";
 
@@ -46,6 +47,21 @@ export async function buildSubjectExport(
   const delegate = subjectDelegate(db, subjectType);
   const subject = await (delegate as any).findUnique({ where: { id: subjectId } });
   if (!subject) throw new SubjectNotFoundError(subjectType, subjectId);
+
+  // Spec v3 §3.9 — aplica redact em custom.* para keys piiMasked=true.
+  if (subject && typeof subject === "object" && "custom" in subject) {
+    const companyId = (subject as any).companyId as string | undefined;
+    if (companyId) {
+      const defs = await (db as any).customAttribute.findMany({
+        where: { companyId, entity: subjectType, status: "active" },
+        select: { key: true, piiMasked: true },
+      });
+      (subject as any).custom = stripPii(
+        (subject as any).custom as Record<string, unknown> | null | undefined,
+        defs,
+      );
+    }
+  }
 
   const [activities, emails, consentLogs, auditLogs] = await Promise.all([
     db.activity.findMany({

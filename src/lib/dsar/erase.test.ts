@@ -61,3 +61,68 @@ describe("anonymizeSubject (lead)", () => {
     }
   });
 });
+
+describe("anonymizeSubject — custom attributes piiMasked", () => {
+  function mkTx(opts: {
+    leadRecord: { companyId: string; custom: Record<string, unknown> };
+    defs: Array<{ key: string; piiMasked: boolean; entity: string }>;
+  }) {
+    return {
+      lead: {
+        update: vi.fn(async () => ({ id: "l1" })),
+        findUnique: vi.fn(async () => ({ id: "l1", ...opts.leadRecord })),
+      },
+      contact: { update: vi.fn(), findUnique: vi.fn(async () => null) },
+      opportunity: { update: vi.fn(), findUnique: vi.fn(async () => null) },
+      activity: { updateMany: vi.fn(async () => ({ count: 0 })) },
+      consentLog: { create: vi.fn(async () => ({ id: "c1" })) },
+      customAttribute: { findMany: vi.fn(async () => opts.defs) },
+    };
+  }
+
+  it("anonymize zera APENAS keys piiMasked=true do custom (preserva non-PII)", async () => {
+    const tx = mkTx({
+      leadRecord: {
+        companyId: "co1",
+        custom: { cpf: "123.456.789-00", mrr: 5000, notes: "privado" },
+      },
+      defs: [
+        { key: "cpf", piiMasked: true, entity: "lead" },
+        { key: "notes", piiMasked: true, entity: "lead" },
+        { key: "mrr", piiMasked: false, entity: "lead" },
+      ],
+    });
+
+    await anonymizeSubject(tx as any, {
+      subjectType: "lead",
+      subjectId: "l1",
+      actorId: "admin-1",
+    });
+
+    expect(tx.lead.update).toHaveBeenCalled();
+    const updateData = ((tx.lead.update.mock.calls as any[])[0][0] as any).data as any;
+    expect(updateData.custom).toBeDefined();
+    expect(updateData.custom.cpf).toBeNull();
+    expect(updateData.custom.notes).toBeNull();
+    expect(updateData.custom.mrr).toBe(5000);
+  });
+
+  it("sem defs piiMasked, custom existente fica intacto no update", async () => {
+    const tx = mkTx({
+      leadRecord: { companyId: "co1", custom: { mrr: 1000 } },
+      defs: [{ key: "mrr", piiMasked: false, entity: "lead" }],
+    });
+
+    await anonymizeSubject(tx as any, {
+      subjectType: "lead",
+      subjectId: "l1",
+      actorId: "admin-1",
+    });
+
+    const updateData = ((tx.lead.update.mock.calls as any[])[0][0] as any).data as any;
+    // Sem keys piiMasked, `custom` não precisa ser alterado — aceita ausente OU igual ao original
+    if ("custom" in updateData) {
+      expect(updateData.custom).toEqual({ mrr: 1000 });
+    }
+  });
+});
