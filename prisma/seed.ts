@@ -121,6 +121,25 @@ async function main() {
     },
   ];
 
+  // Garantir membership super_admin para o super-admin em cada company demo.
+  // Necessário porque `requireActiveCompanyId()` exige membership explícita
+  // mesmo para super-admin (LEI law_superadmin_seed).
+  for (const company of companies) {
+    await prisma.userCompanyMembership.upsert({
+      where: {
+        userId_companyId: { userId: user.id, companyId: company.id },
+      },
+      update: { isActive: true, role: "super_admin" },
+      create: {
+        userId: user.id,
+        companyId: company.id,
+        role: "super_admin",
+        isActive: true,
+      },
+    });
+    console.log(`Membership super_admin garantida em ${company.slug}`);
+  }
+
   // Feature flags — Fase 5 Custom Attributes (default OFF; habilitado por
   // tenant via FeatureFlagOverride).
   await prisma.featureFlag.upsert({
