@@ -10,13 +10,20 @@
 > **Fase 34 Parte A — Visual Parity blueprint (tag v0.2.0-patterns no nexus-blueprint):**
 > 4 patterns novos em `@nexusai360/patterns@0.2.0`: `CrmShell` (composição sobre `AppShell` do DS + mobile drawer + slots PT-BR + CSS vars `--topbar-height`/`--sidebar-*-width`), `CrmListShell` (consome `PageHeader` dentro de wrapper card `rounded-lg border bg-card`), `CrmDetailShell` (two-column sticky 394px), `CrmDashboardGrid` (main + side 378px com fallback 1col). 2 extensions additive: `PageShell` (topbar/collapsedSidebarWidth/tokens semânticos) + `PageHeader` (text-foreground/text-muted-foreground). 39 testes novos, 279 passed total no pacote patterns. `"use client"` apenas em `crm-shell.tsx`; `sideEffects: false`; `files: [dist, src]`; zero `gray-*` em patterns CRM. DTS build destravado (fix pré-existente em `notification-center` + `profile-menu`: removido `asChild` e `sideOffset` incompatíveis com `DropdownMenu` custom do `@nexusai360/ui`). Specs/plans triplo-revisados em `docs/superpowers/{specs,plans}/2026-04-16-fase-34-visual-parity-krayin-v*.md`.
 
-> **Fase 34 Parte A — pendências (fora do blueprint, gated):**
-> 1. Publish GHCR `@nexusai360/patterns@0.2.0` — CI rodou tag `v0.2.0-patterns` mas falhou em `pnpm build` de `@nexusai360/icons` (erro pré-existente, não relacionado à F34). Destravar: corrigir build do icons OU filtrar `pnpm --filter @nexusai360/patterns build` no workflow.
-> 2. Krayin install (`npm install @nexusai360/patterns@0.2.0` via `file:vendor-packages` ou GHCR) depois que publish ok.
-> 3. Krayin wire-up: `src/components/layout/shell-slots.tsx` (factories `buildSidebarSlots`/`buildTopbarSlots`) + `src/app/(protected)/layout.tsx` consumindo `CrmShell` + `DashboardContent` compondo `CrmDashboardGrid` com 3 widgets novos (TasksTodayCard + UpcomingMeetingsCard + QuickActionsCard) + 5 rotas (`/leads`, `/contacts`, `/opportunities`, `/opportunities/pipeline`, `/dashboard`) envelopadas.
-> 4. Testes E2E novos em `tests/e2e/golden-paths/`: `visual-parity.spec.ts` + `theme-cycler.spec.ts` + `preservation-smoke.spec.ts`.
-> 5. Visual audit em `docs/visual-audit-krayin.md`.
-> 6. Deploy prod + tag `phase-34-deployed` + memory `law_crm_shell_pattern`.
+> **Fase 34 Parte A — progresso / pendências:**
+> - ✅ Publish GHCR `@nexusai360/patterns@0.2.0` entregue (workflow ajustado pra filtrar `pnpm --filter pkg build/test`, evita fail em icons pré-existente; CI tag `v0.2.0-patterns` verde em 1m39s).
+> - ✅ Krayin install via `file:./vendor-packages/nexusai360-patterns-0.2.0.tgz` + `transpilePackages` + checksum registrado (commit a5447f5).
+> - ✅ Memory `law_crm_shell_pattern` criada + indexada no `MEMORY.md` do krayin.
+> - ⏳ Wire-up nas páginas (alto risco de regressão em `leads-content.tsx` 1058L, `contacts-content.tsx`, etc — requer fase dedicada refatorando consumidor do `PageHeader` legado do DS pro novo pattern):
+>   - `src/components/layout/shell-slots.tsx` (factories `buildSidebarSlots`/`buildTopbarSlots` extraindo do Sidebar atual).
+>   - `src/app/(protected)/layout.tsx` consumindo `CrmShell` (substituindo Sidebar legado inline).
+>   - 5 rotas envelopadas em `CrmListShell`/`CrmDashboardGrid`.
+>   - 3 widgets dashboard novos (TasksTodayCard + UpcomingMeetingsCard + QuickActionsCard).
+> - ⏳ Testes E2E novos em `tests/e2e/golden-paths/`: `visual-parity.spec.ts` + `theme-cycler.spec.ts` + `preservation-smoke.spec.ts`.
+> - ⏳ Visual audit em `docs/visual-audit-krayin.md`.
+> - ⏳ Deploy prod + tag `phase-34-deployed`.
+>
+> Plan detalhado Tasks 13-34 disponível em `docs/superpowers/plans/2026-04-16-fase-34-visual-parity-krayin-v3.md`. Execução recomendada via `superpowers:executing-plans` em sessão dedicada — cada rota é uma mudança pontual validada contra `preservation-smoke.spec.ts`.
 
 > **Fase 32 — Filtros URL em products/tasks/campaigns/segments/workflows (commits 33f0037..953b134):** fecha opção G do HANDOFF. Estende padrão canônico da Fase 24 (URL-based filters) para os 5 módulos restantes com bulk delete já entregue. Novo hook `useDebouncedValue` (300ms) compartilhado + guard `didMount` em useEffect de sync URL (não dispara `router.replace` no primeiro render — page SSR já entregou dados). 5 schemas Zod (`<module>-schemas.ts`, sem "use server") com `safeParse` que degrada graciosamente URL adulterada. Tasks: novo `listTasks` com gating `assigneeScope=all` via `requireCompanyRole(manager)` + graceful clamp+`logger.warn` para não-manager; `listMyTasks` vira wrapper. Products: `listDistinctCategories()` novo. 5 novos test files Vitest (+30 casos → 706). E2E `filters-bulk.spec.ts` estendido com 5 cases (URL assertion padrão). Reviews: spec-reviewer + code-quality-reviewer por grupo (skill `subagent-driven-development`). 3 fixes pós-review aplicados (useCallback loadProducts, `Prisma.ActivityWhereInput` typing, guard didMount transversal). Docs: `docs/superpowers/{specs,plans}/2026-04-15-fase-32-filtros-url-5-modulos-v3.md`.
 
