@@ -248,11 +248,11 @@ interface CrmDashboardGridProps {
 - `<sm` (640px): table mantém scroll horizontal.
 
 **A11y:**
-- `CrmShell` preserva skip link "Pular para o conteúdo" (link escondido visualmente, focável via Tab, aponta `#conteudo`).
+- `CrmShell` preserva skip link "Pular para o conteúdo" (link escondido visualmente, focável via Tab, aponta `#main` — ID canônico fornecido pelo `AppShell` do DS).
 - `<nav aria-label="Primária">` na sidebar nav.
 - `aria-current="page"` no item ativo.
 - Topbar: `<div>` dentro do `<header role="banner">` do `AppShell` (sem duplicar landmark — B1).
-- `<main id="conteudo" role="main">` no content.
+- `<main id="main" role="main">` no content (ID fornecido pelo `AppShell.Main` do DS).
 - `CrmListShell`: `<h1>` no título.
 - `CrmDetailShell` left: `<aside aria-label="Informações do registro">`.
 - axe-core: zero violations `critical`/`serious` nas 5 rotas (success criteria §10.9).
@@ -307,7 +307,7 @@ Categorias de diff: (i) shell sidebar/topbar/bg, (ii) header/título, (iii) tabe
 Target mínimo: **~30 casos** (6 suites × ~5 casos).
 
 ### 8.2. Integration (Vitest) — krayin
-- `layout.test.tsx`: `ProtectedLayout` renderiza `CrmShell` com slots; `<main id="conteudo">` presente; skip link presente.
+- `layout.test.tsx`: `ProtectedLayout` renderiza `CrmShell` com slots; `<main id="main">` presente; skip link presente.
 - `shell-slots.test.tsx`: `buildSidebarSlots(user)` retorna nós com logo, search, nav, themeCycler, userMenu, footer; `buildTopbarSlots()` retorna notifications + breadcrumbs + actions.
 - Rotas existentes (leads/contacts/opps) — testes atuais não quebram.
 
@@ -355,7 +355,7 @@ Target mínimo: **~30 casos** (6 suites × ~5 casos).
 10. ✅ Dark mode: grep `rg "gray-[0-9]{2,3}" packages/patterns/src/{crm-shell,crm-list-shell,crm-detail-shell,crm-dashboard-grid}/` retorna zero matches. `PageShell`/`PageHeader` pós-update também zero.
 11. ✅ Preservação: `preservation-smoke.spec.ts` verde nas 5 rotas × 5 asserts = 25 pontos.
 12. ✅ Theme cycler: `theme-cycler.spec.ts` verde.
-13. ✅ Skip link: axe-core passa; test unit em `crm-shell.test.tsx` confirma `role=skip-link` + href `#conteudo`.
+13. ✅ Skip link: axe-core passa; test unit em `crm-shell.test.tsx` confirma skip link com href `#main` (fornecido por `AppShell.Root` do DS).
 14. ✅ `"use client"` apenas em `crm-shell.tsx` (grep `rg "use client" packages/patterns/src/` retorna 1 match).
 15. ✅ Cross-check roteador-webhook: visual regression `≤ 0.02` nas rotas do roteador consumindo `PageShell` (beta publish pré-merge).
 
