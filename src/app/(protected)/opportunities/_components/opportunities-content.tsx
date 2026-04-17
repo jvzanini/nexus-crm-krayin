@@ -63,7 +63,7 @@ import { getContacts } from "@/lib/actions/contacts";
 import type { ContactItem } from "@/lib/actions/contacts";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
-import { useSavedFilters } from "@/lib/hooks/use-saved-filters";
+import { useSavedFilters } from "@/hooks/use-saved-filters";
 import { BulkActionBar } from "@/components/tables/bulk-action-bar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";

@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
-import { useSavedFilters } from "@/lib/hooks/use-saved-filters";
+import { useSavedFilters } from "@/hooks/use-saved-filters";
 import { WorkflowsFiltersSchema, type WorkflowsFilters } from "@/lib/actions/workflows-schemas";
 import { motion } from "framer-motion";
 import {

@@ -66,13 +66,13 @@ import {
 } from "@/lib/currency/allowlist";
 import { BulkActionBar } from "@/components/tables/bulk-action-bar";
 import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
-import { useSavedFilters } from "@/lib/hooks/use-saved-filters";
+import { useSavedFilters } from "@/hooks/use-saved-filters";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   ProductsFiltersSchema,
   type ProductsFilters,
 } from "@/lib/actions/products-schemas";
-import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 // ---------------------------------------------------------------------------
 // Tipos

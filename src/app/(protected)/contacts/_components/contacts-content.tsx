@@ -54,7 +54,7 @@ import type { ContactItem, ContactsFilters } from "@/lib/actions/contacts";
 import { ConsentFieldset, type ConsentValue } from "@/components/consent/consent-fieldset";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterBar, type FilterConfig } from "@/components/tables/filter-bar";
-import { useSavedFilters } from "@/lib/hooks/use-saved-filters";
+import { useSavedFilters } from "@/hooks/use-saved-filters";
 import { BulkActionBar } from "@/components/tables/bulk-action-bar";
 import { CustomFieldsSection } from "@/components/custom-attributes/CustomFieldsSection";
 import { CustomColumnsRenderer } from "@/components/custom-attributes/CustomColumnsRenderer";
