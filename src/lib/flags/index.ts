@@ -139,3 +139,7 @@ export async function clearOverride(
 }
 
 export type { FlagRecord, FlagOverrideRecord, ResolveContext } from "./resolve";
+
+// Env-driven constants (migrado de src/lib/flags.ts em Fase 35 F1.3)
+export const DS_V3_ENABLED = process.env.DS_V3_ENABLED !== "false";
+export const DS_PREVIEW = process.env.DS_PREVIEW === "true";
