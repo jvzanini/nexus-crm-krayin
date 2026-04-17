@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import { getRecents, addRecent, clearRecents } from "./recent";
+import { getRecents, addRecent, clearRecents } from "../recent";
 
 beforeEach(() => {
   window.localStorage.clear();

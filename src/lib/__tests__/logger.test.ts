@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Writable } from "node:stream";
 import pino from "pino";
-import { maskEmail, redactCustomPii } from "./logger";
+import { maskEmail, redactCustomPii } from "../logger";
 
 function makeCapturingLogger() {
   const lines: string[] = [];

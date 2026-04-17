@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
-import { LocalDiskDriver } from "./local";
+import { LocalDiskDriver } from "../local";
 
 let tmpdir: string;
 let driver: LocalDiskDriver;
@@ -72,6 +72,6 @@ describe("LocalDiskDriver", () => {
   });
 
   it("path traversal com '.' lança UNSAFE_PATH_SEGMENT", async () => {
-    await expect(driver.put("./escape.txt", Buffer.from("x"), "text/plain")).rejects.toThrow("UNSAFE_PATH_SEGMENT");
+    await expect(driver.put("../escape.txt", Buffer.from("x"), "text/plain")).rejects.toThrow("UNSAFE_PATH_SEGMENT");
   });
 });

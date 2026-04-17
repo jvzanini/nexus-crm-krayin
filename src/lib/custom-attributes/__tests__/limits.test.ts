@@ -6,7 +6,7 @@ import {
   CustomAttrReservedKeyError,
   MAX_CUSTOM_BYTES_PER_ROW,
   RESERVED_KEYS,
-} from "./limits";
+} from "../limits";
 
 describe("custom-attributes/limits", () => {
   it("assertCustomBytes aceita payload pequeno", () => {

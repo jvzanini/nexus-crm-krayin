@@ -33,12 +33,12 @@ vi.mock("@/lib/logger", () => ({
 // ---------------------------------------------------------------------------
 
 import { prisma } from "@/lib/prisma";
-import { updateFieldExecutor } from "./update-field";
-import { createTaskExecutor } from "./create-task";
-import { assignUserExecutor } from "./assign-user";
-import { sendEmailExecutor } from "./send-email";
-import { runAction } from "./index";
-import type { ActionContext } from "./types";
+import { updateFieldExecutor } from "../update-field";
+import { createTaskExecutor } from "../create-task";
+import { assignUserExecutor } from "../assign-user";
+import { sendEmailExecutor } from "../send-email";
+import { runAction } from "../index";
+import type { ActionContext } from "../types";
 
 // Referências para os fns mockados
 const mockUpdateMany = prisma.lead.updateMany as ReturnType<typeof vi.fn>;

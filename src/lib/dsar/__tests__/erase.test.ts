@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { anonymizeSubject, buildErasedEmail, ERASED_NAME_MARKER } from "./erase";
+import { anonymizeSubject, buildErasedEmail, ERASED_NAME_MARKER } from "../erase";
 
 describe("anonymizeSubject (helpers puros)", () => {
   it("buildErasedEmail retorna formato @anon.local", () => {

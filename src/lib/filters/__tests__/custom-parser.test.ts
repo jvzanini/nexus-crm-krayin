@@ -11,7 +11,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { parseCustomFiltersFromSearchParams } from "./custom-parser";
+import { parseCustomFiltersFromSearchParams } from "../custom-parser";
 
 function sp(qs: string): URLSearchParams {
   return new URLSearchParams(qs);

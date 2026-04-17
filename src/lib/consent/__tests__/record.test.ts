@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { recordConsent, getActiveConsent } from "./record";
+import { recordConsent, getActiveConsent } from "../record";
 
 type Log = {
   id: string;

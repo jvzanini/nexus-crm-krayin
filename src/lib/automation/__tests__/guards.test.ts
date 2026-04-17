@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { chainDepthExceeded, incrementQuotaOrReject, CHAIN_DEPTH_MAX, DEFAULT_DAILY_QUOTA } from "./guards";
+import { chainDepthExceeded, incrementQuotaOrReject, CHAIN_DEPTH_MAX, DEFAULT_DAILY_QUOTA } from "../guards";
 
 // ---------------------------------------------------------------------------
 // Mock redis

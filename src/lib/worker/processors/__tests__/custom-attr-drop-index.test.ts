@@ -30,8 +30,8 @@ vi.mock("@/lib/logger", () => ({
 
 const mockFinalizeAdd = vi.fn();
 
-vi.mock("../queues/custom-attr", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../queues/custom-attr")>();
+vi.mock("../../queues/custom-attr", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../queues/custom-attr")>();
   return {
     ...actual,
     finalizeDeleteQueue: { add: mockFinalizeAdd },
@@ -61,7 +61,7 @@ vi.mock("pg", () => ({
 }));
 
 // Dynamic import after mocks
-const { processDropIndex } = await import("./custom-attr-drop-index");
+const { processDropIndex } = await import("../custom-attr-drop-index");
 
 function makeJob(data: { entity: string; key: string; defId: string }) {
   return { id: "job-1", data } as any;

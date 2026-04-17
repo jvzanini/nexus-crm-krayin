@@ -20,7 +20,7 @@ vi.mock("bullmq", () => {
 });
 
 // Importar após mocks
-const { scheduleReminder, cancelReminder } = await import("./activity-reminders");
+const { scheduleReminder, cancelReminder } = await import("../activity-reminders");
 
 describe("activity-reminders queue", () => {
   beforeEach(() => {

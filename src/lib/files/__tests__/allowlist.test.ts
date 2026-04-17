@@ -5,7 +5,7 @@ import {
   enforceMime,
   FileTooLargeError,
   DisallowedMimeError,
-} from "./allowlist";
+} from "../allowlist";
 
 describe("isAllowedMime", () => {
   it("retorna true para application/pdf", () => {

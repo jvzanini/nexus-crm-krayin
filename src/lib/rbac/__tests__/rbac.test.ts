@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { getUserPermissions, userHasPermission } from "./check";
-import { isValidRole, ROLE_PERMISSIONS } from "./permissions";
+import { getUserPermissions, userHasPermission } from "../check";
+import { isValidRole, ROLE_PERMISSIONS } from "../permissions";
 
 const mkUser = (role: string, isSuperAdmin = false) => ({
   platformRole: role,

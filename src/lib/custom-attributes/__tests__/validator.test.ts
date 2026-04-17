@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { CustomAttribute } from "./types";
-import { buildZodFromDefinitions } from "./validator";
-import { CustomAttrReservedKeyError } from "./limits";
+import type { CustomAttribute } from "../types";
+import { buildZodFromDefinitions } from "../validator";
+import { CustomAttrReservedKeyError } from "../limits";
 
 /**
  * Helper: monta um `CustomAttribute` parcial válido para testes.

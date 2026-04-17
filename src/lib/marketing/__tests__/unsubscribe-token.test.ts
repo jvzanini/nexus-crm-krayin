@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { signUnsubscribeToken, verifyUnsubscribeToken } from "./unsubscribe-token";
+import { signUnsubscribeToken, verifyUnsubscribeToken } from "../unsubscribe-token";
 
 describe("unsubscribe token", () => {
   const ORIGINAL = process.env.UNSUBSCRIBE_TOKEN_SECRET;

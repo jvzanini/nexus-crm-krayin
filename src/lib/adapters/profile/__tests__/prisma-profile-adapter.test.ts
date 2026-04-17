@@ -12,7 +12,7 @@ vi.mock("@nexusai360/core", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { validatePassword } from "@nexusai360/core";
-import { PrismaProfileAdapter } from "./prisma-profile-adapter";
+import { PrismaProfileAdapter } from "../prisma-profile-adapter";
 
 describe("PrismaProfileAdapter", () => {
   const adapter = new PrismaProfileAdapter();

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { evaluateAll, evaluateCondition } from "./conditions";
-import type { Condition } from "./conditions";
+import { evaluateAll, evaluateCondition } from "../conditions";
+import type { Condition } from "../conditions";
 
 // ---------------------------------------------------------------------------
 // Helpers

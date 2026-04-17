@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalize } from "./normalize";
+import { normalize } from "../normalize";
 
 describe("normalize", () => {
   it("lowercases", () => {

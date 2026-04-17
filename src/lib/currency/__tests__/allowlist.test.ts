@@ -4,7 +4,7 @@ import {
   isSupportedCurrency,
   currencyLabel,
   type Currency,
-} from "./allowlist";
+} from "../allowlist";
 
 describe("currency/allowlist", () => {
   describe("SUPPORTED_CURRENCIES", () => {

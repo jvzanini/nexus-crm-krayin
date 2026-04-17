@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { maskIp } from "./mask-ip";
+import { maskIp } from "../mask-ip";
 
 describe("maskIp", () => {
   it("mascara IPv4 em /24", () => {

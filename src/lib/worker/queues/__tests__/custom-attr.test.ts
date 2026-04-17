@@ -22,7 +22,7 @@ vi.mock("bullmq", () => {
 });
 
 // Importar após mocks
-const mod = await import("./custom-attr");
+const mod = await import("../custom-attr");
 
 describe("custom-attr queues", () => {
   beforeEach(() => {

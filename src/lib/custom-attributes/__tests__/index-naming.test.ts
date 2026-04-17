@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildUniqueIndexName } from "./index-naming";
+import { buildUniqueIndexName } from "../index-naming";
 
 describe("custom-attributes/index-naming", () => {
   it("retorna nome raw quando <= 63 chars", () => {

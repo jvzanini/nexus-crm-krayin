@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { resolveFlag } from "./resolve";
-import { bucketOf, inRollout } from "./rollout";
+import { resolveFlag } from "../resolve";
+import { bucketOf, inRollout } from "../rollout";
 
 const flag = (patch: Partial<{ enabled: boolean; rolloutPct: number }> = {}) => ({
   key: "X",

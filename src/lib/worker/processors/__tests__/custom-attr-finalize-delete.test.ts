@@ -30,7 +30,7 @@ import { revalidateTag } from "next/cache";
 import { auditLog } from "@/lib/audit-log";
 import { logger } from "@/lib/logger";
 
-import { processFinalizeDelete } from "./custom-attr-finalize-delete";
+import { processFinalizeDelete } from "../custom-attr-finalize-delete";
 
 type Mock = ReturnType<typeof vi.fn>;
 

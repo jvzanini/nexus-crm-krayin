@@ -12,7 +12,7 @@ vi.mock("@/lib/flags/index", () => ({
   clearOverride: (...a: unknown[]) => clearOverrideMock(...a),
 }));
 
-import { PrismaFlagsAdapter } from "./prisma-flags-adapter";
+import { PrismaFlagsAdapter } from "../prisma-flags-adapter";
 
 describe("PrismaFlagsAdapter", () => {
   beforeEach(() => {

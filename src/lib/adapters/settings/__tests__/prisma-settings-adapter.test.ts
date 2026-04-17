@@ -15,7 +15,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 // Import after vi.mock
-import { PrismaSettingsAdapter } from "./prisma-settings-adapter";
+import { PrismaSettingsAdapter } from "../prisma-settings-adapter";
 
 describe("PrismaSettingsAdapter", () => {
   beforeEach(() => {

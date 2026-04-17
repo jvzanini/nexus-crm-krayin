@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { encrypt, decrypt } from "./aes-gcm";
+import { encrypt, decrypt } from "../aes-gcm";
 
 describe("aes-gcm", () => {
   let originalMaster: string | undefined;

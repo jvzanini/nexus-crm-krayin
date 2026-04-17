@@ -51,7 +51,7 @@ vi.mock("next/cache", () => {
 import {
   listCustomAttributes,
   invalidateCustomAttrsCache,
-} from "./list";
+} from "../list";
 
 describe("listCustomAttributes (T7 cached)", () => {
   beforeEach(() => {

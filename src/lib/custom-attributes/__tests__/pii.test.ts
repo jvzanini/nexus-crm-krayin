@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from "vitest";
 
-import { REDACTED_MARKER, getPiiKeys, stripPii } from "./pii";
+import { REDACTED_MARKER, getPiiKeys, stripPii } from "../pii";
 
 type DefLike = { key: string; piiMasked: boolean };
 

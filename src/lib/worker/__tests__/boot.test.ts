@@ -25,7 +25,7 @@ vi.mock("@/lib/logger", () => ({
 const mockGetJob = vi.fn();
 const mockScheduleReminder = vi.fn();
 
-vi.mock("./queues/activity-reminders", () => ({
+vi.mock("../queues/activity-reminders", () => ({
   activityReminderQueue: {
     getJob: mockGetJob,
   },
@@ -33,7 +33,7 @@ vi.mock("./queues/activity-reminders", () => ({
   ACTIVITY_REMINDERS: "activity-reminders",
 }));
 
-const { reenqueuePendingReminders } = await import("./boot");
+const { reenqueuePendingReminders } = await import("../boot");
 
 const makeActivity = (overrides: Partial<{
   id: string;

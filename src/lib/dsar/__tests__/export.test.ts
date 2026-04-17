@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { buildSubjectExport, type SubjectType } from "./export";
+import { buildSubjectExport, type SubjectType } from "../export";
 
 function mkPrismaMock(opts?: {
   leadCustom?: Record<string, unknown>;

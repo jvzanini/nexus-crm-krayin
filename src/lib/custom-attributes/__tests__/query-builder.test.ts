@@ -7,8 +7,8 @@ import {
   buildPrismaWhereFromCustomFilters,
   InvalidOperatorError,
   type CustomFilter,
-} from "./query-builder";
-import type { CustomAttribute } from "./types";
+} from "../query-builder";
+import type { CustomAttribute } from "../types";
 
 /**
  * Factory minimal de CustomAttribute para os testes. Só os campos usados

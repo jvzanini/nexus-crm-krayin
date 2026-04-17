@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildWhereFromFilters, type SegmentFilter } from "./segment";
+import { buildWhereFromFilters, type SegmentFilter } from "../segment";
 
 describe("buildWhereFromFilters", () => {
   it("eq simples", () => {

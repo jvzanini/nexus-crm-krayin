@@ -24,7 +24,7 @@ vi.mock("@/lib/prisma", () => ({
 const dropIndexAdd = vi.fn(async (..._args: unknown[]) => ({ id: "drop-job-1" }));
 const finalizeAdd = vi.fn(async (..._args: unknown[]) => ({ id: "fin-job-1" }));
 
-vi.mock("../queues/custom-attr", () => ({
+vi.mock("../../queues/custom-attr", () => ({
   CUSTOM_ATTR_PURGE_VALUES_QUEUE: "custom-attr-purge-values",
   dropIndexQueue: {
     add: (name: string, payload: unknown, opts: unknown) =>
@@ -48,10 +48,10 @@ vi.mock("@/lib/logger", () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-type ProcessFn = typeof import("./custom-attr-purge-values").processPurgeValues;
+type ProcessFn = typeof import("../custom-attr-purge-values").processPurgeValues;
 
 async function importProcessor(): Promise<ProcessFn> {
-  const mod = await import("./custom-attr-purge-values");
+  const mod = await import("../custom-attr-purge-values");
   return mod.processPurgeValues;
 }
 

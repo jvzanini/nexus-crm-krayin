@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { scoreMatch, rankItems } from "./scoring";
+import { scoreMatch, rankItems } from "../scoring";
 
 describe("scoreMatch", () => {
   it("exact = 100", () => {

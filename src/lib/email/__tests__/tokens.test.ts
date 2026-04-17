@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { encryptMailboxTokens, decryptMailboxTokens } from "./tokens";
+import { encryptMailboxTokens, decryptMailboxTokens } from "../tokens";
 
 beforeEach(() => {
   process.env.ENCRYPTION_MASTER_KEY = "a".repeat(32);

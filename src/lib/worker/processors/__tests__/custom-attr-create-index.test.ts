@@ -61,7 +61,7 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 // Import sob-mock
-import { processCreateIndex } from "./custom-attr-create-index";
+import { processCreateIndex } from "../custom-attr-create-index";
 
 type FakeJob = { id?: string; data: { entity: string; key: string; defId?: string } };
 

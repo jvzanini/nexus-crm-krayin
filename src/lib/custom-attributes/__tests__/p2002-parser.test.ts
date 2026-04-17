@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseP2002IndexName } from "./p2002-parser";
+import { parseP2002IndexName } from "../p2002-parser";
 
 describe("parseP2002IndexName", () => {
   it("parses idx_leads_custom_cpf_unique", () => {
