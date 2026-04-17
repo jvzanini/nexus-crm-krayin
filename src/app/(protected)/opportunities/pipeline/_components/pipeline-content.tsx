@@ -16,12 +16,15 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
   PageHeader,
+  // CrmListShell importado abaixo
+
   Button,
   DropdownMenuRoot,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@nexusai360/design-system";
+import { CrmListShell } from "@nexusai360/patterns";
 import {
   LayoutGrid,
   Table as TableIcon,
@@ -387,36 +390,29 @@ export function PipelineContent({
   }
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-6"
+    <CrmListShell
+      title="Pipeline"
+      description="Visualização kanban das oportunidades por stage"
+      breadcrumbs={[
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Oportunidades", href: "/opportunities" },
+        { label: "Pipeline" },
+      ]}
+      actions={
+        <Link href="/opportunities">
+          <Button variant="outline" className="cursor-pointer">
+            <TableIcon className="h-4 w-4 mr-2" />
+            Lista
+          </Button>
+        </Link>
+      }
     >
-      <motion.div variants={itemVariants}>
-        <PageHeader.Root>
-          <PageHeader.Row>
-            <PageHeader.Icon icon={LayoutGrid} color="violet" />
-            <PageHeader.Heading>
-              <PageHeader.Title>Pipeline</PageHeader.Title>
-              <PageHeader.Description>
-                Visualização kanban das oportunidades por stage
-              </PageHeader.Description>
-            </PageHeader.Heading>
-          </PageHeader.Row>
-          <PageHeader.Actions>
-            <Link href="/opportunities">
-              <Button
-                variant="outline"
-                className="cursor-pointer"
-              >
-                <TableIcon className="h-4 w-4 mr-2" />
-                Lista
-              </Button>
-            </Link>
-          </PageHeader.Actions>
-        </PageHeader.Root>
-      </motion.div>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
 
       <motion.div variants={itemVariants} className="hidden md:block">
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
@@ -495,6 +491,7 @@ export function PipelineContent({
           );
         })}
       </motion.div>
-    </motion.div>
+      </motion.div>
+    </CrmListShell>
   );
 }

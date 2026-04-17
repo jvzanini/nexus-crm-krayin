@@ -14,6 +14,7 @@ import {
 import { Button } from "@nexusai360/design-system";
 import { Input } from "@nexusai360/design-system";
 import { PageHeader } from "@nexusai360/design-system";
+import { CrmListShell } from "@nexusai360/patterns";
 import { EmptyState } from "@nexusai360/design-system";
 import {
   Dialog,
@@ -368,40 +369,36 @@ export function ContactsContent({
     });
   }
 
+  const contactsCount = loading
+    ? "Carregando..."
+    : `${contacts.length} contato${contacts.length !== 1 ? "s" : ""} cadastrado${contacts.length !== 1 ? "s" : ""}`;
+
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-6"
+    <CrmListShell
+      title="Contatos"
+      description={contactsCount}
+      breadcrumbs={[
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Contatos" },
+      ]}
+      actions={
+        canCreate ? (
+          <Button
+            onClick={openCreate}
+            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all duration-200"
+          >
+            <Plus className="h-4 w-4" />
+            Novo Contato
+          </Button>
+        ) : null
+      }
     >
-      {/* Header */}
-      <motion.div variants={itemVariants}>
-        <PageHeader.Root>
-          <PageHeader.Row>
-            <PageHeader.Icon icon={Users} color="emerald" />
-            <PageHeader.Heading>
-              <PageHeader.Title>Contatos</PageHeader.Title>
-              <PageHeader.Description>
-                {loading
-                  ? "Carregando..."
-                  : `${contacts.length} contato${contacts.length !== 1 ? "s" : ""} cadastrado${contacts.length !== 1 ? "s" : ""}`}
-              </PageHeader.Description>
-            </PageHeader.Heading>
-          </PageHeader.Row>
-          <PageHeader.Actions>
-            {canCreate && (
-              <Button
-                onClick={openCreate}
-                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all duration-200"
-              >
-                <Plus className="h-4 w-4" />
-                Novo Contato
-              </Button>
-            )}
-          </PageHeader.Actions>
-        </PageHeader.Root>
-      </motion.div>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
 
       {/* Filter Bar */}
       <motion.div variants={itemVariants}>
@@ -865,6 +862,7 @@ export function ContactsContent({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </motion.div>
+      </motion.div>
+    </CrmListShell>
   );
 }

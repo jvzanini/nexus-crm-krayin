@@ -14,6 +14,7 @@ import {
 import { Button } from "@nexusai360/design-system";
 import { Input } from "@nexusai360/design-system";
 import { PageHeader } from "@nexusai360/design-system";
+import { CrmListShell } from "@nexusai360/patterns";
 import { EmptyState } from "@nexusai360/design-system";
 import {
   Dialog,
@@ -472,40 +473,36 @@ export function LeadsContent({
     });
   }
 
+  const leadsCount = loading
+    ? "Carregando..."
+    : `${leads.length} lead${leads.length !== 1 ? "s" : ""} cadastrado${leads.length !== 1 ? "s" : ""}`;
+
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-6"
+    <CrmListShell
+      title="Leads"
+      description={leadsCount}
+      breadcrumbs={[
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Leads" },
+      ]}
+      actions={
+        canCreate ? (
+          <Button
+            onClick={openCreate}
+            className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
+          >
+            <Plus className="h-4 w-4" />
+            Novo Lead
+          </Button>
+        ) : null
+      }
     >
-      {/* Header */}
-      <motion.div variants={itemVariants}>
-        <PageHeader.Root>
-          <PageHeader.Row>
-            <PageHeader.Icon icon={Target} color="violet" />
-            <PageHeader.Heading>
-              <PageHeader.Title>Leads</PageHeader.Title>
-              <PageHeader.Description>
-                {loading
-                  ? "Carregando..."
-                  : `${leads.length} lead${leads.length !== 1 ? "s" : ""} cadastrado${leads.length !== 1 ? "s" : ""}`}
-              </PageHeader.Description>
-            </PageHeader.Heading>
-          </PageHeader.Row>
-          <PageHeader.Actions>
-            {canCreate && (
-              <Button
-                onClick={openCreate}
-                className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
-              >
-                <Plus className="h-4 w-4" />
-                Novo Lead
-              </Button>
-            )}
-          </PageHeader.Actions>
-        </PageHeader.Root>
-      </motion.div>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
 
       {/* Filter Bar */}
       <motion.div variants={itemVariants}>
@@ -1053,6 +1050,7 @@ export function LeadsContent({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </motion.div>
+      </motion.div>
+    </CrmListShell>
   );
 }

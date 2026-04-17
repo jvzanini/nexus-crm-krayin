@@ -15,6 +15,7 @@ import {
 import { Button } from "@nexusai360/design-system";
 import { Input } from "@nexusai360/design-system";
 import { PageHeader } from "@nexusai360/design-system";
+import { CrmListShell } from "@nexusai360/patterns";
 import { EmptyState } from "@nexusai360/design-system";
 import {
   Dialog,
@@ -469,46 +470,44 @@ export function OpportunitiesContent({
     });
   }
 
+  const opportunitiesCount = loading
+    ? "Carregando..."
+    : `${opportunities.length} oportunidade${opportunities.length !== 1 ? "s" : ""} cadastrada${opportunities.length !== 1 ? "s" : ""}`;
+
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-6"
+    <CrmListShell
+      title="Oportunidades"
+      description={opportunitiesCount}
+      breadcrumbs={[
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Oportunidades" },
+      ]}
+      actions={
+        <>
+          <Link href="/opportunities/pipeline">
+            <Button variant="outline" className="cursor-pointer">
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              Pipeline
+            </Button>
+          </Link>
+          {canCreate && (
+            <Button
+              onClick={openCreate}
+              className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
+            >
+              <Plus className="h-4 w-4" />
+              Nova Oportunidade
+            </Button>
+          )}
+        </>
+      }
     >
-      {/* Header */}
-      <motion.div variants={itemVariants}>
-        <PageHeader.Root>
-          <PageHeader.Row>
-            <PageHeader.Icon icon={TrendingUp} color="amber" />
-            <PageHeader.Heading>
-              <PageHeader.Title>Oportunidades</PageHeader.Title>
-              <PageHeader.Description>
-                {loading
-                  ? "Carregando..."
-                  : `${opportunities.length} oportunidade${opportunities.length !== 1 ? "s" : ""} cadastrada${opportunities.length !== 1 ? "s" : ""}`}
-              </PageHeader.Description>
-            </PageHeader.Heading>
-          </PageHeader.Row>
-          <PageHeader.Actions>
-            <Link href="/opportunities/pipeline">
-              <Button variant="outline" className="cursor-pointer">
-                <LayoutGrid className="h-4 w-4 mr-2" />
-                Pipeline
-              </Button>
-            </Link>
-            {canCreate && (
-              <Button
-                onClick={openCreate}
-                className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
-              >
-                <Plus className="h-4 w-4" />
-                Nova Oportunidade
-              </Button>
-            )}
-          </PageHeader.Actions>
-        </PageHeader.Root>
-      </motion.div>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
 
       {/* Filter Bar */}
       <motion.div variants={itemVariants}>
@@ -1050,6 +1049,7 @@ export function OpportunitiesContent({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </motion.div>
+      </motion.div>
+    </CrmListShell>
   );
 }

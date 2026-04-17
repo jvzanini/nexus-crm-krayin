@@ -48,6 +48,7 @@ const nextConfig: NextConfig = {
     "@nexusai360/multi-tenant",
     "@nexusai360/audit-log",
     "@nexusai360/patterns",
+    "@nexusai360/ui",
   ],
   serverExternalPackages: [
     "bcryptjs",

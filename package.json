@@ -36,6 +36,7 @@
     "@nexusai360/profile-ui": "file:./vendor-packages/nexusai360-profile-ui-0.2.0.tgz",
     "@nexusai360/settings-ui": "file:./vendor-packages/nexusai360-settings-ui-0.2.0.tgz",
     "@nexusai360/types": "file:./vendor-packages/nexusai360-types-0.2.0.tgz",
+    "@nexusai360/ui": "file:./vendor-packages/nexusai360-ui-0.1.0.tgz",
     "@nexusai360/users-ui": "file:./vendor-packages/nexusai360-users-ui-0.2.0.tgz",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/exporter-metrics-otlp-http": "^0.55.0",
