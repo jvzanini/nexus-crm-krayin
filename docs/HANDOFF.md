@@ -10,6 +10,12 @@
 > **Fase 34 Parte A — Visual Parity blueprint (tag v0.2.0-patterns no nexus-blueprint):**
 > 4 patterns novos em `@nexusai360/patterns@0.2.0`: `CrmShell` (composição sobre `AppShell` do DS + mobile drawer + slots PT-BR + CSS vars `--topbar-height`/`--sidebar-*-width`), `CrmListShell` (consome `PageHeader` dentro de wrapper card `rounded-lg border bg-card`), `CrmDetailShell` (two-column sticky 394px), `CrmDashboardGrid` (main + side 378px com fallback 1col). 2 extensions additive: `PageShell` (topbar/collapsedSidebarWidth/tokens semânticos) + `PageHeader` (text-foreground/text-muted-foreground). 39 testes novos, 279 passed total no pacote patterns. `"use client"` apenas em `crm-shell.tsx`; `sideEffects: false`; `files: [dist, src]`; zero `gray-*` em patterns CRM. DTS build destravado (fix pré-existente em `notification-center` + `profile-menu`: removido `asChild` e `sideOffset` incompatíveis com `DropdownMenu` custom do `@nexusai360/ui`). Specs/plans triplo-revisados em `docs/superpowers/{specs,plans}/2026-04-16-fase-34-visual-parity-krayin-v*.md`.
 
+> **Fase 34 Parte B — Expansão + IconTile slot (2026-04-17):**
+> - ✅ `@nexusai360/patterns@0.3.0` — `CrmListShell.icon?` slot opcional (additive); retrofit IconTile violet/emerald/amber nas 4 rotas da Parte A (leads Target, contacts Users, opps TrendingUp, pipeline LayoutGrid).
+> - ✅ **7 rotas novas envelopadas em `CrmListShell`:** `/products` (blue Package), `/tasks` (emerald CheckSquare), `/marketing/campaigns` (violet Megaphone), `/marketing/segments` (blue Layers), `/automation/workflows` (violet Workflow), `/settings/mailboxes` (blue Mail), `/settings/custom-attributes` (violet Sliders). **Total Fase 34:** 11 rotas com shell card canônico + breadcrumbs + IconTile.
+> - ✅ E2E novos em `tests/e2e/golden-paths/`: `visual-parity.spec.ts` (9 rotas × h1 + card bg-card) + `preservation-smoke.spec.ts` (CommandPalette + EmptyState + FilterBar + Dashboard + Pipeline). `playwright.config.ts` regex admin expandido.
+> - ✅ Build ✓ 5.6s. Vitest 823/823 verde. Commit krayin `1d6d330`; blueprint `81372e0` + tag `v0.3.0-patterns`.
+>
 > **Fase 34 Parte A — DEPLOYED (tag `phase-34-deployed`):**
 > - ✅ Publish GHCR `@nexusai360/patterns@0.2.0` (workflow ajustado pra filtrar `pnpm --filter pkg build/test`).
 > - ✅ Krayin install via vendor-packages (patterns@0.2.0 + ui@0.1.0) + `transpilePackages` + checksums (commit a5447f5).
