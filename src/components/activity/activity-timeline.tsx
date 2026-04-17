@@ -46,7 +46,8 @@ import {
   cancelActivity,
   deleteActivity,
 } from "@/lib/actions/activities";
-import type { ActivityItem, ActivityType } from "@/lib/actions/activities";
+import type { ActivityItem } from "@/lib/actions/activities";
+import type { ActivityType } from "@/generated/prisma/enums";
 import { ActivityForm } from "./activity-form";
 
 // ---------------------------------------------------------------------------

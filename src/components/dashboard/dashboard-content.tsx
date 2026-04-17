@@ -11,6 +11,7 @@ import { RecentActivity } from "./recent-activity";
 import { FunnelCard } from "./cards/funnel-card";
 import { PipelineValueCard } from "./cards/pipeline-value-card";
 import { TopOpportunitiesCard } from "./cards/top-opportunities-card";
+import { CrmDashboardGrid } from "@nexusai360/patterns";
 import { Card, CardContent, CardHeader, CardTitle } from "@nexusai360/design-system";
 import {
   LineChart,
@@ -24,6 +25,7 @@ import {
 
 interface DashboardContentProps {
   userName: string;
+  sideSlots?: React.ReactNode;
 }
 
 const containerVariants = {
@@ -45,7 +47,7 @@ const itemVariants = {
 
 const POLL_INTERVAL = 60_000;
 
-export function DashboardContent({ userName }: DashboardContentProps) {
+export function DashboardContent({ userName, sideSlots }: DashboardContentProps) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -223,13 +225,15 @@ export function DashboardContent({ userName }: DashboardContentProps) {
         </Card>
       </motion.div>
 
-      {/* Funnel + Pipeline + Top Opps */}
+      {/* Funnel + Pipeline + Top Opps (main) + side widgets (Fase 34) */}
       <motion.div variants={itemVariants}>
-        <div className="grid gap-6 md:grid-cols-3">
-          <FunnelCard data={data.funnel} />
-          <PipelineValueCard data={data.pipelineByStage} />
-          <TopOpportunitiesCard data={data.topOpportunities} />
-        </div>
+        <CrmDashboardGrid side={sideSlots}>
+          <div className="grid gap-6 md:grid-cols-3">
+            <FunnelCard data={data.funnel} />
+            <PipelineValueCard data={data.pipelineByStage} />
+            <TopOpportunitiesCard data={data.topOpportunities} />
+          </div>
+        </CrmDashboardGrid>
       </motion.div>
 
       {/* Recent Activity */}

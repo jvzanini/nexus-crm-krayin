@@ -22,9 +22,9 @@ import {
 } from "@/lib/actions/activities";
 import type {
   ActivityItem,
-  ActivityType,
   AssignableUser,
 } from "@/lib/actions/activities";
+import type { ActivityType } from "@/generated/prisma/enums";
 
 // ---------------------------------------------------------------------------
 // Props

@@ -22,7 +22,8 @@ import { startOfDay, endOfDay, addDays } from "date-fns";
 // async. Enums/schemas foram removidos dos re-exports runtime — consumidores
 // importam enums de `@/generated/prisma/enums` e schemas de `./activities-schemas`.
 // Re-export só de tipos (erased em runtime):
-export type { ActivityType, ActivityStatus, ActivitySubjectType };
+// Types re-export removed — files "use server" não podem re-exportar types em Next 16 + Turbopack.
+// Consumers devem importar direto de "@/generated/prisma/enums".
 
 // ---------------------------------------------------------------------------
 // Tipos
