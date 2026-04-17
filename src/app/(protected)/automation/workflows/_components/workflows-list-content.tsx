@@ -26,7 +26,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@nexusai360/design-system";
-import { PageHeader } from "@nexusai360/design-system";
+import { PageHeader, IconTile } from "@nexusai360/design-system";
+import { CrmListShell } from "@nexusai360/patterns";
 import { EmptyState } from "@nexusai360/design-system";
 import {
   Workflow,
@@ -354,42 +355,40 @@ export function WorkflowsListContent({
   // JSX principal
   // ---------------------------------------------------------------------------
 
+  const workflowsDesc = loading
+    ? "Carregando..."
+    : workflows.length === 0
+      ? "Nenhum workflow cadastrado"
+      : `${workflows.length} workflow${workflows.length !== 1 ? "s" : ""} cadastrado${workflows.length !== 1 ? "s" : ""}`;
+
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-6"
+    <CrmListShell
+      title="Workflows de automação"
+      description={workflowsDesc}
+      icon={<IconTile icon={Workflow} color="violet" />}
+      breadcrumbs={[
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Automação" },
+        { label: "Workflows" },
+      ]}
+      actions={
+        canManage ? (
+          <Button
+            onClick={() => router.push("/automation/workflows/new")}
+            className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
+          >
+            <Plus className="h-4 w-4" />
+            Novo workflow
+          </Button>
+        ) : null
+      }
     >
-      {/* Header */}
-      <motion.div variants={itemVariants}>
-        <PageHeader.Root>
-          <PageHeader.Row>
-            <PageHeader.Icon icon={Workflow} color="purple" />
-            <PageHeader.Heading>
-              <PageHeader.Title>Workflows de automação</PageHeader.Title>
-              <PageHeader.Description>
-                {loading
-                  ? "Carregando..."
-                  : workflows.length === 0
-                    ? "Nenhum workflow cadastrado"
-                    : `${workflows.length} workflow${workflows.length !== 1 ? "s" : ""} cadastrado${workflows.length !== 1 ? "s" : ""}`}
-              </PageHeader.Description>
-            </PageHeader.Heading>
-          </PageHeader.Row>
-          {canManage && (
-            <PageHeader.Actions>
-              <Button
-                onClick={() => router.push("/automation/workflows/new")}
-                className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
-              >
-                <Plus className="h-4 w-4" />
-                Novo workflow
-              </Button>
-            </PageHeader.Actions>
-          )}
-        </PageHeader.Root>
-      </motion.div>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
 
       {/* Filtros */}
       <motion.div variants={itemVariants}>
@@ -657,6 +656,7 @@ export function WorkflowsListContent({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </motion.div>
+      </motion.div>
+    </CrmListShell>
   );
 }

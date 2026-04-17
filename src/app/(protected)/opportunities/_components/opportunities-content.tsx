@@ -14,7 +14,7 @@ import {
 } from "@nexusai360/design-system";
 import { Button } from "@nexusai360/design-system";
 import { Input } from "@nexusai360/design-system";
-import { PageHeader } from "@nexusai360/design-system";
+import { PageHeader, IconTile } from "@nexusai360/design-system";
 import { CrmListShell } from "@nexusai360/patterns";
 import { EmptyState } from "@nexusai360/design-system";
 import {
@@ -478,6 +478,7 @@ export function OpportunitiesContent({
     <CrmListShell
       title="Oportunidades"
       description={opportunitiesCount}
+      icon={<IconTile icon={TrendingUp} color="amber" />}
       breadcrumbs={[
         { label: "Dashboard", href: "/dashboard" },
         { label: "Oportunidades" },

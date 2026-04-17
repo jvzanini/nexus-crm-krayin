@@ -35,8 +35,10 @@ import {
   TooltipRoot,
   TooltipTrigger,
   PageHeader,
+  IconTile,
   EmptyState,
 } from "@nexusai360/design-system";
+import { CrmListShell } from "@nexusai360/patterns";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import {
@@ -145,27 +147,24 @@ export function MailboxesContent({
     });
   }
 
+  const mailboxesDesc = loading
+    ? t("list.loading")
+    : t("list.subtitle.count", { count: mailboxes.length });
+
   return (
     <TooltipProvider>
-      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
-        {/* Header */}
-        <motion.div variants={itemVariants}>
-          <PageHeader.Root>
-            <PageHeader.Row>
-              <PageHeader.Icon icon={Mail} color="blue" />
-              <PageHeader.Heading>
-                <PageHeader.Title>{t("list.title")}</PageHeader.Title>
-                <PageHeader.Description>
-                  {loading
-                    ? t("list.loading")
-                    : t("list.subtitle.count", { count: mailboxes.length })}
-                </PageHeader.Description>
-              </PageHeader.Heading>
-            </PageHeader.Row>
-
-            {canConnect && (
-              <PageHeader.Actions>
-                <DropdownMenuRoot>
+      <CrmListShell
+        title={t("list.title")}
+        description={mailboxesDesc}
+        icon={<IconTile icon={Mail} color="blue" />}
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Configurações" },
+          { label: t("list.title") },
+        ]}
+        actions={
+          canConnect ? (
+            <DropdownMenuRoot>
                   <DropdownMenuTrigger render={
                     <Button className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200">
                       <Plus className="h-4 w-4" />
@@ -223,11 +222,10 @@ export function MailboxesContent({
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenuRoot>
-              </PageHeader.Actions>
-            )}
-          </PageHeader.Root>
-        </motion.div>
-
+          ) : null
+        }
+      >
+        <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
         {/* Tabela */}
         <motion.div variants={itemVariants}>
           <Card className="border-border bg-card/50 rounded-xl overflow-hidden">
@@ -379,7 +377,8 @@ export function MailboxesContent({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </motion.div>
+        </motion.div>
+      </CrmListShell>
     </TooltipProvider>
   );
 }

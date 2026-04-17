@@ -14,7 +14,8 @@ import {
 import { Button } from "@nexusai360/design-system";
 import { Input } from "@nexusai360/design-system";
 import { Switch } from "@nexusai360/design-system";
-import { PageHeader } from "@nexusai360/design-system";
+import { PageHeader, IconTile } from "@nexusai360/design-system";
+import { CrmListShell } from "@nexusai360/patterns";
 import { EmptyState } from "@nexusai360/design-system";
 import {
   Dialog,
@@ -819,40 +820,37 @@ export function ProductsContent({
   // JSX principal
   // ---------------------------------------------------------------------------
 
+  const productsDesc = loading
+    ? "Carregando..."
+    : `${filtered.length} produto${filtered.length !== 1 ? "s" : ""} encontrado${filtered.length !== 1 ? "s" : ""}`;
+
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-6"
+    <CrmListShell
+      title="Produtos"
+      description={productsDesc}
+      icon={<IconTile icon={Package} color="blue" />}
+      breadcrumbs={[
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Produtos" },
+      ]}
+      actions={
+        canCreate ? (
+          <Button
+            onClick={openCreate}
+            className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
+          >
+            <Plus className="h-4 w-4" />
+            Novo produto
+          </Button>
+        ) : null
+      }
     >
-      {/* Header */}
-      <motion.div variants={itemVariants}>
-        <PageHeader.Root>
-          <PageHeader.Row>
-            <PageHeader.Icon icon={Package} color="blue" />
-            <PageHeader.Heading>
-              <PageHeader.Title>Produtos</PageHeader.Title>
-              <PageHeader.Description>
-                {loading
-                  ? "Carregando..."
-                  : `${filtered.length} produto${filtered.length !== 1 ? "s" : ""} encontrado${filtered.length !== 1 ? "s" : ""}`}
-              </PageHeader.Description>
-            </PageHeader.Heading>
-          </PageHeader.Row>
-          {canCreate && (
-            <PageHeader.Actions>
-              <Button
-                onClick={openCreate}
-                className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
-              >
-                <Plus className="h-4 w-4" />
-                Novo produto
-              </Button>
-            </PageHeader.Actions>
-          )}
-        </PageHeader.Root>
-      </motion.div>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
 
       {/* Filtros */}
       <motion.div variants={itemVariants}>
@@ -1241,6 +1239,7 @@ export function ProductsContent({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </motion.div>
+      </motion.div>
+    </CrmListShell>
   );
 }

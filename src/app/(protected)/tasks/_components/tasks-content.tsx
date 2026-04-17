@@ -27,8 +27,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   PageHeader,
+  IconTile,
   EmptyState,
 } from "@nexusai360/design-system";
+import { CrmListShell } from "@nexusai360/patterns";
 import {
   CheckSquare,
   Plus,
@@ -682,44 +684,41 @@ export function TasksContent({
     ? "Nenhuma tarefa corresponde aos filtros aplicados."
     : "Crie tarefas para não esquecer seus follow-ups.";
 
+  const tasksDesc = loading
+    ? "..."
+    : tasks.length === 0
+      ? "Sem tarefas"
+      : tasks.length === 1
+        ? "1 tarefa registrada"
+        : `${tasks.length} tarefas registradas`;
+
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-6"
+    <CrmListShell
+      title="Tarefas"
+      description={tasksDesc}
+      icon={<IconTile icon={CheckSquare} color="emerald" />}
+      breadcrumbs={[
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Tarefas" },
+      ]}
+      actions={
+        canCreate ? (
+          <Button
+            onClick={openCreate}
+            className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
+          >
+            <Plus className="h-4 w-4" />
+            Nova tarefa
+          </Button>
+        ) : null
+      }
     >
-      {/* Header */}
-      <motion.div variants={itemVariants}>
-        <PageHeader.Root>
-          <PageHeader.Row>
-            <PageHeader.Icon icon={CheckSquare} color="emerald" />
-            <PageHeader.Heading>
-              <PageHeader.Title>Tarefas</PageHeader.Title>
-              <PageHeader.Description>
-                {loading
-                  ? "..."
-                  : tasks.length === 0
-                    ? "Sem tarefas"
-                    : tasks.length === 1
-                      ? "1 tarefa registrada"
-                      : `${tasks.length} tarefas registradas`}
-              </PageHeader.Description>
-            </PageHeader.Heading>
-          </PageHeader.Row>
-          {canCreate && (
-            <PageHeader.Actions>
-              <Button
-                onClick={openCreate}
-                className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
-              >
-                <Plus className="h-4 w-4" />
-                Nova tarefa
-              </Button>
-            </PageHeader.Actions>
-          )}
-        </PageHeader.Root>
-      </motion.div>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
 
       {/* Filtros URL */}
       <motion.div variants={itemVariants}>
@@ -992,6 +991,7 @@ export function TasksContent({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </motion.div>
+      </motion.div>
+    </CrmListShell>
   );
 }

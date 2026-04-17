@@ -42,9 +42,11 @@ import {
   TabsTab,
   TabsPanel,
   PageHeader,
+  IconTile,
   EmptyState,
   TooltipProvider,
 } from "@nexusai360/design-system";
+import { CrmListShell } from "@nexusai360/patterns";
 import { toast } from "sonner";
 import {
   listCustomAttributesAction,
@@ -314,40 +316,37 @@ export function AttrsContent({ canManage }: Props) {
 
   return (
     <TooltipProvider>
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="space-y-6"
+      <CrmListShell
+        title="Atributos personalizados"
+        description="Configure campos customizados por entidade do CRM."
+        icon={<IconTile icon={Sliders} color="violet" />}
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Configurações" },
+          { label: "Atributos personalizados" },
+        ]}
+        actions={
+          canManage ? (
+            <Button
+              onClick={() => setCreateOpen(true)}
+              className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
+            >
+              {acting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+              Novo atributo
+            </Button>
+          ) : null
+        }
       >
-        <motion.div variants={itemVariants}>
-          <PageHeader.Root>
-            <PageHeader.Row>
-              <PageHeader.Icon icon={Sliders} color="violet" />
-              <PageHeader.Heading>
-                <PageHeader.Title>Atributos personalizados</PageHeader.Title>
-                <PageHeader.Description>
-                  Configure campos customizados por entidade do CRM.
-                </PageHeader.Description>
-              </PageHeader.Heading>
-            </PageHeader.Row>
-            {canManage && (
-              <PageHeader.Actions>
-                <Button
-                  onClick={() => setCreateOpen(true)}
-                  className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
-                >
-                  {acting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Plus className="h-4 w-4" />
-                  )}
-                  Novo atributo
-                </Button>
-              </PageHeader.Actions>
-            )}
-          </PageHeader.Root>
-        </motion.div>
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-6"
+        >
 
         <motion.div variants={itemVariants}>
           <Card className="border-border bg-card/50 rounded-xl overflow-hidden">
@@ -422,7 +421,8 @@ export function AttrsContent({ canManage }: Props) {
         <span className="sr-only" aria-hidden="true">
           {currentList.length}
         </span>
-      </motion.div>
+        </motion.div>
+      </CrmListShell>
     </TooltipProvider>
   );
 }

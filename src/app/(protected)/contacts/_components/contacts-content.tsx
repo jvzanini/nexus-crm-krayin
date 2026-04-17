@@ -13,7 +13,7 @@ import {
 } from "@nexusai360/design-system";
 import { Button } from "@nexusai360/design-system";
 import { Input } from "@nexusai360/design-system";
-import { PageHeader } from "@nexusai360/design-system";
+import { PageHeader, IconTile } from "@nexusai360/design-system";
 import { CrmListShell } from "@nexusai360/patterns";
 import { EmptyState } from "@nexusai360/design-system";
 import {
@@ -377,6 +377,7 @@ export function ContactsContent({
     <CrmListShell
       title="Contatos"
       description={contactsCount}
+      icon={<IconTile icon={Users} color="emerald" />}
       breadcrumbs={[
         { label: "Dashboard", href: "/dashboard" },
         { label: "Contatos" },

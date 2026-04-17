@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  IconTile,
 } from "@nexusai360/design-system";
 import { CrmListShell } from "@nexusai360/patterns";
 import {
@@ -393,6 +394,7 @@ export function PipelineContent({
     <CrmListShell
       title="Pipeline"
       description="Visualização kanban das oportunidades por stage"
+      icon={<IconTile icon={LayoutGrid} color="violet" />}
       breadcrumbs={[
         { label: "Dashboard", href: "/dashboard" },
         { label: "Oportunidades", href: "/opportunities" },

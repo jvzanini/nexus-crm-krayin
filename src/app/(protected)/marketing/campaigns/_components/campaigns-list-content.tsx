@@ -12,6 +12,7 @@ import {
   TableRow,
   Button,
   PageHeader,
+  IconTile,
   EmptyState,
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@nexusai360/design-system";
+import { CrmListShell } from "@nexusai360/patterns";
 import { Megaphone, Plus, Eye, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -270,45 +272,42 @@ export function CampaignsListContent({
   }
 
   const count = campaigns.length;
+  const campaignsDesc = loading
+    ? "Carregando..."
+    : count === 0
+      ? "Nenhuma campanha cadastrada"
+      : count === 1
+        ? "1 campanha cadastrada"
+        : `${count} campanhas cadastradas`;
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-6"
+    <CrmListShell
+      title="Campanhas"
+      description={campaignsDesc}
+      icon={<IconTile icon={Megaphone} color="violet" />}
+      breadcrumbs={[
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Marketing" },
+        { label: "Campanhas" },
+      ]}
+      actions={
+        canManage ? (
+          <Button
+            onClick={() => router.push("/marketing/campaigns/new")}
+            className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
+          >
+            <Plus className="h-4 w-4" />
+            Nova campanha
+          </Button>
+        ) : null
+      }
     >
-      {/* Header */}
-      <motion.div variants={itemVariants}>
-        <PageHeader.Root>
-          <PageHeader.Row>
-            <PageHeader.Icon icon={Megaphone} color="violet" />
-            <PageHeader.Heading>
-              <PageHeader.Title>Campanhas</PageHeader.Title>
-              <PageHeader.Description>
-                {loading
-                  ? "Carregando..."
-                  : count === 0
-                    ? "Nenhuma campanha cadastrada"
-                    : count === 1
-                      ? "1 campanha cadastrada"
-                      : `${count} campanhas cadastradas`}
-              </PageHeader.Description>
-            </PageHeader.Heading>
-          </PageHeader.Row>
-          {canManage && (
-            <PageHeader.Actions>
-              <Button
-                onClick={() => router.push("/marketing/campaigns/new")}
-                className="gap-2 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer transition-all duration-200"
-              >
-                <Plus className="h-4 w-4" />
-                Nova campanha
-              </Button>
-            </PageHeader.Actions>
-          )}
-        </PageHeader.Root>
-      </motion.div>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
 
       {/* Filtros */}
       <motion.div variants={itemVariants}>
@@ -503,6 +502,7 @@ export function CampaignsListContent({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </motion.div>
+      </motion.div>
+    </CrmListShell>
   );
 }
