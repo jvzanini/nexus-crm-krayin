@@ -13,7 +13,7 @@
 | C-SUTIL-3 | Server Action args | **Contrato explícito:** args = `FormData` ou primitives/JSON-serializable. Closures via `.bind()` apenas com primitives. |
 | C-SUTIL-4 | `console.warn` em test é anti-pattern | `test.fails()` com allowlist + amarelo no reporter. |
 | C-SUTIL-5 | Preservation-smoke por commit não escala | **Preservation-smoke por FRENTE (5×), não por commit.** Checkpoint intra-frente = typecheck+build+vitest. |
-| C-SUTIL-6 | Rollback granular | **Política merge:** squash por frente; revert = revert squash. Commits intermediários ficam no histórico mas merge `main` é atomizado por frente. |
+| C-SUTIL-6 | Rollback granular | **Política:** commits granulares direto em `main` (prática atual do krayin); rollback = `git revert <sha>` por sub-commit. Cada sub-commit é typecheck+build+vitest verde isolado. Squash NÃO aplicado (alinhamento com plan v3 pós Review #2 plan item 13). |
 | C-SUTIL-7 | `*-schemas.ts` legacy solto | F4 começa com `rm` dos `*-schemas.ts` + merge conteúdo em `<entity>/schemas.ts`. |
 | C-SUTIL-8 | F5 hooks movidos afeta F4 imports | **Ordem:** F1 → F2 → **F5 → F4** → F3. Hooks movidos antes; F4 importa `@/hooks` final. |
 
@@ -172,7 +172,7 @@ Idêntico v1 §1.
 **Checkpoint intra-frente:** `typecheck` + `build` + `vitest`.
 **Checkpoint fim-de-frente:** + `playwright preservation-smoke` local (5× total ao longo das 5 frentes).
 
-**Política merge:** squash por frente ao dar `git push origin main`. Commits granulares ficam no histórico local mas merge `main` é atomizado (5 squash commits).
+**Política merge:** commits granulares direto em `main` (prática atual krayin). Rollback = `git revert <sha>` por sub-commit. Cada sub-commit verde isolado.
 
 **Mensagem commit pattern:** `refactor(fase-35): F<N>.<M> — <descrição>`.
 
