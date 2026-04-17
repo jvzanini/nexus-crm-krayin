@@ -10,6 +10,18 @@
 > **Fase 34 Parte A — Visual Parity blueprint (tag v0.2.0-patterns no nexus-blueprint):**
 > 4 patterns novos em `@nexusai360/patterns@0.2.0`: `CrmShell` (composição sobre `AppShell` do DS + mobile drawer + slots PT-BR + CSS vars `--topbar-height`/`--sidebar-*-width`), `CrmListShell` (consome `PageHeader` dentro de wrapper card `rounded-lg border bg-card`), `CrmDetailShell` (two-column sticky 394px), `CrmDashboardGrid` (main + side 378px com fallback 1col). 2 extensions additive: `PageShell` (topbar/collapsedSidebarWidth/tokens semânticos) + `PageHeader` (text-foreground/text-muted-foreground). 39 testes novos, 279 passed total no pacote patterns. `"use client"` apenas em `crm-shell.tsx`; `sideEffects: false`; `files: [dist, src]`; zero `gray-*` em patterns CRM. DTS build destravado (fix pré-existente em `notification-center` + `profile-menu`: removido `asChild` e `sideOffset` incompatíveis com `DropdownMenu` custom do `@nexusai360/ui`). Specs/plans triplo-revisados em `docs/superpowers/{specs,plans}/2026-04-16-fase-34-visual-parity-krayin-v*.md`.
 
+> **Fase 35 Cleanup — Organização consistência (2026-04-17):**
+> - ✅ F1: ambiguidade `lib/<name>.ts` + `lib/<name>/` resolvida em 3 pares (`audit-log`, `email`, `flags`). Arquivos soltos movidos para `<pasta>/wrapper.ts|resend-transport.ts|index.ts`. Public surface inalterada.
+> - ✅ F2: route group legacy `(app)/settings/data-transfer/actions.ts` movido para `(protected)/`. Pasta `(app)/` deletada.
+> - ✅ F5: `src/lib/hooks/` → `src/hooks/` (Next 15+ convention) + 39 tests normalizados em `__tests__/` por módulo + paths relativos ajustados.
+> - ✅ docs/ARCHITECTURE.md + docs/MIGRATION.md novos. Specs/plans triplo-revisados em `docs/superpowers/{specs,plans}/2026-04-17-organizacao-consistencia-v3.md`.
+> - ✅ Build `✓ Compiled 5.5s`. Vitest 823/823 verde pós cleanup.
+> - ⏳ **F4 pendente**: partição de 7 server-action files gigantes (activities 920L, leads 638L, products 599L, contacts 486L, custom-attributes 483L, opportunities 467L, marketing-campaigns 457L) em `<entity>/{queries,mutations,bulk,schemas,types}.ts` com barrel neutro. Spec/plan prontos.
+> - ⏳ **F3 pendente**: decomposição de 5 monolitos `_components/*-content.tsx` (products 1245L, leads 1057L, opportunities 1056L, tasks 997L, contacts 869L) em sub-arquivos <400L com context/useReducer + stub re-export.
+> - ⏳ **Z pendente**: `structural.test.ts` enforcement + `convention_code_structure.md` memory + deploy tag `fase-35-cleanup-deployed`.
+>
+> Executar pendências via `superpowers:executing-plans` apontando `docs/superpowers/plans/2026-04-17-organizacao-consistencia-v3.md` seções F4/F3/Z.
+
 > **Fase 34 Parte B — Expansão + IconTile slot (2026-04-17):**
 > - ✅ `@nexusai360/patterns@0.3.0` — `CrmListShell.icon?` slot opcional (additive); retrofit IconTile violet/emerald/amber nas 4 rotas da Parte A (leads Target, contacts Users, opps TrendingUp, pipeline LayoutGrid).
 > - ✅ **7 rotas novas envelopadas em `CrmListShell`:** `/products` (blue Package), `/tasks` (emerald CheckSquare), `/marketing/campaigns` (violet Megaphone), `/marketing/segments` (blue Layers), `/automation/workflows` (violet Workflow), `/settings/mailboxes` (blue Mail), `/settings/custom-attributes` (violet Sliders). **Total Fase 34:** 11 rotas com shell card canônico + breadcrumbs + IconTile.
