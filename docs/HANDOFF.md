@@ -10,20 +10,23 @@
 > **Fase 34 Parte A — Visual Parity blueprint (tag v0.2.0-patterns no nexus-blueprint):**
 > 4 patterns novos em `@nexusai360/patterns@0.2.0`: `CrmShell` (composição sobre `AppShell` do DS + mobile drawer + slots PT-BR + CSS vars `--topbar-height`/`--sidebar-*-width`), `CrmListShell` (consome `PageHeader` dentro de wrapper card `rounded-lg border bg-card`), `CrmDetailShell` (two-column sticky 394px), `CrmDashboardGrid` (main + side 378px com fallback 1col). 2 extensions additive: `PageShell` (topbar/collapsedSidebarWidth/tokens semânticos) + `PageHeader` (text-foreground/text-muted-foreground). 39 testes novos, 279 passed total no pacote patterns. `"use client"` apenas em `crm-shell.tsx`; `sideEffects: false`; `files: [dist, src]`; zero `gray-*` em patterns CRM. DTS build destravado (fix pré-existente em `notification-center` + `profile-menu`: removido `asChild` e `sideOffset` incompatíveis com `DropdownMenu` custom do `@nexusai360/ui`). Specs/plans triplo-revisados em `docs/superpowers/{specs,plans}/2026-04-16-fase-34-visual-parity-krayin-v*.md`.
 
-> **Fase 34 Parte A — progresso / pendências:**
-> - ✅ Publish GHCR `@nexusai360/patterns@0.2.0` entregue (workflow ajustado pra filtrar `pnpm --filter pkg build/test`, evita fail em icons pré-existente; CI tag `v0.2.0-patterns` verde em 1m39s).
-> - ✅ Krayin install via `file:./vendor-packages/nexusai360-patterns-0.2.0.tgz` + `transpilePackages` + checksum registrado (commit a5447f5).
-> - ✅ Memory `law_crm_shell_pattern` criada + indexada no `MEMORY.md` do krayin.
-> - ⏳ Wire-up nas páginas (alto risco de regressão em `leads-content.tsx` 1058L, `contacts-content.tsx`, etc — requer fase dedicada refatorando consumidor do `PageHeader` legado do DS pro novo pattern):
->   - `src/components/layout/shell-slots.tsx` (factories `buildSidebarSlots`/`buildTopbarSlots` extraindo do Sidebar atual).
->   - `src/app/(protected)/layout.tsx` consumindo `CrmShell` (substituindo Sidebar legado inline).
->   - 5 rotas envelopadas em `CrmListShell`/`CrmDashboardGrid`.
->   - 3 widgets dashboard novos (TasksTodayCard + UpcomingMeetingsCard + QuickActionsCard).
-> - ⏳ Testes E2E novos em `tests/e2e/golden-paths/`: `visual-parity.spec.ts` + `theme-cycler.spec.ts` + `preservation-smoke.spec.ts`.
-> - ⏳ Visual audit em `docs/visual-audit-krayin.md`.
-> - ⏳ Deploy prod + tag `phase-34-deployed`.
+> **Fase 34 Parte A — DEPLOYED (tag `phase-34-deployed`):**
+> - ✅ Publish GHCR `@nexusai360/patterns@0.2.0` (workflow ajustado pra filtrar `pnpm --filter pkg build/test`).
+> - ✅ Krayin install via vendor-packages (patterns@0.2.0 + ui@0.1.0) + `transpilePackages` + checksums (commit a5447f5).
+> - ✅ **4 rotas envelopadas em `CrmListShell`** (commit 6522a53): `/leads`, `/contacts`, `/opportunities`, `/opportunities/pipeline`. Header card `rounded-lg border bg-card` com breadcrumbs (Dashboard→módulo) + title + description (contagem live) + actions. PageHeader compound do DS substituído. 100% preservado: FilterBar, BulkActionBar, DataTable, motion 0.08, saved filters, command palette, empty state, loading skeleton, bulk delete/edit/assign/status, dnd-kit pipeline.
+> - ✅ **Dashboard compondo `CrmDashboardGrid`** (commit d4d2277): 3 cards main (FunnelCard + PipelineValueCard + TopOpportunitiesCard) + 3 widgets side novos (TasksTodayCard + UpcomingMeetingsCard + QuickActionsCard) via Suspense fallback=CardSkeleton no page.tsx. Main preservado: StatsCards + DashboardFilters + Pipeline chart + RecentActivity. Fix colateral: removido `export type` de `activities.ts` "use server" (Next 16 + Turbopack proíbe).
+> - ✅ Security overrides `protobufjs ^7.5.5` + `hono ^4.12.14` → zero critical (commit d4d5fc5).
+> - ✅ Visual audit em `docs/visual-audit-krayin.md` (commit 35beb7a).
+> - ✅ Memory `law_crm_shell_pattern` criada + indexada.
+> - ✅ Build Next 16 `✓ Compiled successfully in 5.4s`. Vitest 823/823 verde. Security CI verde. Build+Push CI verde.
+> - ✅ Smoke prod: `/api/health` 200, `/api/ready` 200, `/login` 200, `/leads /opportunities/pipeline` 307 (redirect login).
 >
-> Plan detalhado Tasks 13-34 disponível em `docs/superpowers/plans/2026-04-16-fase-34-visual-parity-krayin-v3.md`. Execução recomendada via `superpowers:executing-plans` em sessão dedicada — cada rota é uma mudança pontual validada contra `preservation-smoke.spec.ts`.
+> **Parte B (pendências — fase dedicada):**
+> - ⏳ Wire-up `CrmShell` no `(protected)/layout.tsx` substituindo Sidebar legado (220L — risco alto; requer factories `buildSidebarSlots`/`buildTopbarSlots` + preservation-smoke.spec.ts rodando entre commits).
+> - ⏳ E2E novos em `tests/e2e/golden-paths/`: `visual-parity.spec.ts` + `theme-cycler.spec.ts` + `preservation-smoke.spec.ts`.
+> - ⏳ Port widgets dashboard Krayin original (Revenue/OverAll/TotalLeads/TopProducts/TopPersons) — opt-in se quiser 1:1 com Krayin.
+> - ⏳ Kanban leads (Opção L) — drag + server action de move.
+> - ⏳ IconTile violet nos headers `CrmListShell` — adicionar slot `icon?` no pattern.
 
 > **Fase 32 — Filtros URL em products/tasks/campaigns/segments/workflows (commits 33f0037..953b134):** fecha opção G do HANDOFF. Estende padrão canônico da Fase 24 (URL-based filters) para os 5 módulos restantes com bulk delete já entregue. Novo hook `useDebouncedValue` (300ms) compartilhado + guard `didMount` em useEffect de sync URL (não dispara `router.replace` no primeiro render — page SSR já entregou dados). 5 schemas Zod (`<module>-schemas.ts`, sem "use server") com `safeParse` que degrada graciosamente URL adulterada. Tasks: novo `listTasks` com gating `assigneeScope=all` via `requireCompanyRole(manager)` + graceful clamp+`logger.warn` para não-manager; `listMyTasks` vira wrapper. Products: `listDistinctCategories()` novo. 5 novos test files Vitest (+30 casos → 706). E2E `filters-bulk.spec.ts` estendido com 5 cases (URL assertion padrão). Reviews: spec-reviewer + code-quality-reviewer por grupo (skill `subagent-driven-development`). 3 fixes pós-review aplicados (useCallback loadProducts, `Prisma.ActivityWhereInput` typing, guard didMount transversal). Docs: `docs/superpowers/{specs,plans}/2026-04-15-fase-32-filtros-url-5-modulos-v3.md`.
 
